@@ -1,0 +1,52 @@
+{
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "role": "Role",
+    "login": "Sign in",
+    "clear": "Clear",
+    "user_required": "Username is required for user login",
+    "admin_invalid": "Invalid admin credentials"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "buckets": "Buckets",
+  "buckets_desc": "Buckets content and management",
+    "buckets_add": "Add bucket",
+    "websites": "Websites",
+  "websites_desc": "Websites content and management",
+    "apps": "Applications Keys",
+  "apps_desc": "Keys and user management",
+    "adminTokens": "Admin tokens",
+  "adminTokens_desc": "Administration tokens management",
+    "nodes": "Nodes",
+  "nodes_desc": "List and manage nodes",
+    "blocks": "Blocks",
+  "blocks_desc": "Blocks overview",
+    "workers": "Workers",
+  "workers_desc": "Workers and tasks",
+    "health": "Health",
+  "health_desc": "System health status",
+    "cluster": "Cluster Layout"
+  ,"cluster_desc": "Cluster layout and topology"
+  }
+
+  ,"common": {
+    "cancel": "Cancel",
+    "add": "Add"
+  }
+
+  ,"buckets": {
+    "col": {
+      "arn": "ARN",
+      "region": "Region",
+      "creationDate": "Creation date",
+      "name": "Name"
+    },
+    "empty": "No buckets",
+    "modal": { "title": "Add a bucket" },
+    "form": { "arn": "ARN", "region": "Region", "name": "Name" },
+    "arn_tooltip": "ARN (Amazon Resource Name): unique identifier for the bucket"
+  }
+}
