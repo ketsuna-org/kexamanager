@@ -23,5 +23,24 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      // Increase the warning limit slightly and split large vendor chunks.
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          // Recommended manualChunks to split large dependencies into separate files
+          manualChunks(id: string) {
+            if (id.includes('node_modules')) {
+                if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) return 'react-vendor'
+                if (id.includes('node_modules/@mui/icons-material')) return 'mui-icons'
+                if (id.includes('node_modules/@mui')) return 'mui'
+                if (id.includes('node_modules/@emotion')) return 'emotion'
+                if (id.includes('node_modules/i18next') || id.includes('node_modules/react-i18next')) return 'i18n'
+                return 'vendor'
+              }
+          }
+        }
+      }
+    }
   }
 })

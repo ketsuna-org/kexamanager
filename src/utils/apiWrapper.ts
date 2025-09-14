@@ -1,5 +1,20 @@
 import type { components, paths } from "../types/openapi";
 import { adminGet, adminPost } from "./adminClient";
+/**
+ * {
+    "code": "InvalidRequest",
+    "message": "Bad request: Invalid JSON: premature end of input at line 1 column 46",
+    "region": "garage",
+    "path": "/v2/UpdateAdminToken"
+}
+ */
+export type ApiError = {
+  message: string,
+  code: string,
+  region: string,
+  path: string,
+}
+
 // --- Health / Check ---
 function CheckDomain(domain: string): Promise<null> {
   return adminGet<null>(`/check/${domain}`);

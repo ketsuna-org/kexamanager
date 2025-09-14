@@ -173,10 +173,6 @@ function App() {
                 <ListItemIcon><HealthAndSafetyIcon /></ListItemIcon>
                 <ListItemText primary={t('dashboard.health')} />
               </ListItemButton>
-              <ListItemButton selected={tab==='cluster'} onClick={() => { setTab('cluster'); setMobileOpen(false); }}>
-                <ListItemIcon><AccountTreeIcon /></ListItemIcon>
-                <ListItemText primary={t('dashboard.cluster')} />
-              </ListItemButton>
             </List>
           </Drawer>
 
