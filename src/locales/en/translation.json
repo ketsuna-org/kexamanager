@@ -8,6 +8,14 @@
     "clear": "Clear",
     "user_required": "Username is required for user login",
     "admin_invalid": "Invalid admin credentials"
+    ,"errorEmptyToken": "Token cannot be empty"
+    ,"errorUnknown": "An unknown error occurred"
+    ,"instructions": "Please enter your access token to sign in to the management interface."
+    ,"tokenLabel": "Access token"
+    ,"tokenPlaceholder": "Enter your token here"
+    ,"loading": "Signing in..."
+    ,"submitButton": "Sign in"
+    ,"clearButton": "Clear"
   },
   "dashboard": {
     "title": "Dashboard",

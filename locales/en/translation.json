@@ -1,9 +1,35 @@
 {
+  "login": {
+    "title": "Sign in",
+    "username": "Username",
+    "password": "Password",
+    "role": "Role",
+    "login": "Sign in",
+    "clear": "Clear",
+    "user_required": "Username is required for user login",
+    "admin_invalid": "Invalid admin credentials"
+  },
   "dashboard": {
     "title": "Kexa Manager",
     "buckets": "Buckets",
     "buckets_desc": "List of buckets",
-    "buckets_add": "Add bucket"
+    "buckets_add": "Add bucket",
+    "websites": "Websites",
+    "websites_desc": "Websites content and management",
+    "apps": "Applications Keys",
+    "apps_desc": "Keys and user management",
+    "adminTokens": "Admin tokens",
+    "adminTokens_desc": "Administration tokens management",
+    "nodes": "Nodes",
+    "nodes_desc": "List and manage nodes",
+    "blocks": "Blocks",
+    "blocks_desc": "Blocks overview",
+    "workers": "Workers",
+    "workers_desc": "Workers and tasks",
+    "health": "Health",
+    "health_desc": "System health status",
+    "cluster": "Cluster Layout",
+    "cluster_desc": "Cluster layout and topology"
   },
   "common": {
     "cancel": "Cancel",

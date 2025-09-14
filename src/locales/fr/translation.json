@@ -8,6 +8,14 @@
     "clear": "Effacer",
     "user_required": "Le nom d'utilisateur est requis pour se connecter en tant qu'utilisateur",
     "admin_invalid": "Identifiants admin incorrects"
+    ,"errorEmptyToken": "Le token ne peut pas être vide"
+    ,"errorUnknown": "Une erreur inconnue est survenue"
+    ,"instructions": "Veuillez entrer votre token d'accès pour vous connecter à l'interface de gestion."
+    ,"tokenLabel": "Token d'accès"
+    ,"tokenPlaceholder": "Entrez votre token ici"
+    ,"loading": "Connexion..."
+    ,"submitButton": "Se connecter"
+    ,"clearButton": "Effacer"
   },
   "dashboard": {
     "title": "Tableau de bord",
