@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
@@ -15,12 +15,13 @@ import TableContainer from '@mui/material/TableContainer'
 import TableHead from '@mui/material/TableHead'
 import TableRow from '@mui/material/TableRow'
 import Paper from '@mui/material/Paper'
+import { ListBuckets } from '../../utils/apiWrapper'
 
 type Bucket = {
-  BucketArn: string
-  BucketRegion: string
-  CreationDate: string
-  Name: string
+  BucketArn?: string
+  BucketRegion?: string
+  CreationDate?: string
+  Name?: string
 }
 
 export default function Buckets(){
@@ -36,6 +37,18 @@ export default function Buckets(){
     setBuckets(prev => [b, ...prev])
     setOpen(false)
   }
+
+  useEffect(() => {
+    let mounted = true
+    ListBuckets()
+      .then((res) => {
+        if (!mounted) return
+        const maybeData = (res as unknown) as { data?: unknown }
+        if (Array.isArray(maybeData.data)) setBuckets(maybeData.data as Bucket[])
+      })
+      .catch(() => {})
+    return () => { mounted = false }
+  }, [])
 
   return (
     <Box>
@@ -71,7 +84,7 @@ export default function Buckets(){
                   </Tooltip>
                 </TableCell>
                 <TableCell>{b.BucketRegion}</TableCell>
-                <TableCell>{new Date(b.CreationDate).toLocaleString()}</TableCell>
+                <TableCell>{b.CreationDate ? new Date(b.CreationDate).toLocaleString() : ''}</TableCell>
                 <TableCell>{b.Name}</TableCell>
               </TableRow>
             ))}

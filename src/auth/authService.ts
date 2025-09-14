@@ -3,8 +3,8 @@
  * Ce fichier montre comment adapter le Login existant pour utiliser l'API Admin
  */
 
-import { adminPost, setAuthToken, clearAuthToken } from '../utils/adminApi'
-import type { ApiError } from '../utils/adminApi'
+import { adminPost, setAuthToken, clearAuthToken } from '../utils/adminClient'
+import type { ApiError } from '../utils/adminClient'
 
 // Types pour l'authentification
 interface LoginRequest {

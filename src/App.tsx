@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 // vite logo removed
 import Login from './pages/Login'
 import Buckets from './pages/dashboard/Buckets'
-import Websites from './pages/dashboard/Websites'
 import ApplicationsKeys from './pages/dashboard/ApplicationsKeys'
 import AdminTokens from './pages/dashboard/AdminTokens'
 import Nodes from './pages/dashboard/Nodes'
@@ -188,10 +187,6 @@ function App() {
                 <ListItemIcon><StorageIcon /></ListItemIcon>
                 <ListItemText primary={t('dashboard.buckets')} />
               </ListItemButton>
-              <ListItemButton selected={tab==='websites'} onClick={() => setTab('websites')}>
-                <ListItemIcon><LanguageIcon /></ListItemIcon>
-                <ListItemText primary={t('dashboard.websites')} />
-              </ListItemButton>
               <ListItemButton selected={tab==='apps'} onClick={() => setTab('apps')}>
                 <ListItemIcon><VpnKeyIcon /></ListItemIcon>
                 <ListItemText primary={t('dashboard.apps')} />
@@ -226,7 +221,6 @@ function App() {
 
           <Box component="main" sx={{flex:1, p:3, ml: { md: '240px', xs: 0 }, mt: { xs: '64px', md: 0 } }}>
             {tab === 'buckets' && <Buckets />}
-            {tab === 'websites' && <Websites />}
             {tab === 'apps' && <ApplicationsKeys />}
             {tab === 'adminTokens' && <AdminTokens />}
             {tab === 'nodes' && <Nodes />}

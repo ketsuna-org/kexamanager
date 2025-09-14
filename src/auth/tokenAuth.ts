@@ -3,16 +3,14 @@
  * Utilise l'endpoint /v2/GetClusterHealth pour valider les tokens
  */
 
-import { adminGet, setAuthToken, clearAuthToken } from '../utils/adminApi'
-import type { ApiError } from '../utils/adminApi'
+import { adminGet, setAuthToken, clearAuthToken } from '../utils/adminClient'
+import type { ApiError } from '../utils/adminClient'
+import { GetClusterHealth } from '../utils/apiWrapper'
+import type { components } from '../types/openapi'
 
 // Type pour la réponse de l'endpoint de santé du cluster
-export interface ClusterHealthResponse {
-  status: string
-  timestamp: string
-  // Ajouter d'autres propriétés selon la réponse réelle de l'API
-  [key: string]: unknown
-}
+// Utiliser le type généré par OpenAPI pour la réponse de santé du cluster
+export type ClusterHealthResponse = components['schemas']['GetClusterHealthResponse']
 
 /**
  * Valide un token d'authentification en appelant l'endpoint GetClusterHealth
@@ -29,7 +27,7 @@ export async function validateToken(token: string): Promise<ClusterHealthRespons
     setAuthToken(token)
 
     // Tester le token en appelant l'endpoint de santé du cluster
-    const response = await adminGet<ClusterHealthResponse>('/v2/GetClusterHealth')
+    const response = await GetClusterHealth()
 
     // Si on arrive ici, le token est valide
     return response
