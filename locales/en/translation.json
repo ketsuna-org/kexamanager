@@ -1,0 +1,30 @@
+{
+  "dashboard": {
+    "title": "Kexa Manager",
+    "buckets": "Buckets",
+    "buckets_desc": "List of buckets",
+    "buckets_add": "Add bucket"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "add": "Add"
+  },
+  "buckets": {
+    "col": {
+      "arn": "ARN",
+      "region": "Region",
+      "creationDate": "Creation date",
+      "name": "Name"
+    },
+    "empty": "No buckets",
+    "modal": {
+      "title": "Add a bucket"
+    },
+    "form": {
+      "arn": "ARN",
+      "region": "Region",
+      "name": "Name"
+    },
+    "arn_tooltip": "ARN (Amazon Resource Name): unique identifier for the bucket"
+  }
+}
