@@ -43,11 +43,11 @@ import i18n from './i18n'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import Divider from '@mui/material/Divider'
+import { logout as authLogout, isLoggedIn } from './auth/tokenAuth'
 
 function App() {
   // example counter removed
   const [authed, setAuthed] = useState(false)
-  const [role, setRole] = useState<'admin' | 'user' | null>(null)
   const [tab, setTab] = useState<string>('buckets')
   const [dark, setDark] = useState<boolean>(() => localStorage.getItem('kexamanager:dark') === '1')
 
@@ -86,34 +86,20 @@ function App() {
   })
 
   useEffect(() => {
-    const v = localStorage.getItem('kexamanager:auth')
-  setAuthed(Boolean(v))
-  const r = localStorage.getItem('kexamanager:role')
-  if (r === 'admin' || r === 'user') setRole(r)
+    const authenticated = isLoggedIn()
+    setAuthed(authenticated)
   }, [])
 
-  // keep tab in sync with role when role changes
-  useEffect(() => {
-    if (role === 'admin' || role === 'user') setTab(role)
-  }, [role])
-
-  function onAuth(r: 'admin' | 'user') {
+  function onAuth() {
     setAuthed(true)
-    setRole(r)
-  }
-
-  function onAuthWithUser(r: 'admin' | 'user') {
-    onAuth(r)
   }
 
   function logout() {
-    localStorage.removeItem('kexamanager:auth')
-    localStorage.removeItem('kexamanager:role')
+    authLogout() // Utilise la fonction de déconnexion du service d'authentification
     setAuthed(false)
-    setRole(null)
   }
 
-  if (!authed) return <Login onAuth={onAuthWithUser} />
+  if (!authed) return <Login onAuth={onAuth} />
 
   return (
     <ThemeProvider theme={theme}>
