@@ -62,6 +62,17 @@
     "cluster_skip_dead_nodes": "Ignorer les noeuds morts",
     "cluster_skip_nodes_placeholder": "node1,node2 ou tableau JSON"
   ,
+  "logout": "Se déconnecter",
+  "nodes_table": {
+    "node_id": "ID du noeud",
+    "garage_version": "Version Garage",
+    "rust_version": "Version Rust",
+    "db_engine": "Moteur DB",
+    "garage_features": "Fonctionnalités Garage",
+    "stats": "Statistiques (freeform)",
+    "error": "Erreur"
+  },
+  "no_nodes": "Aucun noeud retourné",
   "cluster_update_success": "Disposition mise à jour",
   "cluster_apply_success": "Disposition appliquée",
   "cluster_revert_success": "Disposition restaurée",
@@ -76,6 +87,22 @@
   "add_role_change": "Ajouter le changement de rôle",
   "cluster_apply_confirm_title": "Appliquer la disposition mise en attente ?",
   "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?"
+  },
+  "blocks": {
+    "col": {
+      "node": "Noeud",
+      "error_count": "Nombre d'erreurs"
+    },
+    "details": "Erreurs de blocs",
+    "empty": "Aucune erreur de bloc"
+  },
+  "workers": {
+    "col": {
+      "name": "Nom",
+      "count": "Workers"
+    },
+    "details": "Liste des workers",
+    "empty": "Aucun worker"
   },
   "adminTokens": {
     "created": "Créé",
@@ -174,5 +201,36 @@
     "loading": "Chargement...",
     "delete_confirm_title": "Confirmer la suppression du bucket",
     "delete_confirm_desc": "Êtes-vous sûr de vouloir supprimer ce bucket ? Cette action est irréversible et supprimera toutes les données associées."
+  }
+  ,
+  "keys": {
+    "col": {
+      "name": "Nom",
+      "expiration": "Expiration"
+    },
+    "import": {
+      "label": "Importer une clé",
+      "title": "Importer une clé",
+      "accessKeyId": "Access Key ID",
+      "secretAccessKey": "Secret Access Key"
+    },
+    "create_expiration_label": "Expiration (RFC3339)",
+    "id_label": "ID",
+    "created_label": "Créé",
+    "expiration_label": "Expiration",
+    "expired_label": "Expiré",
+    "permissions_label": "Permissions",
+    "buckets_label": "Buckets",
+    "show_secret": "Afficher la clé secrète",
+    "hide_secret": "Cacher",
+    "no_secret": "(Aucune clé secrète disponible)",
+    "created_secret_title": "Clé créée",
+    "created_secret_msg": "Ceci est la seule fois que la clé secrète sera affichée, veuillez la stocker en lieu sûr.",
+    "delete_confirm": "Confirmer la suppression ?",
+    "perm": {
+      "createBucket": "Créer un bucket"
+    },
+    "empty": "Aucune clé",
+    "no_permissions": "Aucune permission"
   }
 }

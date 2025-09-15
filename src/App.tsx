@@ -13,7 +13,9 @@ import { createTheme, ThemeProvider } from '@mui/material/styles'
 import Switch from '@mui/material/Switch'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Box from '@mui/material/Box'
-import Button from '@mui/material/Button'
+// Button import kept for possible future use in toolbar; if unused, lint will flag it.
+// Button was previously used for logout in the App Bar but moved to the Drawer.
+// Removed unused import to satisfy linter.
 import Container from '@mui/material/Container'
 import Typography from '@mui/material/Typography'
 // Tabs/Tab previously used; replaced by Drawer-based navigation
@@ -37,6 +39,7 @@ import AppsIcon from '@mui/icons-material/Apps'
 import BuildIcon from '@mui/icons-material/Build'
 import HealthAndSafetyIcon from '@mui/icons-material/HealthAndSafety'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
+import LogoutIcon from '@mui/icons-material/Logout'
 import { useTranslation } from 'react-i18next'
 import i18n from './i18n'
 import Select from '@mui/material/Select'
@@ -107,13 +110,11 @@ function App() {
           <Box sx={{display:'flex',alignItems:'center',gap:2}}>
               <FormControlLabel control={<Switch checked={dark} onChange={(e) => { setDark(e.target.checked); localStorage.setItem('kexamanager:dark', e.target.checked ? '1':'0') }} />} label="Dark" />
               <Select value={lang} size="small" onChange={(e) => setLang(String(e.target.value))}>
-                <MenuItem value="fr">FR</MenuItem>
-                <MenuItem value="en">EN</MenuItem>
+                <MenuItem value="fr">Français</MenuItem>
+                <MenuItem value="en">English</MenuItem>
               </Select>
           </Box>
-          <Box>
-              <Button variant="outlined" onClick={logout}>Se déconnecter</Button>
-          </Box>
+      {/* logout removed from App Bar - moved into Drawer */}
         </Box>
 
   <Typography variant="h5" gutterBottom>{t('dashboard.title')}</Typography>
@@ -173,6 +174,11 @@ function App() {
                 <ListItemIcon><HealthAndSafetyIcon /></ListItemIcon>
                 <ListItemText primary={t('dashboard.health')} />
               </ListItemButton>
+              <Divider sx={{ my: 1 }} />
+              <ListItemButton onClick={() => { logout(); setMobileOpen(false); }}>
+                <ListItemIcon><LogoutIcon /></ListItemIcon>
+                <ListItemText primary={t('dashboard.logout', { defaultValue: 'Se déconnecter' })} />
+              </ListItemButton>
             </List>
           </Drawer>
 
@@ -212,10 +218,15 @@ function App() {
                 <ListItemIcon><AccountTreeIcon /></ListItemIcon>
                 <ListItemText primary={t('dashboard.cluster')} />
               </ListItemButton>
+              <Divider sx={{ my: 1 }} />
+              <ListItemButton onClick={() => { logout(); }}>
+                <ListItemIcon><LogoutIcon /></ListItemIcon>
+                <ListItemText primary={t('dashboard.logout', { defaultValue: 'Se déconnecter' })} />
+              </ListItemButton>
             </List>
           </Drawer>
 
-          <Box component="main" sx={{flex:1, p:3, ml: { md: '240px', xs: 0 }, mt: { xs: '64px', md: 0 } }}>
+          <Box component="main" sx={{flex:1, p:1, ml: { md: '240px', xs: 0 }, mt: { xs: '64px', md: 0 } }}>
             {tab === 'buckets' && <Buckets />}
             {tab === 'apps' && <ApplicationsKeys />}
             {tab === 'adminTokens' && <AdminTokens />}
