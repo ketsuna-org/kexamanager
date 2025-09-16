@@ -80,7 +80,6 @@ docker run -d \
 #### Docker Compose example
 Create a `docker-compose.yml`:
 ```yaml
-version: '3.8'
 services:
   kexamanager:
     image: ghcr.io/ketsuna-org/kexamanager:latest
@@ -196,7 +195,6 @@ docker run -d \
 #### Exemple Docker Compose
 Créez un fichier `docker-compose.yml` :
 ```yaml
-version: '3.8'
 services:
   kexamanager:
     image: ghcr.io/ketsuna-org/kexamanager:latest
