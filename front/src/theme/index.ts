@@ -90,9 +90,10 @@ const lightTheme = createTheme({
     palette: {
         ...baseTheme.palette,
         mode: "light",
-        // Couleurs avec contraste AA sur fond blanc
-        primary: { main: "#1976d2", dark: "#115293", light: "#4791db", contrastText: "#ffffff" },
-        secondary: { main: "#9c27b0", dark: "#6d1b7b", light: "#af52bf", contrastText: "#ffffff" },
+    // Couleurs avec contraste AA sur fond blanc
+    // Primary passé au violet
+    primary: { main: "#9c27b0", dark: "#6d1b7b", light: "#af52bf", contrastText: "#ffffff" },
+    secondary: { main: "#673ab7", dark: "#4527a0", light: "#9575cd", contrastText: "#ffffff" },
         success: { main: "#2e7d32", dark: "#1b5e20", light: "#60ad5e", contrastText: "#ffffff" },
         warning: { main: "#ed6c02", dark: "#b53d00", light: "#ff9800", contrastText: "#000000" },
         error: { main: "#d32f2f", dark: "#9a0007", light: "#ef5350", contrastText: "#ffffff" },
@@ -242,6 +243,14 @@ const lightTheme = createTheme({
                 },
             },
         },
+        MuiSvgIcon: {
+            styleOverrides: {
+                root: {
+                    // Icônes noires par défaut en thème clair
+                    color: "#111827",
+                },
+            },
+        },
     },
 })
 
@@ -250,9 +259,10 @@ const darkTheme = createTheme({
     palette: {
         ...baseTheme.palette,
         mode: "dark",
-        // Palette adaptée au mode sombre avec contrastes suffisants
-        primary: { main: "#90caf9", dark: "#42a5f5", light: "#e3f2fd", contrastText: "#0a0a0a" },
-        secondary: { main: "#ce93d8", dark: "#ab47bc", light: "#f3e5f5", contrastText: "#0a0a0a" },
+    // Palette adaptée au mode sombre avec contrastes suffisants
+    // Primary passé au violet (teinte plus claire pour contraste)
+    primary: { main: "#ce93d8", dark: "#ab47bc", light: "#f3e5f5", contrastText: "#0a0a0a" },
+    secondary: { main: "#b39ddb", dark: "#7e57c2", light: "#e8eaf6", contrastText: "#0a0a0a" },
         success: { main: "#81c784", dark: "#66bb6a", light: "#e8f5e9", contrastText: "#0a0a0a" },
         warning: { main: "#ffb74d", dark: "#fb8c00", light: "#fff3e0", contrastText: "#0a0a0a" },
         error: { main: "#ef5350", dark: "#e53935", light: "#ffebee", contrastText: "#0a0a0a" },
@@ -399,6 +409,14 @@ const darkTheme = createTheme({
                         width: "auto",
                         maxWidth: "600px",
                     },
+                },
+            },
+        },
+        MuiSvgIcon: {
+            styleOverrides: {
+                root: {
+                    // Icônes blanches par défaut en thème sombre
+                    color: "#ffffff",
                 },
             },
         },

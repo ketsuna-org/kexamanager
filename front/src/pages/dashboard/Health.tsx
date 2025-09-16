@@ -21,6 +21,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import Snackbar from "@mui/material/Snackbar"
 import Alert from "@mui/material/Alert"
 import MetricPaper from "./components/MetricPaper"
+import { alpha } from "@mui/material/styles"
 import RawCollapse from "./components/RawCollapse"
 
 type ClusterHealth = components["schemas"]["GetClusterHealthResponse"]
@@ -121,7 +122,17 @@ export default function Health() {
                             icon={health.status === "healthy" ? <CheckCircleIcon /> : health.status === "degraded" ? <ReportProblemIcon /> : <CancelIcon />}
                             label={health.status}
                             color={chipColor(health.status)}
-                            sx={{ textTransform: "capitalize", py: 0.5 }}
+                            sx={(theme) => ({
+                                textTransform: "capitalize",
+                                py: 0.5,
+                                ...(health.status === "healthy"
+                                    ? {
+                                          bgcolor: alpha(theme.palette.success.main, 0.15),
+                                          color: theme.palette.success.dark,
+                                          "& .MuiChip-icon": { color: theme.palette.success.main },
+                                      }
+                                    : {}),
+                            })}
                         />
                         <Box sx={{ flex: 1 }} />
                         <RawCollapse data={health} defaultOpen={false} />

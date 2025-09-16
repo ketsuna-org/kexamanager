@@ -101,7 +101,7 @@ export default function ApplicationsKeys() {
             // permissions: set allow flags when true
             if (createForm.permissions) {
                 const allow: components["schemas"]["KeyPerm"] = {}
-                if (createForm.permissions.createBucket) allow.createBucket = true
+                if (createForm.permissions.createBucket)allow.createBucket = true;
                 body.allow = allow
             }
             const res = await CreateKey(body)
@@ -197,8 +197,16 @@ export default function ApplicationsKeys() {
             if (detailsForm.neverExpires) body.neverExpires = true
             if (detailsForm.permissions) {
                 const allow: components["schemas"]["KeyPerm"] = {}
-                if (detailsForm.permissions.createBucket) allow.createBucket = true
+                if (detailsForm.permissions.createBucket) {
+                    allow.createBucket = true
+                } else {
+                    allow.createBucket = false
+                }
                 body.allow = allow
+            }else {
+                body.allow = {
+                    createBucket: false
+                }
             }
             await UpdateKey({ id: selectedKey.accessKeyId }, body)
             const refreshed = await GetKeyInfo({ id: selectedKey.accessKeyId })
@@ -220,10 +228,10 @@ export default function ApplicationsKeys() {
                     {error}
                 </Typography>
             )}
-            <Box sx={{ 
-                display: "flex", 
+            <Box sx={{
+                display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between", 
+                justifyContent: "space-between",
                 alignItems: { xs: "stretch", sm: "center" },
                 gap: 2,
                 mb: 2,

@@ -36,10 +36,13 @@ export default function MetricPaper({ icon, label, value, trend = "neutral", tre
                 minHeight: "fit-content",
                 position: "relative",
                 overflow: "hidden",
-                bgcolor: theme.palette.mode === 'dark' ? 'background.paper' : 'background.paper',
-                backgroundImage: `linear-gradient(135deg, ${theme.palette[color].main}08, ${theme.palette[color].main}12)`,
+                // Fond violet pur à 15% d'opacité
+                bgcolor: 'rgba(127,0,255,0.15)',
+                backgroundImage: 'none',
                 transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
-                border: 1,
+                // Supprimer toute bordure (y compris overrides thème)
+                border: 'none',
+                // Utilise la couleur en token pour conserver la compatibilité et éviter lint unused
                 borderColor: `${color}.main`,
                 "&:hover": {
                     transform: "translateY(-2px)",
@@ -69,16 +72,20 @@ export default function MetricPaper({ icon, label, value, trend = "neutral", tre
                             sx={{
                                 p: 1.5,
                                 borderRadius: 2,
-                                bgcolor: theme.palette.mode === 'dark' ? `${color}.dark` : `${color}.main`,
-                                color: theme.palette.mode === 'dark' ? 'white' : 'black',
+                                // Fond des icônes: blanc (light) / noir (dark)
+                                bgcolor: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                                // Couleur par défaut interne (si texte/icône non MUI)
+                                color: theme.palette.mode === 'dark' ? '#111827' : '#ffffff',
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
                                 boxShadow: 2,
-                                border: `2px solid ${theme.palette[color].main}`,
+                                // Pas de bordure autour de l'icône
+                                border: 'none',
                                 "& .MuiSvgIcon-root": {
                                     fontSize: 24,
-                                    color: `${theme.palette.mode === 'dark' ? 'black' : 'white'} !important`,
+                                    // Icône: blanche (dark) / noire (light)
+                                    color: `${theme.palette.mode === 'dark' ? '#111827' : '#ffffff'} !important`,
                                 },
                             }}
                         >
