@@ -29,7 +29,10 @@ RUN go mod download
 
 # Copier le code source et construire le binaire
 COPY api/ ./
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags='-s -w' -o /out/proxy ./cmd/proxy
+# Utiliser TARGETARCH et TARGETOS de BuildKit pour le build multi-arch
+ARG TARGETOS
+ARG TARGETARCH
+RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags='-s -w' -o /out/proxy ./cmd/proxy
 
 # Stage 3: Image finale
 FROM alpine:3.20
