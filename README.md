@@ -61,6 +61,52 @@ npm run build
 ```
 Artifacts are generated in `front/dist`. Serve this directory with your web server of choice and configure a proxy (Nginx, Caddy, Traefik, or the Go proxy) to route `"/api/*"` to your backends.
 
+### Docker deployment (recommended)
+
+#### Quick start with Docker
+```bash
+# Pull the latest multi-arch image (supports ARM64/AMD64)
+docker pull ghcr.io/ketsuna-org/kexamanager:latest
+
+# Run with your Garage configuration
+docker run -d \
+  --name kexamanager \
+  -p 7400:7400 \
+  -e VITE_API_ADMIN_URL="https://your-garage.example.com/admin" \
+  -e VITE_API_PUBLIC_URL="https://your-garage.example.com/public" \
+  ghcr.io/ketsuna-org/kexamanager:latest
+```
+
+#### Docker Compose example
+Create a `docker-compose.yml`:
+```yaml
+version: '3.8'
+services:
+  kexamanager:
+    image: ghcr.io/ketsuna-org/kexamanager:latest
+    ports:
+      - "7400:7400"
+    environment:
+      - VITE_API_ADMIN_URL=https://your-garage.example.com/admin
+      - VITE_API_PUBLIC_URL=https://your-garage.example.com/public
+    restart: unless-stopped
+```
+
+Then run:
+```bash
+docker-compose up -d
+```
+
+#### Available Docker tags
+- `ghcr.io/ketsuna-org/kexamanager:latest` — Latest stable release
+- `ghcr.io/ketsuna-org/kexamanager:v1.0.1` — Specific version
+
+#### Supported architectures
+- `linux/amd64` (Intel/AMD x64)
+- `linux/arm64` (ARM64, including Raspberry Pi 4/5)
+
+Access the application at `http://localhost:7400` after startup.
+
 ### Troubleshooting
 - Ensure `VITE_API_ADMIN_URL` and/or `VITE_API_PUBLIC_URL` point to valid `http/https` endpoints.
 - For self-signed certificates, the Go proxy already skips TLS verification (dev only).
@@ -130,6 +176,52 @@ npm install
 npm run build
 ```
 Le build est produit dans `front/dist`. Servez ce répertoire avec votre serveur web et configurez un proxy (Nginx, Caddy, Traefik, ou le proxy Go) pour router `"/api/*"` vers vos backends.
+
+### Déploiement Docker (recommandé)
+
+#### Démarrage rapide avec Docker
+```bash
+# Télécharger l'image multi-arch (supporte ARM64/AMD64)
+docker pull ghcr.io/ketsuna-org/kexamanager:latest
+
+# Lancer avec votre configuration Garage
+docker run -d \
+  --name kexamanager \
+  -p 7400:7400 \
+  -e VITE_API_ADMIN_URL="https://votre-garage.exemple.com/admin" \
+  -e VITE_API_PUBLIC_URL="https://votre-garage.exemple.com/public" \
+  ghcr.io/ketsuna-org/kexamanager:latest
+```
+
+#### Exemple Docker Compose
+Créez un fichier `docker-compose.yml` :
+```yaml
+version: '3.8'
+services:
+  kexamanager:
+    image: ghcr.io/ketsuna-org/kexamanager:latest
+    ports:
+      - "7400:7400"
+    environment:
+      - VITE_API_ADMIN_URL=https://votre-garage.exemple.com/admin
+      - VITE_API_PUBLIC_URL=https://votre-garage.exemple.com/public
+    restart: unless-stopped
+```
+
+Puis lancez :
+```bash
+docker-compose up -d
+```
+
+#### Tags Docker disponibles
+- `ghcr.io/ketsuna-org/kexamanager:latest` — Dernière version stable
+- `ghcr.io/ketsuna-org/kexamanager:v1.0.1` — Version spécifique
+
+#### Architectures supportées
+- `linux/amd64` (Intel/AMD x64)
+- `linux/arm64` (ARM64, incluant Raspberry Pi 4/5)
+
+Accédez à l'application sur `http://localhost:7400` après le démarrage.
 
 ### Dépannage
 - Vérifiez que `VITE_API_ADMIN_URL` et/ou `VITE_API_PUBLIC_URL` pointent vers des endpoints valides (`http/https`).
