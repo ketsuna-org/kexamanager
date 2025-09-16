@@ -90,15 +90,22 @@ const lightTheme = createTheme({
     palette: {
         ...baseTheme.palette,
         mode: "light",
+        // Couleurs avec contraste AA sur fond blanc
+        primary: { main: "#1976d2", dark: "#115293", light: "#4791db", contrastText: "#ffffff" },
+        secondary: { main: "#9c27b0", dark: "#6d1b7b", light: "#af52bf", contrastText: "#ffffff" },
+        success: { main: "#2e7d32", dark: "#1b5e20", light: "#60ad5e", contrastText: "#ffffff" },
+        warning: { main: "#ed6c02", dark: "#b53d00", light: "#ff9800", contrastText: "#000000" },
+        error: { main: "#d32f2f", dark: "#9a0007", light: "#ef5350", contrastText: "#ffffff" },
+        info: { main: "#0288d1", dark: "#01579b", light: "#03a9f4", contrastText: "#ffffff" },
         background: {
             default: "#ffffff",
             paper: "#ffffff",
         },
         text: {
-            primary: "#000000",
-            secondary: "#666666",
+            primary: "#111827", // gray-900
+            secondary: "#4b5563", // gray-600
         },
-        divider: "#e5e5e5",
+        divider: "#e5e7eb", // gray-200
     },
     components: {
         MuiCssBaseline: {
@@ -135,27 +142,13 @@ const lightTheme = createTheme({
                     borderRadius: 6,
                     boxShadow: "none",
                     border: "1px solid transparent",
-                    "&:hover": {
+                    // Limiter l'effet hover neutre aux variantes text/outlined
+                    "&.MuiButton-text:hover, &.MuiButton-outlined:hover": {
                         boxShadow: "none",
                         backgroundColor: "#f5f5f5",
                     },
                 },
-                contained: {
-                    backgroundColor: "#000000",
-                    color: "#ffffff",
-                    "&:hover": {
-                        backgroundColor: "#333333",
-                        boxShadow: "none",
-                    },
-                },
-                outlined: {
-                    borderColor: "#e5e5e5",
-                    color: "#000000",
-                    "&:hover": {
-                        borderColor: "#000000",
-                        backgroundColor: "transparent",
-                    },
-                },
+                // Laisser les variantes (contained/outlined/text) utiliser la palette MUI
             },
         },
         MuiTextField: {
@@ -257,18 +250,20 @@ const darkTheme = createTheme({
     palette: {
         ...baseTheme.palette,
         mode: "dark",
-        primary: {
-            main: "#ffffff",
-            dark: "#ffffff",
-            light: "#cccccc",
-        },
+        // Palette adaptée au mode sombre avec contrastes suffisants
+        primary: { main: "#90caf9", dark: "#42a5f5", light: "#e3f2fd", contrastText: "#0a0a0a" },
+        secondary: { main: "#ce93d8", dark: "#ab47bc", light: "#f3e5f5", contrastText: "#0a0a0a" },
+        success: { main: "#81c784", dark: "#66bb6a", light: "#e8f5e9", contrastText: "#0a0a0a" },
+        warning: { main: "#ffb74d", dark: "#fb8c00", light: "#fff3e0", contrastText: "#0a0a0a" },
+        error: { main: "#ef5350", dark: "#e53935", light: "#ffebee", contrastText: "#0a0a0a" },
+        info: { main: "#64b5f6", dark: "#1e88e5", light: "#e3f2fd", contrastText: "#0a0a0a" },
         background: {
-            default: "#000000",
-            paper: "#000000",
+            default: "#121212",
+            paper: "#121212",
         },
         text: {
             primary: "#ffffff",
-            secondary: "#999999",
+            secondary: "#b0b0b0",
         },
         divider: "#333333",
     },
@@ -276,7 +271,7 @@ const darkTheme = createTheme({
         MuiCssBaseline: {
             styleOverrides: {
                 body: {
-                    backgroundColor: "#000000",
+                    backgroundColor: "#121212",
                 },
             },
         },
@@ -284,7 +279,7 @@ const darkTheme = createTheme({
             styleOverrides: {
                 root: {
                     backgroundImage: "none",
-                    backgroundColor: "#000000",
+                    backgroundColor: "#121212",
                     border: "1px solid #333333",
                     boxShadow: "none",
                 },
@@ -307,27 +302,13 @@ const darkTheme = createTheme({
                     borderRadius: 6,
                     boxShadow: "none",
                     border: "1px solid transparent",
-                    "&:hover": {
+                    // Limiter l'effet hover neutre aux variantes text/outlined
+                    "&.MuiButton-text:hover, &.MuiButton-outlined:hover": {
                         boxShadow: "none",
                         backgroundColor: "#1a1a1a",
                     },
                 },
-                contained: {
-                    backgroundColor: "#ffffff",
-                    color: "#000000",
-                    "&:hover": {
-                        backgroundColor: "#cccccc",
-                        boxShadow: "none",
-                    },
-                },
-                outlined: {
-                    borderColor: "#333333",
-                    color: "#ffffff",
-                    "&:hover": {
-                        borderColor: "#ffffff",
-                        backgroundColor: "transparent",
-                    },
-                },
+                // Laisser MUI appliquer les bonnes couleurs selon la palette
             },
         },
         MuiTextField: {
@@ -335,16 +316,16 @@ const darkTheme = createTheme({
                 root: {
                     "& .MuiOutlinedInput-root": {
                         borderRadius: 6,
-                        backgroundColor: "#000000",
+                        backgroundColor: "#121212",
                         "& .MuiOutlinedInput-notchedOutline": {
                             borderColor: "#333333",
                         },
                         "&:hover .MuiOutlinedInput-notchedOutline": {
-                            borderColor: "#ffffff",
+                            borderColor: "#90caf9",
                         },
                         "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
                             borderWidth: 1,
-                            borderColor: "#ffffff",
+                            borderColor: "#90caf9",
                         },
                     },
                 },
@@ -373,7 +354,7 @@ const darkTheme = createTheme({
                 paper: {
                     borderRight: "1px solid #333333",
                     boxShadow: "none",
-                    backgroundColor: "#000000",
+                    backgroundColor: "#121212",
                 },
             },
         },

@@ -93,7 +93,13 @@
             "error_count": "Nombre d'erreurs"
         },
         "details": "Erreurs de blocs",
-        "empty": "Aucune erreur de bloc"
+        "empty": "Aucune erreur de bloc",
+        "purge": "Purger",
+        "retry_resync": "Retenter la resynchronisation",
+        "purge_confirm_title": "Confirmer le purge",
+        "purge_confirm_desc": "Cela va purger les références du bloc {{hash}} sur le noeud {{node}}. Des objets peuvent être supprimés. Continuer ?",
+        "retry_confirm_title": "Retenter la resynchronisation",
+        "retry_confirm_desc": "Retenter la resynchronisation pour le bloc {{hash}} sur le noeud {{node}} ?"
     },
     "workers": {
         "col": {

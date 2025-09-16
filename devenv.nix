@@ -8,6 +8,7 @@
     pkgs.git
     pkgs.go
     pkgs.nodejs
+    pkgs.bun
   ];
 
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, Fragment } from "react"
 import { useTranslation } from "react-i18next"
-import { ListBlockErrors } from "../../utils/apiWrapper"
+import { ListBlockErrors, PurgeBlocks, RetryBlockResync } from "../../utils/apiWrapper"
 import Table from "@mui/material/Table"
 import TableBody from "@mui/material/TableBody"
 import TableCell from "@mui/material/TableCell"
@@ -17,6 +17,7 @@ import Typography from "@mui/material/Typography"
 import Alert from "@mui/material/Alert"
 import CircularProgress from "@mui/material/CircularProgress"
 import Box from "@mui/material/Box"
+import Stack from "@mui/material/Stack"
 import IconButton from "@mui/material/IconButton"
 import Collapse from "@mui/material/Collapse"
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"
@@ -39,6 +40,9 @@ export default function Blocks() {
     const [detailOpen, setDetailOpen] = useState(false)
     const [detailItem, setDetailItem] = useState<unknown | null>(null)
     const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+    const [purgeConfirm, setPurgeConfirm] = useState<null | { nodeId: string; blockHash: string }>(null)
+    const [retryConfirm, setRetryConfirm] = useState<null | { nodeId: string; blockHash: string }>(null)
+    const [actionBusy, setActionBusy] = useState(false)
 
     async function load() {
         setLoading(true)
@@ -77,6 +81,34 @@ export default function Blocks() {
     function closeDetails() {
         setDetailOpen(false)
         setDetailItem(null)
+    }
+
+    async function doPurge() {
+        if (!purgeConfirm) return
+        setActionBusy(true)
+        try {
+            await PurgeBlocks({ node: purgeConfirm.nodeId }, [purgeConfirm.blockHash])
+            await load()
+        } catch (e) {
+            setError((e as unknown as { message?: string })?.message || String(e))
+        } finally {
+            setActionBusy(false)
+            setPurgeConfirm(null)
+        }
+    }
+
+    async function doRetry() {
+        if (!retryConfirm) return
+        setActionBusy(true)
+        try {
+            await RetryBlockResync({ node: retryConfirm.nodeId }, { blockHashes: [retryConfirm.blockHash] })
+            await load()
+        } catch (e) {
+            setError((e as unknown as { message?: string })?.message || String(e))
+        } finally {
+            setActionBusy(false)
+            setRetryConfirm(null)
+        }
     }
 
     return (
@@ -147,6 +179,16 @@ export default function Blocks() {
                                                                                 <TableRow key={i}>
                                                                                     <TableCell sx={{ py: 0.3, pr: 1, fontWeight: "bold" }}>{e.blockHash}</TableCell>
                                                                                     <TableCell sx={{ py: 0.3 }}>{`errors: ${e.errorCount}, refcount: ${e.refcount}`}</TableCell>
+                                                                                    <TableCell sx={{ py: 0.3, width: 1, whiteSpace: "nowrap" }}>
+                                                                                        <Stack direction="row" spacing={1}>
+                                                                                            <Button size="small" color="error" onClick={() => setPurgeConfirm({ nodeId: it.id, blockHash: e.blockHash })}>
+                                                                                                {t("blocks.purge")}
+                                                                                            </Button>
+                                                                                            <Button size="small" onClick={() => setRetryConfirm({ nodeId: it.id, blockHash: e.blockHash })}>
+                                                                                                {t("blocks.retry_resync")}
+                                                                                            </Button>
+                                                                                        </Stack>
+                                                                                    </TableCell>
                                                                                 </TableRow>
                                                                             ))}
                                                                         </TableBody>
@@ -175,6 +217,38 @@ export default function Blocks() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeDetails}>{t("common.close")}</Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Confirm purge */}
+            <Dialog open={!!purgeConfirm} onClose={() => setPurgeConfirm(null)}>
+                <DialogTitle>{t("blocks.purge_confirm_title")}</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        {purgeConfirm ? t("blocks.purge_confirm_desc", { hash: purgeConfirm.blockHash, node: purgeConfirm.nodeId }) : ""}
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPurgeConfirm(null)}>{t("common.cancel")}</Button>
+                    <Button color="error" variant="contained" onClick={doPurge} disabled={actionBusy}>
+                        {t("blocks.purge")}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Confirm retry resync */}
+            <Dialog open={!!retryConfirm} onClose={() => setRetryConfirm(null)}>
+                <DialogTitle>{t("blocks.retry_confirm_title")}</DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        {retryConfirm ? t("blocks.retry_confirm_desc", { hash: retryConfirm.blockHash, node: retryConfirm.nodeId }) : ""}
+                    </Typography>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setRetryConfirm(null)}>{t("common.cancel")}</Button>
+                    <Button variant="contained" onClick={doRetry} disabled={actionBusy}>
+                        {t("blocks.retry_resync")}
+                    </Button>
                 </DialogActions>
             </Dialog>
         </div>

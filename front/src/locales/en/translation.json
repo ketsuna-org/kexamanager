@@ -79,7 +79,13 @@
             "error_count": "Error count"
         },
         "details": "Block errors",
-        "empty": "No block errors"
+        "empty": "No block errors",
+        "purge": "Purge",
+        "retry_resync": "Retry resync",
+        "purge_confirm_title": "Confirm purge",
+        "purge_confirm_desc": "This will purge references to block {{hash}} on node {{node}}. This may delete objects. Proceed?",
+        "retry_confirm_title": "Retry resync",
+        "retry_confirm_desc": "Retry resynchronization for block {{hash}} on node {{node}}?"
     },
     "workers": {
         "col": {
