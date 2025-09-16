@@ -1,69 +1,145 @@
-# React + TypeScript + Vite
+<div align="right">English • Français</div>
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Kexamanager
 
-Currently, two official plugins are available:
+React + TypeScript app (Vite) with a Go reverse proxy to route API calls to Garage (Admin API and public S3 API).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+The frontend uses Vite for development. To mimic Vite's `server.proxy` behavior without running Vite (e.g., local production preview or integration), a Go proxy is provided mirroring `front/vite.config.ts` rules.
 
-## Expanding the ESLint configuration
+Repository layout:
+- Frontend: `front/`
+- Go proxy: `api/cmd/proxy/`
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## English
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
+- Node.js 18+ (recommended) and `npm` or `bun`
+- Go 1.22+ (or compatible with the repo’s `go.mod`)
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+### Environment variables (Garage)
+Used by Vite (dev) and by the Go proxy to reach Garage:
+- `VITE_API_ADMIN_URL` — target for `"/api/admin"` (Garage Admin API)
+- `VITE_API_PUBLIC_URL` — target for `"/api/public"` (Garage public S3 API)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Examples (adjust to your Garage deployment base paths):
+```
+VITE_API_ADMIN_URL=https://localhost:9000/admin     # Garage Admin API
+VITE_API_PUBLIC_URL=https://localhost:9000/public   # Garage S3 API (public)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Note: the Go proxy disables TLS verification (equivalent to Vite `secure: false`). For development only.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Development (Frontend via Vite)
+```bash
+cd front
+export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Garage Admin API
+export VITE_API_PUBLIC_URL="https://localhost:9000/public" # Garage S3 API
+npm install
+npm run dev
 ```
+This serves the app at `http://localhost:5173` (default Vite port). Requests to `"/api/admin"` and `"/api/public"` are proxied by Vite.
+
+### Run the Go proxy (alternative or preview)
+The proxy mirrors `vite.config.ts` rules and listens on `:8080` by default.
+```bash
+export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Garage Admin API
+export VITE_API_PUBLIC_URL="https://localhost:9000/public" # Garage S3 API
+go run ./api/cmd/proxy
+```
+Options:
+- `PORT` or `-port` to change the listening port (e.g. `-port 3000`).
+
+Endpoints:
+- `GET /healthz` — health check
+- Reverse proxy: `"/api/admin"` and `"/api/public"`
+
+### Production build (frontend)
+```bash
+cd front
+npm install
+npm run build
+```
+Artifacts are generated in `front/dist`. Serve this directory with your web server of choice and configure a proxy (Nginx, Caddy, Traefik, or the Go proxy) to route `"/api/*"` to your backends.
+
+### Troubleshooting
+- Ensure `VITE_API_ADMIN_URL` and/or `VITE_API_PUBLIC_URL` point to valid `http/https` endpoints.
+- For self-signed certificates, the Go proxy already skips TLS verification (dev only).
+- Provide an auth token in localStorage under the key `"kexamanager:token"` if your API requires it (see `front/src/utils/adminClient.ts`).
+
+### Useful scripts (frontend)
+From `front/`:
+- `npm run dev` — Vite dev server
+- `npm run build` — production build
+- `npm run preview` — preview built artifacts
+- `npm run lint` — lint
+
+---
+
+## Français
+
+### Présentation
+Application React + TypeScript (Vite) avec un proxy Go pour router les appels API vers Garage (Admin API et API S3 publique).
+
+Le frontend utilise Vite en développement. Pour reproduire le comportement de `server.proxy` de Vite sans lancer Vite (ex: prévisualisation locale ou intégration), un proxy Go est fourni et reflète les règles de `front/vite.config.ts`.
+
+### Prérequis
+- Node.js 18+ (recommandé) et `npm` ou `bun`
+- Go 1.22+ (ou compatible avec le `go.mod` du repo)
+
+### Variables d’environnement (Garage)
+Utilisées par Vite (dev) et par le proxy Go pour joindre Garage:
+- `VITE_API_ADMIN_URL` — cible des appels `"/api/admin"` (Garage Admin API)
+- `VITE_API_PUBLIC_URL` — cible des appels `"/api/public"` (Garage API S3 publique)
+
+Exemples (adaptez selon les chemins de base de votre déploiement Garage):
+```
+VITE_API_ADMIN_URL=https://localhost:9000/admin     # Admin API Garage
+VITE_API_PUBLIC_URL=https://localhost:9000/public   # API S3 Garage (publique)
+```
+
+Note : le proxy Go ignore la vérification TLS (équivalent `secure: false` dans Vite). À utiliser uniquement en développement.
+
+### Démarrage (Frontend via Vite)
+```bash
+cd front
+export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Admin API Garage
+export VITE_API_PUBLIC_URL="https://localhost:9000/public" # API S3 Garage
+npm install
+npm run dev
+```
+L’application est servie sur `http://localhost:5173` (port par défaut de Vite). Les requêtes `"/api/admin"` et `"/api/public"` sont proxifiées par Vite.
+
+### Lancer le proxy Go (alternative/prévisualisation)
+Le proxy reflète les règles de `vite.config.ts` et écoute par défaut sur `:8080`.
+```bash
+export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Admin API Garage
+export VITE_API_PUBLIC_URL="https://localhost:9000/public" # API S3 Garage
+go run ./api/cmd/proxy
+```
+Options :
+- `PORT` ou `-port` pour changer le port d’écoute (ex: `-port 3000`).
+
+Points exposés :
+- `GET /healthz` — vérification rapide
+- Reverse proxy : `"/api/admin"` et `"/api/public"`
+
+### Build de production (frontend)
+```bash
+cd front
+npm install
+npm run build
+```
+Le build est produit dans `front/dist`. Servez ce répertoire avec votre serveur web et configurez un proxy (Nginx, Caddy, Traefik, ou le proxy Go) pour router `"/api/*"` vers vos backends.
+
+### Dépannage
+- Vérifiez que `VITE_API_ADMIN_URL` et/ou `VITE_API_PUBLIC_URL` pointent vers des endpoints valides (`http/https`).
+- En cas de certificats auto-signés, le proxy Go ignore déjà la vérification TLS (dev uniquement).
+- Fournissez un token d’authentification dans le localStorage sous la clé `"kexamanager:token"` si nécessaire (cf. `front/src/utils/adminClient.ts`).
+
+### Scripts utiles (frontend)
+Depuis `front/` :
+- `npm run dev` — serveur de dev Vite
+- `npm run build` — build de production
+- `npm run preview` — prévisualisation du build
+- `npm run lint` — lint
+
