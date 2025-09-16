@@ -1,222 +1,220 @@
 {
-  "login": {
-    "title": "Sign in",
-    "username": "Username",
-    "password": "Password",
-    "role": "Role",
-    "login": "Sign in",
-    "clear": "Clear",
-    "user_required": "Username is required for user login",
-    "admin_invalid": "Invalid admin credentials",
-    "errorEmptyToken": "Token cannot be empty",
-    "errorUnknown": "An unknown error occurred",
-    "instructions": "Please enter your access token to sign in to the management interface.",
-    "tokenLabel": "Access token",
-    "tokenPlaceholder": "Enter your token here",
-    "loading": "Signing in...",
-    "submitButton": "Sign in",
-    "clearButton": "Clear"
-  },
-  "dashboard": {
-    "title": "Dashboard",
-    "buckets": "Buckets",
-    "buckets_desc": "Buckets content and management",
-    "buckets_add": "Add bucket",
-    "websites": "Websites",
-    "websites_desc": "Websites content and management",
-    "apps": "Applications Keys",
-    "apps_desc": "Keys and user management",
-    "nodes": "Nodes",
-    "nodes_desc": "List and manage nodes",
-    "blocks": "Blocks",
-    "adminTokens": "Admin tokens",
-    "adminTokens_desc": "Administration tokens management",
-    "blocks_desc": "Blocks overview",
-    "workers": "Workers",
-    "workers_desc": "Workers and tasks",
-    "health": "Health",
-    "health_desc": "System health status",
-  "cluster_status": "Cluster status",
-  "show_raw": "Show raw JSON",
-  "hide_raw": "Hide raw JSON",
-  "copy_json": "Copy JSON",
-  "connected_nodes": "Connected nodes",
-  "storage_nodes": "Storage nodes",
-  "partitions_all_ok": "Partitions all-ok",
-  "partitions_quorum": "Partitions quorum",
-  "cluster_stats": "Cluster Statistics",
-  "cluster_stats_desc": "Global cluster statistics",
-  "cluster_stats_freeform": "Freeform information",
-    "cluster": "Cluster Layout",
-    "cluster_desc": "Cluster layout and topology",
-    "cluster_get_status": "Get cluster status",
-    "cluster_get_health": "Get cluster health",
-    "cluster_get_layout": "Get cluster layout",
-    "cluster_get_history": "Get cluster layout history",
-    "cluster_update_layout": "Update cluster layout",
-    "cluster_apply_layout": "Apply cluster layout",
-    "cluster_preview_changes": "Preview layout changes",
-    "cluster_revert_layout": "Revert to previous layout",
-    "cluster_history": "Layout history",
-    "cluster_layout_input_placeholder": "Paste JSON layout here",
-    "cluster_skip_dead_nodes": "Skip dead nodes",
-    "cluster_skip_nodes_placeholder": "node1,node2 or JSON array"
-    ,
-    "logout": "Sign out",
-    "nodes_table": {
-      "node_id": "Node ID",
-      "garage_version": "Garage Version",
-      "rust_version": "Rust Version",
-      "db_engine": "DB Engine",
-      "garage_features": "Garage Features",
-      "stats": "Stats (freeform)",
-      "error": "Error"
+    "login": {
+        "title": "Sign in",
+        "username": "Username",
+        "password": "Password",
+        "role": "Role",
+        "login": "Sign in",
+        "clear": "Clear",
+        "user_required": "Username is required for user login",
+        "admin_invalid": "Invalid admin credentials",
+        "errorEmptyToken": "Token cannot be empty",
+        "errorUnknown": "An unknown error occurred",
+        "instructions": "Please enter your access token to sign in to the management interface.",
+        "tokenLabel": "Access token",
+        "tokenPlaceholder": "Enter your token here",
+        "loading": "Signing in...",
+        "submitButton": "Sign in",
+        "clearButton": "Clear"
     },
-    "no_nodes": "No nodes returned"
-  },
-  "blocks": {
-    "col": {
-      "node": "Node",
-      "error_count": "Error count"
+    "dashboard": {
+        "title": "Dashboard",
+        "buckets": "Buckets",
+        "buckets_desc": "Buckets content and management",
+        "buckets_add": "Add bucket",
+        "websites": "Websites",
+        "websites_desc": "Websites content and management",
+        "apps": "Applications Keys",
+        "apps_desc": "Keys and user management",
+        "nodes": "Nodes",
+        "nodes_desc": "List and manage nodes",
+        "blocks": "Blocks",
+        "adminTokens": "Admin tokens",
+        "adminTokens_desc": "Administration tokens management",
+        "blocks_desc": "Blocks overview",
+        "workers": "Workers",
+        "workers_desc": "Workers and tasks",
+        "health": "Health",
+        "health_desc": "System health status",
+        "cluster_status": "Cluster status",
+        "show_raw": "Show raw JSON",
+        "hide_raw": "Hide raw JSON",
+        "copy_json": "Copy JSON",
+        "connected_nodes": "Connected nodes",
+        "storage_nodes": "Storage nodes",
+        "partitions_all_ok": "Partitions all-ok",
+        "partitions_quorum": "Partitions quorum",
+        "cluster_stats": "Cluster Statistics",
+        "cluster_stats_desc": "Global cluster statistics",
+        "cluster_stats_freeform": "Freeform information",
+        "cluster": "Cluster Layout",
+        "cluster_desc": "Cluster layout and topology",
+        "cluster_get_status": "Get cluster status",
+        "cluster_get_health": "Get cluster health",
+        "cluster_get_layout": "Get cluster layout",
+        "cluster_get_history": "Get cluster layout history",
+        "cluster_update_layout": "Update cluster layout",
+        "cluster_apply_layout": "Apply cluster layout",
+        "cluster_preview_changes": "Preview layout changes",
+        "cluster_revert_layout": "Revert to previous layout",
+        "cluster_history": "Layout history",
+        "cluster_layout_input_placeholder": "Paste JSON layout here",
+        "cluster_skip_dead_nodes": "Skip dead nodes",
+        "cluster_skip_nodes_placeholder": "node1,node2 or JSON array",
+        "logout": "Sign out",
+        "nodes_table": {
+            "node_id": "Node ID",
+            "garage_version": "Garage Version",
+            "rust_version": "Rust Version",
+            "db_engine": "DB Engine",
+            "garage_features": "Garage Features",
+            "stats": "Stats (freeform)",
+            "error": "Error"
+        },
+        "no_nodes": "No nodes returned"
     },
-    "details": "Block errors",
-    "empty": "No block errors"
-  },
-  "workers": {
-    "col": {
-      "name": "Name",
-      "count": "Workers"
+    "blocks": {
+        "col": {
+            "node": "Node",
+            "error_count": "Error count"
+        },
+        "details": "Block errors",
+        "empty": "No block errors"
     },
-    "details": "Workers list",
-    "empty": "No workers"
-  },
-  "adminTokens": {
-    "created": "Created",
-    "name": "Name",
-    "expiration": "Expiration",
-    "expired": "Expired",
-    "view": "View",
-    "edit": "Edit",
-    "delete": "Delete",
-    "scope": "Scope",
-    "invalid_id": "This token does not have a valid ID, either it was from the config or it has been corrupted.",
-    "empty": "No admin tokens",
-    "token_add": "Add a token",
-    "created_secret_title": "Token created",
-    "created_secret_msg": "This is the only time you will see the token secret, please store it safely.",
-    "delete_confirm_title" : "Confirm deletion",
-    "delete_confirm_desc" : "Are you sure you want to delete this token? This action is irreversible.",
-    "scope_desc": "The scope determines which resources the token has access to.",
-    "edit_title": "Edit token",
-    "create_title": "Create token",
-    "deleted": "Token deleted successfully",
-    "updated": "Token updated successfully"
-  },
-  "common": {
-    "cancel": "Cancel",
-    "add": "Add",
-    "loading": "Loading...",
-    "fromconfig": "From config",
-    "yes": "Yes",
-    "no": "No",
-    "actions": "Actions",
-    "never_expire": "Never expire",
-    "details": "Details",
-    "refresh": "Refresh",
-    "close": "Close",
-    "delete": "Delete",
-    "save": "Save",
-    "copy": "Copy",
-    "copied": "Copied!"
-  },
-  "buckets": {
-    "col": {
-      "arn": "ARN",
-      "region": "Region",
-      "creationDate": "Creation date",
-      "name": "Name",
-      "id": "ID",
-      "aliases": "Aliases"
+    "workers": {
+        "col": {
+            "name": "Name",
+            "count": "Workers"
+        },
+        "details": "Workers list",
+        "empty": "No workers"
     },
-    "stats": {
-      "objects": "Objects",
-      "bytes": "Bytes",
-      "unfinishedUploads": "Unfinished uploads"
+    "adminTokens": {
+        "created": "Created",
+        "name": "Name",
+        "expiration": "Expiration",
+        "expired": "Expired",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "scope": "Scope",
+        "invalid_id": "This token does not have a valid ID, either it was from the config or it has been corrupted.",
+        "empty": "No admin tokens",
+        "token_add": "Add a token",
+        "created_secret_title": "Token created",
+        "created_secret_msg": "This is the only time you will see the token secret, please store it safely.",
+        "delete_confirm_title": "Confirm deletion",
+        "delete_confirm_desc": "Are you sure you want to delete this token? This action is irreversible.",
+        "scope_desc": "The scope determines which resources the token has access to.",
+        "edit_title": "Edit token",
+        "create_title": "Create token",
+        "deleted": "Token deleted successfully",
+        "updated": "Token updated successfully"
     },
-    "stats_title": "Statistics",
-    "empty": "No buckets",
-    "modal": {
-      "title": "Add a bucket"
+    "common": {
+        "cancel": "Cancel",
+        "add": "Add",
+        "loading": "Loading...",
+        "fromconfig": "From config",
+        "yes": "Yes",
+        "no": "No",
+        "actions": "Actions",
+        "never_expire": "Never expire",
+        "details": "Details",
+        "refresh": "Refresh",
+        "close": "Close",
+        "delete": "Delete",
+        "save": "Save",
+        "copy": "Copy",
+        "copied": "Copied!"
     },
-    "details_title": "Bucket details",
-    "details": {
-      "keys": "Access keys",
-      "assign_keys": "Assign keys",
-      "assign_keys_placeholder": "Select keys to grant access",
-      "quotas": "Quotas",
-      "website": "Website",
-      "edit_title": "Edit bucket",
-      "save_success": "Bucket updated",
-      "save_error": "Failed to update bucket"
+    "buckets": {
+        "col": {
+            "arn": "ARN",
+            "region": "Region",
+            "creationDate": "Creation date",
+            "name": "Name",
+            "id": "ID",
+            "aliases": "Aliases"
+        },
+        "stats": {
+            "objects": "Objects",
+            "bytes": "Bytes",
+            "unfinishedUploads": "Unfinished uploads"
+        },
+        "stats_title": "Statistics",
+        "empty": "No buckets",
+        "modal": {
+            "title": "Add a bucket"
+        },
+        "details_title": "Bucket details",
+        "details": {
+            "keys": "Access keys",
+            "assign_keys": "Assign keys",
+            "assign_keys_placeholder": "Select keys to grant access",
+            "quotas": "Quotas",
+            "website": "Website",
+            "edit_title": "Edit bucket",
+            "save_success": "Bucket updated",
+            "save_error": "Failed to update bucket"
+        },
+        "add_alias_title": "Add an alias",
+        "add_alias_desc": "Add a global alias to the bucket",
+        "form": {
+            "arn": "ARN",
+            "region": "Region",
+            "name": "Name",
+            "alias": "Alias (global)",
+            "globalAlias": "Global alias",
+            "localAlias": "Local alias",
+            "localAccessKeyId": "Local Access Key ID",
+            "quotas": {
+                "maxSize": "Max size (bytes)",
+                "maxObjects": "Max objects"
+            },
+            "website": {
+                "enabled": "Enable website access",
+                "indexDocument": "Index document",
+                "errorDocument": "Error document"
+            }
+        },
+        "arn_tooltip": "ARN (Amazon Resource Name): unique identifier for the bucket",
+        "id_tooltip": "Internal bucket identifier",
+        "actions": "Actions",
+        "actions_delete": "Delete",
+        "loading": "Loading...",
+        "delete_confirm_title": "Confirm bucket deletion",
+        "delete_confirm_desc": "Are you sure you want to delete this bucket? This action is irreversible and will remove associated data."
     },
-    "add_alias_title": "Add an alias",
-    "add_alias_desc": "Add a global alias to the bucket",
-    "form": {
-      "arn": "ARN",
-      "region": "Region",
-      "name": "Name",
-      "alias": "Alias (global)",
-      "globalAlias": "Global alias",
-      "localAlias": "Local alias",
-      "localAccessKeyId": "Local Access Key ID",
-      "quotas": {
-        "maxSize": "Max size (bytes)",
-        "maxObjects": "Max objects"
-      },
-      "website": {
-        "enabled": "Enable website access",
-        "indexDocument": "Index document",
-        "errorDocument": "Error document"
-      }
-    },
-    "arn_tooltip": "ARN (Amazon Resource Name): unique identifier for the bucket",
-    "id_tooltip": "Internal bucket identifier",
-    "actions": "Actions",
-    "actions_delete": "Delete",
-    "loading": "Loading...",
-    "delete_confirm_title": "Confirm bucket deletion",
-    "delete_confirm_desc": "Are you sure you want to delete this bucket? This action is irreversible and will remove associated data."
-  }
-  ,
-  "keys": {
-    "col": {
-      "name": "Name",
-      "expiration": "Expiration"
-    },
-    "import": {
-      "label": "Import key",
-      "title": "Import key",
-      "accessKeyId": "Access Key ID",
-      "secretAccessKey": "Secret Access Key"
-    },
-    "import_title": "Import key",
-    "create_expiration_label": "Expiration (RFC3339)",
-    "id_label": "ID",
-    "created_label": "Created",
-    "expiration_label": "Expiration",
-    "expired_label": "Expired",
-    "permissions_label": "Permissions",
-    "buckets_label": "Buckets",
-    "show_secret": "Show secret key",
-    "hide_secret": "Hide",
-    "no_secret": "(No secret available)",
-    "created_secret_title": "Key created",
-    "created_secret_msg": "This is the only time the secret key will be shown, please store it safely.",
-    "delete_confirm": "Confirm deletion?",
-    "perm": {
-      "createBucket": "Create bucket"
-    },
-    "empty": "No keys",
-    "no_permissions": "No permissions"
-  }
+    "keys": {
+        "col": {
+            "name": "Name",
+            "expiration": "Expiration"
+        },
+        "import": {
+            "label": "Import key",
+            "title": "Import key",
+            "accessKeyId": "Access Key ID",
+            "secretAccessKey": "Secret Access Key"
+        },
+        "import_title": "Import key",
+        "create_expiration_label": "Expiration (RFC3339)",
+        "id_label": "ID",
+        "created_label": "Created",
+        "expiration_label": "Expiration",
+        "expired_label": "Expired",
+        "permissions_label": "Permissions",
+        "buckets_label": "Buckets",
+        "show_secret": "Show secret key",
+        "hide_secret": "Hide",
+        "no_secret": "(No secret available)",
+        "created_secret_title": "Key created",
+        "created_secret_msg": "This is the only time the secret key will be shown, please store it safely.",
+        "delete_confirm": "Confirm deletion?",
+        "perm": {
+            "createBucket": "Create bucket"
+        },
+        "empty": "No keys",
+        "no_permissions": "No permissions"
+    }
 }
