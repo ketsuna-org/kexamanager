@@ -1,10 +1,9 @@
 import { defineConfig, loadEnv } from "vite"
 import react from "@vitejs/plugin-react"
+import path from "path"
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd())
-
-    console.log("Loaded env:", env)
     return {
         plugins: [react()],
         server: {
@@ -26,21 +25,31 @@ export default defineConfig(({ mode }) => {
         build: {
             // Increase the warning limit slightly and split large vendor chunks.
             chunkSizeWarningLimit: 600,
-            rollupOptions: {
-                output: {
-                    // Recommended manualChunks to split large dependencies into separate files
-                    manualChunks(id: string) {
-                        if (id.includes("node_modules")) {
-                            if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) return "react-vendor"
-                            if (id.includes("node_modules/@mui/icons-material")) return "mui-icons"
-                            if (id.includes("node_modules/@mui")) return "mui"
-                            if (id.includes("node_modules/@emotion")) return "emotion"
-                            if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) return "i18n"
-                            return "vendor"
-                        }
-                    },
+            // When building into a directory outside the project root Vite warns and
+            // will not empty the directory by default. We explicitly allow emptying
+            // so the output folder is cleaned on each build (same effect as
+            // --emptyOutDir on the CLI).
+            emptyOutDir: true,
+            // Output the built assets into the top-level output/public folder so
+            // everything built for deployment is centralized in `output/`.
+            // This resolves to <repo-root>/output/public when run from `front/`.
+            outDir: path.resolve(process.cwd(), "../output/public"),
+        rollupOptions: {
+            output: {
+                // Keep manual chunks for large libraries, but do NOT force React into a separate
+                // `react-vendor` chunk. Splitting React/React-DOM can cause initialization order
+                // issues when other vendor code expects runtime internals on the same module instance.
+                manualChunks(id: string) {
+                    if (id.includes("node_modules")) {
+                        if (id.includes("node_modules/@mui/icons-material")) return "mui-icons"
+                        if (id.includes("node_modules/@mui")) return "mui"
+                        if (id.includes("node_modules/@emotion")) return "emotion"
+                        if (id.includes("node_modules/i18next") || id.includes("node_modules/react-i18next")) return "i18n"
+                        return "vendor"
+                    }
                 },
             },
+        },
         },
     }
 })

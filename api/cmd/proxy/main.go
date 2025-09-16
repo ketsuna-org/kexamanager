@@ -9,19 +9,16 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
 
 // getEnv returns the first non-empty environment variable value among keys.
-func getEnv(keys ...string) string {
-	for _, k := range keys {
-		if v := strings.TrimSpace(os.Getenv(k)); v != "" {
-			return v
-		}
-	}
-	return ""
-}
+// kept small helpers below; environment-driven configuration has been removed
+// from the default code path so that builds do not rely on environment
+// variables. Runtime flags (or PORT env) can be used when launching the
+// binary in production.
 
 // newReverseProxy creates a reverse proxy to target, stripping the given prefix from incoming requests.
 // It mirrors Vite's proxy options: changeOrigin=true and secure=false (skip TLS verify).
@@ -141,35 +138,51 @@ func mustParse(raw string, name string) *url.URL {
 }
 
 func main() {
-	// Flags
+	// Vérifier les variables d'environnement obligatoires
+	requiredEnvVars := []string{
+		"VITE_API_ADMIN_URL",
+		"VITE_API_PUBLIC_URL",
+		"PORT",
+	}
+
+	for _, envVar := range requiredEnvVars {
+		if value := strings.TrimSpace(os.Getenv(envVar)); value == "" {
+			log.Fatalf("Required environment variable %s is not set", envVar)
+		}
+	}
+
+	// Récupérer les valeurs des variables d'environnement
+	adminTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_ADMIN_URL"))
+	publicTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_PUBLIC_URL"))
+	portEnv := strings.TrimSpace(os.Getenv("PORT"))
+
+	// Flags (avec fallback sur les variables d'environnement)
 	var (
-		port = flag.String("port", getEnv("PORT"), "Port to listen on (overrides PORT env)")
+		portFlag      = flag.String("port", portEnv, "Port to listen on")
+		adminTarget   = flag.String("admin-target", adminTargetEnv, "Upstream URL for /api/admin reverse proxy")
+		publicTarget  = flag.String("public-target", publicTargetEnv, "Upstream URL for /api/public reverse proxy")
+		staticDirFlag = flag.String("static-dir", "./public", "Static files directory (relative to working dir)")
 	)
 	flag.Parse()
 
-	// Targets from env (mirror vite.config.ts env names)
-	adminTarget := getEnv("VITE_API_ADMIN_URL", "API_ADMIN_URL")
-	publicTarget := getEnv("VITE_API_PUBLIC_URL", "API_PUBLIC_URL")
-
-	if adminTarget == "" && publicTarget == "" {
-		log.Println("warning: neither VITE_API_ADMIN_URL/API_ADMIN_URL nor VITE_API_PUBLIC_URL/API_PUBLIC_URL is set; the proxy will not forward any /api/* calls")
+	// Utiliser les valeurs des flags (qui incluent maintenant les variables d'environnement)
+	listenPort := strings.TrimSpace(*portFlag)
+	if listenPort == "" {
+		log.Fatalf("no port provided: PORT environment variable is required")
 	}
 
 	mux := http.NewServeMux()
 
-	if adminTarget != "" {
-		adminURL := mustParse(adminTarget, "VITE_API_ADMIN_URL")
-		adminProxy := newReverseProxy(adminURL, "/api/admin")
-		mux.Handle("/api/admin/", adminProxy)
-		log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
-	}
+	// Configuration des proxies avec les URLs obligatoires
+	adminURL := mustParse(strings.TrimSpace(*adminTarget), "admin-target")
+	adminProxy := newReverseProxy(adminURL, "/api/admin")
+	mux.Handle("/api/admin/", adminProxy)
+	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
 
-	if publicTarget != "" {
-		publicURL := mustParse(publicTarget, "VITE_API_PUBLIC_URL")
-		publicProxy := newReverseProxy(publicURL, "/api/public")
-		mux.Handle("/api/public/", publicProxy)
-		log.Printf("/api/public -> %s (changeOrigin: true, secure: false)\n", publicURL.Redacted())
-	}
+	publicURL := mustParse(strings.TrimSpace(*publicTarget), "public-target")
+	publicProxy := newReverseProxy(publicURL, "/api/public")
+	mux.Handle("/api/public/", publicProxy)
+	log.Printf("/api/public -> %s (changeOrigin: true, secure: false)\n", publicURL.Redacted())
 
 	// Basic health endpoint for convenience
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -177,9 +190,42 @@ func main() {
 		_, _ = w.Write([]byte("ok"))
 	})
 
-	listenPort := "8080"
-	if *port != "" {
-		listenPort = *port
+	// Serve static files built by the frontend (if present).
+	// Use the provided -static-dir flag (defaults to ./public). The Dockerfile
+	// build will place compiled frontend files into /app/public and container
+	// runtime should run the binary with working dir /app so ./public resolves.
+	publicDir := strings.TrimSpace(*staticDirFlag)
+	if publicDir == "" {
+		publicDir = "./public"
+	}
+	if fi, err := os.Stat(publicDir); err == nil && fi.IsDir() {
+		// Serve static files at root `/`, but keep /api/* handled by proxy above.
+		fileServer := http.FileServer(http.Dir(publicDir))
+
+		// Wrap file server to implement SPA fallback: if a file is not found,
+		// return `index.html` so client-side routing works.
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			// If the request is for an API route, let it fall through (should be handled earlier)
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				http.NotFound(w, r)
+				return
+			}
+
+			// Try to open the requested path
+			p := filepath.Join(publicDir, strings.TrimPrefix(r.URL.Path, "/"))
+			if f, err := os.Stat(p); err == nil && !f.IsDir() {
+				fileServer.ServeHTTP(w, r)
+				return
+			}
+
+			// Fallback to index.html for SPA
+			index := filepath.Join(publicDir, "index.html")
+			http.ServeFile(w, r, index)
+		})
+
+		log.Printf("Serving static files from %s at /\n", publicDir)
+	} else {
+		log.Printf("static public directory %s not found; not serving frontend files\n", publicDir)
 	}
 
 	addr := fmt.Sprintf(":%s", listenPort)
