@@ -9,6 +9,7 @@
     pkgs.go
     pkgs.nodejs
     pkgs.bun
+    pkgs.awscli
   ];
 
 
