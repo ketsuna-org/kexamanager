@@ -179,10 +179,13 @@ func main() {
 	mux.Handle("/api/admin/", adminProxy)
 	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
 
-	publicURL := mustParse(strings.TrimSpace(*publicTarget), "public-target")
-	publicProxy := newReverseProxy(publicURL, "/api/public")
-	mux.Handle("/api/public/", publicProxy)
-	log.Printf("/api/public -> %s (changeOrigin: true, secure: false)\n", publicURL.Redacted())
+	// Route pour retourner l'URL de VITE_API_PUBLIC_URL
+	mux.HandleFunc("/api/getS3url", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(fmt.Sprintf(`{"url": "%s"}`, publicTargetEnv)))
+	})
+	log.Printf("/api/getS3url -> returns VITE_API_PUBLIC_URL: %s\n", publicTargetEnv)
 
 	// Basic health endpoint for convenience
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

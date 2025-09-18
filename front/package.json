@@ -11,6 +11,7 @@
         "format": "prettier --write ."
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.891.0",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@mui/icons-material": "^7.3.2",
@@ -19,7 +20,8 @@
         "prettier": "^3.6.2",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "react-i18next": "^15.7.3"
+        "react-i18next": "^15.7.3",
+        "recharts": "^3.2.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.33.0",
