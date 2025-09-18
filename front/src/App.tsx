@@ -6,7 +6,6 @@ import AdminTokens from "./pages/dashboard/AdminTokens"
 import Nodes from "./pages/dashboard/Nodes"
 import Blocks from "./pages/dashboard/Blocks"
 import Workers from "./pages/dashboard/Workers"
-import Health from "./pages/dashboard/Health"
 import ClusterLayout from "./pages/dashboard/ClusterLayout"
 import { ThemeProvider } from "@mui/material/styles"
 import { lightTheme, darkTheme } from "./theme"
@@ -25,13 +24,11 @@ import Toolbar from "@mui/material/Toolbar"
 import IconButton from "@mui/material/IconButton"
 import MenuIcon from "@mui/icons-material/Menu"
 import StorageIcon from "@mui/icons-material/Storage"
-import LanguageIcon from "@mui/icons-material/Language"
 import VpnKeyIcon from "@mui/icons-material/VpnKey"
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
 import DevicesIcon from "@mui/icons-material/Devices"
 import AppsIcon from "@mui/icons-material/Apps"
 import BuildIcon from "@mui/icons-material/Build"
-import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import LogoutIcon from "@mui/icons-material/Logout"
 import { useTranslation } from "react-i18next"
@@ -159,18 +156,6 @@ function App() {
                             <ListItemText primary={t("dashboard.buckets")} />
                         </ListItemButton>
                         <ListItemButton
-                            selected={tab === "websites"}
-                            onClick={() => {
-                                setTab("websites")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <LanguageIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.websites")} />
-                        </ListItemButton>
-                        <ListItemButton
                             selected={tab === "apps"}
                             onClick={() => {
                                 setTab("apps")
@@ -232,16 +217,16 @@ function App() {
                             <ListItemText primary={t("dashboard.workers")} />
                         </ListItemButton>
                         <ListItemButton
-                            selected={tab === "health"}
+                            selected={tab === "cluster"}
                             onClick={() => {
-                                setTab("health")
+                                setTab("cluster")
                                 setMobileOpen(false)
                             }}
                         >
                             <ListItemIcon>
-                                <HealthAndSafetyIcon />
+                                <AccountTreeIcon />
                             </ListItemIcon>
-                            <ListItemText primary={t("dashboard.health")} />
+                            <ListItemText primary={t("dashboard.cluster")} />
                         </ListItemButton>
                         <Divider sx={{ my: 1 }} />
                         <ListItemButton
@@ -277,7 +262,7 @@ function App() {
                             borderColor: "divider",
                         },
                     }}
-                    sx={{ 
+                    sx={{
                         display: { xs: "none", md: "block" },
                         "& .MuiDrawer-paper": {
                             width: 280,
@@ -352,12 +337,6 @@ function App() {
                             </ListItemIcon>
                             <ListItemText primary={t("dashboard.workers")} />
                         </ListItemButton>
-                        <ListItemButton selected={tab === "health"} onClick={() => setTab("health")}>
-                            <ListItemIcon>
-                                <HealthAndSafetyIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.health")} />
-                        </ListItemButton>
                         <ListItemButton selected={tab === "cluster"} onClick={() => setTab("cluster")}>
                             <ListItemIcon>
                                 <AccountTreeIcon />
@@ -402,7 +381,6 @@ function App() {
                     {tab === "nodes" && <Nodes />}
                     {tab === "blocks" && <Blocks />}
                     {tab === "workers" && <Workers />}
-                    {tab === "health" && <Health />}
                     {tab === "cluster" && <ClusterLayout />}
                 </Box>
             </Box>

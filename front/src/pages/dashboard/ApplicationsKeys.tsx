@@ -22,6 +22,7 @@ import CircularProgress from "@mui/material/CircularProgress"
 import Chip from "@mui/material/Chip"
 import { ListKeys, CreateKey, DeleteKey, GetKeyInfo, UpdateKey, ImportKey } from "../../utils/apiWrapper"
 import type { components } from "../../types/openapi"
+import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3"
 
 type KeyItem = components["schemas"]["ListKeysResponseItem"]
 type KeyDetails = components["schemas"]["GetKeyInfoResponse"]
@@ -49,6 +50,9 @@ export default function ApplicationsKeys() {
 
     const [createdSecretOpen, setCreatedSecretOpen] = useState(false)
     const [createdSecret, setCreatedSecret] = useState<string | null>(null)
+
+    const [s3TestLoading, setS3TestLoading] = useState(false)
+    const [s3TestResult, setS3TestResult] = useState<string | null>(null)
 
     function getIsoDateString(stringDate: string) {
         const date = new Date(stringDate)
@@ -218,6 +222,69 @@ export default function ApplicationsKeys() {
             setError(String(e))
         } finally {
             setSavingDetails(false)
+        }
+    }
+
+    async function testS3Connection() {
+        if (!selectedKey || !selectedKey.secretAccessKey) return
+
+        setS3TestLoading(true)
+        setS3TestResult(null)
+
+        try {
+            // Get S3 endpoint from environment
+            console.log('Fetching S3 URL from /api/getS3url...')
+            const s3EndpointResponse = await fetch('/api/getS3url')
+            if (!s3EndpointResponse.ok) {
+                throw new Error(`Failed to fetch S3 URL: ${s3EndpointResponse.status} ${s3EndpointResponse.statusText}`)
+            }
+            const s3EndpointData = await s3EndpointResponse.json()
+            const s3Endpoint = s3EndpointData.url
+            console.log('S3 Endpoint received:', s3Endpoint)
+
+            if (!s3Endpoint) {
+                throw new Error('No S3 endpoint received from server')
+            }
+
+            // Validate URL format
+            try {
+                new URL(s3Endpoint)
+            } catch {
+                throw new Error(`Invalid S3 endpoint URL: ${s3Endpoint}`)
+            }
+
+            console.log('Creating S3 client...')
+            const s3Client = new S3Client({
+                region: 'garage', // Default region, can be made configurable
+                endpoint: s3Endpoint,
+                credentials: {
+                    accessKeyId: selectedKey.accessKeyId,
+                    secretAccessKey: selectedKey.secretAccessKey,
+                },
+                forcePathStyle: true, // Required for MinIO and some S3-compatible services
+                // Disable SSL verification for local development if using HTTP
+                ...(s3Endpoint.startsWith('http://') && { tls: false }),
+            })
+
+            console.log('Testing S3 connection...')
+            const command = new ListBucketsCommand({})
+            const result = await s3Client.send(command)
+            console.log('S3 test successful:', result)
+
+            setS3TestResult('success')
+        } catch (e) {
+            console.error('S3 test error:', e)
+            // Provide more detailed error information
+            let errorMessage = 'Unknown error'
+            if (e instanceof Error) {
+                errorMessage = e.message
+                if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
+                    errorMessage = 'Network error: Cannot connect to S3 endpoint. Check CORS policy or network connectivity.'
+                }
+            }
+            setS3TestResult(`error: ${errorMessage}`)
+        } finally {
+            setS3TestLoading(false)
         }
     }
 
@@ -424,6 +491,24 @@ export default function ApplicationsKeys() {
                                                         </Button>
                                                     </Box>
                                                 )}
+                                                <Box sx={{ mt: 2 }}>
+                                                    <Button
+                                                        variant="outlined"
+                                                        size="small"
+                                                        onClick={testS3Connection}
+                                                        disabled={s3TestLoading}
+                                                        sx={{ mr: 1 }}
+                                                    >
+                                                        {s3TestLoading ? <CircularProgress size={16} /> : 'Test S3 Connection'}
+                                                    </Button>
+                                                    {s3TestResult && (
+                                                        <Chip
+                                                            label={s3TestResult === 'success' ? 'S3 Connection OK' : `S3 Error: ${s3TestResult}`}
+                                                            color={s3TestResult === 'success' ? 'success' : 'error'}
+                                                            size="small"
+                                                        />
+                                                    )}
+                                                </Box>
                                             </Box>
                                         ) : (
                                             <Typography variant="body2" color="text.secondary">

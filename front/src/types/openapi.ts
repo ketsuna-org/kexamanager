@@ -1260,7 +1260,7 @@ export interface components {
             /** @description the number of storage nodes currently registered in the cluster layout */
             storageNodes: number
             /** @description the number of storage nodes to which a connection is currently open */
-            storageNodesOk: number
+            storageNodesUp: number
         }
         GetClusterLayoutHistoryResponse: {
             /**

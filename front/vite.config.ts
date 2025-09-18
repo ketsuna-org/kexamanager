@@ -1,23 +1,34 @@
 import { defineConfig, loadEnv } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
+import type { Plugin, ViteDevServer } from "vite"
+
+// Plugin personnalisé pour l'API getS3url
+function getS3UrlPlugin(env: Record<string, string>): Plugin {
+    return {
+        name: 'get-s3-url-plugin',
+        configureServer(server: ViteDevServer) {
+            server.middlewares.use('/api/getS3url', (_req, res) => {
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ url: env.VITE_API_PUBLIC_URL }));
+            });
+        },
+    };
+}
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd())
     return {
-        plugins: [react()],
+        plugins: [
+            react(),
+            getS3UrlPlugin(env),
+        ],
         server: {
             proxy: {
                 "/api/admin": {
                     target: env.VITE_API_ADMIN_URL,
                     changeOrigin: true,
                     rewrite: (path) => path.replace(/^\/api\/admin/, ""),
-                    secure: false, // Ignore la vérification du certificat
-                },
-                "/api/public": {
-                    target: env.VITE_API_PUBLIC_URL,
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api\/public/, ""),
                     secure: false, // Ignore la vérification du certificat
                 },
             },
@@ -31,7 +42,6 @@ export default defineConfig(({ mode }) => {
             // --emptyOutDir on the CLI).
             emptyOutDir: true,
             // Output the built assets into the top-level output/public folder so
-            // everything built for deployment is centralized in `output/`.
             // This resolves to <repo-root>/output/public when run from `front/`.
             outDir: path.resolve(process.cwd(), "../output/public"),
         rollupOptions: {

@@ -47,6 +47,7 @@ import DevicesIcon from "@mui/icons-material/Devices"
 import StorageIcon from "@mui/icons-material/Storage"
 import CheckCircleIcon from "@mui/icons-material/CheckCircle"
 import GroupWorkIcon from "@mui/icons-material/GroupWork"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts"
 
 export default function ClusterLayout() {
     const { t } = useTranslation()
@@ -58,6 +59,40 @@ export default function ClusterLayout() {
         const i = Math.floor(Math.log(bytes) / Math.log(1024))
         const v = bytes / Math.pow(1024, i)
         return `${v % 1 === 0 ? v.toFixed(0) : v.toFixed(2)} ${units[i]}`
+    }
+
+    // helper: calculate cluster storage totals
+    function calculateClusterStorage() {
+        if (!status?.nodes || !Array.isArray(status.nodes)) return null
+
+        let totalDataCapacity = 0
+        let usedDataCapacity = 0
+        let totalMetadataCapacity = 0
+        let usedMetadataCapacity = 0
+
+        status.nodes.forEach((node) => {
+            if (node.dataPartition) {
+                totalDataCapacity += node.dataPartition.total || 0
+                usedDataCapacity += (node.dataPartition.total || 0) - (node.dataPartition.available || 0)
+            }
+            if (node.metadataPartition) {
+                totalMetadataCapacity += node.metadataPartition.total || 0
+                usedMetadataCapacity += (node.metadataPartition.total || 0) - (node.metadataPartition.available || 0)
+            }
+        })
+
+        return {
+            data: {
+                total: totalDataCapacity,
+                used: usedDataCapacity,
+                available: totalDataCapacity - usedDataCapacity
+            },
+            metadata: {
+                total: totalMetadataCapacity,
+                used: usedMetadataCapacity,
+                available: totalMetadataCapacity - usedMetadataCapacity
+            }
+        }
     }
     const [status, setStatus] = useState<components["schemas"]["GetClusterStatusResponse"] | null>(null)
     const [layout, setLayout] = useState<components["schemas"]["GetClusterLayoutResponse"] | null>(null)
@@ -296,10 +331,14 @@ export default function ClusterLayout() {
                                     <TableRow>
                                         <TableCell>ID</TableCell>
                                         <TableCell>Hostname</TableCell>
+                                        <TableCell>Address</TableCell>
+                                        <TableCell>Garage Version</TableCell>
                                         <TableCell>Up</TableCell>
                                         <TableCell>Draining</TableCell>
                                         <TableCell>Zone</TableCell>
                                         <TableCell>Tags</TableCell>
+                                        <TableCell>Available Partition</TableCell>
+                                        <TableCell>Used Partition</TableCell>
                                         <TableCell>Last seen (s)</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -309,11 +348,28 @@ export default function ClusterLayout() {
                                             <TableRow key={n.id}>
                                                 <TableCell>{n.id}</TableCell>
                                                 <TableCell>{n.hostname ?? "-"}</TableCell>
+                                                <TableCell>{n.addr ?? "-"}</TableCell>
+                                                <TableCell>{n.garageVersion ?? "-"}</TableCell>
                                                 <TableCell>{n.isUp ? <Chip label="up" color="success" size="small" /> : <Chip label="down" color="default" size="small" />}</TableCell>
                                                 <TableCell>{n.draining ? <Chip label="draining" size="small" /> : "-"}</TableCell>
                                                 <TableCell>{n.role?.zone ?? "-"}</TableCell>
                                                 <TableCell>
                                                     {Array.isArray(n.role?.tags) ? n.role!.tags.map((tg: string, i: number) => <Chip key={i} label={tg} size="small" sx={{ mr: 0.5 }} />) : "-"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {n.dataPartition ? (
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {formatBytes(n.dataPartition.available)}
+                                                            </Typography>
+                                                    ) : "-"}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {n.dataPartition ? (
+
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {formatBytes(n.dataPartition.total)}
+                                                            </Typography>
+                                                    ) : "-"}
                                                 </TableCell>
                                                 <TableCell>{n.lastSeenSecsAgo ?? "-"}</TableCell>
                                             </TableRow>
@@ -327,6 +383,93 @@ export default function ClusterLayout() {
                     </Box>
                 )}
             </Paper>
+
+            {/* Cluster Storage Overview Chart */}
+            {status && (
+                <Paper sx={{ p: 2, mb: 2 }}>
+                    <Typography variant="h6">{t("dashboard.cluster_storage_overview", "Cluster Storage Overview")}</Typography>
+                    {(() => {
+                        const storageData = calculateClusterStorage()
+                        if (!storageData) return null
+
+                        const chartData = [
+                            {
+                                name: t("dashboard.data_storage", "Data Storage"),
+                                total: storageData.data.total,
+                                used: storageData.data.used,
+                                available: storageData.data.available
+                            }
+                        ]
+
+                        const pieData = [
+                            { name: t("dashboard.used_space", "Used"), value: storageData.data.used, color: "#f44336" },
+                            { name: t("dashboard.available_space", "Available"), value: storageData.data.available, color: "#4caf50" }
+                        ]
+
+                        return (
+                            <Box sx={{ mt: 2 }}>
+                                <Stack direction={{ xs: "column", lg: "row" }} spacing={3}>
+                                    {/* Bar Chart */}
+                                    <Box sx={{ flex: 1, minHeight: 300 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                            {t("dashboard.storage_breakdown", "Storage Breakdown")}
+                                        </Typography>
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <BarChart data={chartData}>
+                                                <CartesianGrid strokeDasharray="3 3" />
+                                                <XAxis dataKey="name" />
+                                                <YAxis tickFormatter={(value) => formatBytes(value)} />
+                                                <Tooltip formatter={(value: number) => [formatBytes(value), ""]} />
+                                                <Bar dataKey="used" stackId="a" fill="#f44336" name={t("dashboard.used", "Used")} />
+                                                <Bar dataKey="available" stackId="a" fill="#4caf50" name={t("dashboard.available", "Available")} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </Box>
+
+                                    {/* Pie Chart */}
+                                    <Box sx={{ flex: 1, minHeight: 300 }}>
+                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                                            {t("dashboard.total_usage", "Total Usage")}
+                                        </Typography>
+                                        <ResponsiveContainer width="100%" height={250}>
+                                            <PieChart>
+                                                <Pie
+                                                    data={pieData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    outerRadius={80}
+                                                    dataKey="value"
+                                                >
+                                                    {pieData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip formatter={(value: number) => [formatBytes(value), ""]} />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </Box>
+                                </Stack>
+
+                                {/* Summary Stats */}
+                                <Box sx={{ mt: 3, display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 2 }}>
+                                    <MetricPaper
+                                        color="primary"
+                                        icon={<StorageIcon />}
+                                        label={t("dashboard.total_data_capacity", "Total Data Capacity")}
+                                        value={formatBytes(storageData.data.total)}
+                                    />
+                                    <MetricPaper
+                                        color="secondary"
+                                        icon={<StorageIcon />}
+                                        label={t("dashboard.used_data", "Used Data")}
+                                        value={formatBytes(storageData.data.used)}
+                                    />
+                                </Box>
+                            </Box>
+                        )
+                    })()}
+                </Paper>
+            )}
 
             <Paper sx={{ p: 2, mb: 2 }}>
                 <Typography variant="h6">{t("dashboard.cluster_stats")}</Typography>
@@ -375,17 +518,17 @@ export default function ClusterLayout() {
                 </Stack>
                 {health && (
                     <Box sx={{ mt: 1 }}>
-                        <Box sx={{ 
-                            display: "grid", 
-                            gridTemplateColumns: { 
-                                xs: "1fr", 
-                                sm: "1fr 1fr", 
-                                lg: "repeat(4, 1fr)" 
-                            }, 
-                            gap: 2 
+                        <Box sx={{
+                            display: "grid",
+                            gridTemplateColumns: {
+                                xs: "1fr",
+                                sm: "1fr 1fr",
+                                lg: "repeat(4, 1fr)"
+                            },
+                            gap: 2
                         }}>
                             <MetricPaper color="primary" icon={<DevicesIcon />} label={t("dashboard.connected_nodes")} value={`${health.connectedNodes} / ${health.knownNodes}`} />
-                            <MetricPaper color="primary" icon={<StorageIcon />} label={t("dashboard.storage_nodes")} value={`${health.storageNodesOk} / ${health.storageNodes}`} />
+                            <MetricPaper color="primary" icon={<StorageIcon />} label={t("dashboard.storage_nodes")} value={`${health.storageNodesUp} / ${health.storageNodes}`} />
                             <MetricPaper color="primary" icon={<CheckCircleIcon />} label={t("dashboard.partitions_all_ok")} value={`${health.partitionsAllOk} / ${health.partitions}`} />
                             <MetricPaper color="primary" icon={<GroupWorkIcon />} label={t("dashboard.partitions_quorum")} value={`${health.partitionsQuorum} / ${health.partitions}`} />
                         </Box>
@@ -445,27 +588,27 @@ export default function ClusterLayout() {
                     <Divider sx={{ my: 2 }} />
 
                     <Typography variant="subtitle2">{t("dashboard.cluster_roles_edit")}</Typography>
-                    <Box sx={{ 
-                        display: "grid", 
-                        gridTemplateColumns: { 
-                            xs: "1fr", 
-                            sm: "repeat(2, 1fr)", 
-                            lg: "repeat(3, 1fr)" 
+                    <Box sx={{
+                        display: "grid",
+                        gridTemplateColumns: {
+                            xs: "1fr",
+                            sm: "repeat(2, 1fr)",
+                            lg: "repeat(3, 1fr)"
                         },
-                        gap: 2, 
-                        mt: 1 
+                        gap: 2,
+                        mt: 1
                     }}>
-                        <TextField 
-                            label="node id" 
-                            value={roleDraft.id} 
-                            onChange={(e) => setRoleDraft({ ...roleDraft, id: e.target.value })} 
+                        <TextField
+                            label="node id"
+                            value={roleDraft.id}
+                            onChange={(e) => setRoleDraft({ ...roleDraft, id: e.target.value })}
                             fullWidth
                             size="small"
                         />
-                        <TextField 
-                            label="zone" 
-                            value={roleDraft.zone} 
-                            onChange={(e) => setRoleDraft({ ...roleDraft, zone: e.target.value })} 
+                        <TextField
+                            label="zone"
+                            value={roleDraft.zone}
+                            onChange={(e) => setRoleDraft({ ...roleDraft, zone: e.target.value })}
                             fullWidth
                             size="small"
                         />
@@ -477,10 +620,10 @@ export default function ClusterLayout() {
                             fullWidth
                             size="small"
                         />
-                        <TextField 
-                            label="tags (comma)" 
-                            value={roleDraft.tags} 
-                            onChange={(e) => setRoleDraft({ ...roleDraft, tags: e.target.value })} 
+                        <TextField
+                            label="tags (comma)"
+                            value={roleDraft.tags}
+                            onChange={(e) => setRoleDraft({ ...roleDraft, tags: e.target.value })}
                             fullWidth
                             size="small"
                         />
