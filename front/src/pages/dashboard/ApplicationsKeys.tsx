@@ -185,6 +185,30 @@ export default function ApplicationsKeys() {
         }
     }
 
+    async function impersonateKeyById(id: string, useSessionStorage = true) {
+        try {
+            const res = await GetKeyInfo({ id, showSecretKey: true })
+            if (!res?.secretAccessKey) throw new Error('Secret not available for this key')
+            const s3EndpointResponse = await fetch('/api/getS3url')
+            if (!s3EndpointResponse.ok) throw new Error(`Failed to fetch S3 URL: ${s3EndpointResponse.status} ${s3EndpointResponse.statusText}`)
+            const { url: s3Endpoint } = await s3EndpointResponse.json()
+            if (!s3Endpoint) throw new Error('No S3 endpoint received from server')
+            const session = {
+                endpoint: s3Endpoint,
+                accessKeyId: res.accessKeyId,
+                secretAccessKey: res.secretAccessKey,
+                region: 'garage',
+                forcePathStyle: true,
+            }
+            const storage = useSessionStorage ? sessionStorage : localStorage
+            storage.setItem('kexamanager:s3:session', JSON.stringify(session))
+            window.location.hash = '#s3'
+        } catch (e) {
+            console.error('Impersonate by id error', e)
+            setError(e instanceof Error ? e.message : String(e))
+        }
+    }
+
     function closeDetails() {
         setDetailOpen(false)
         setSelectedKey(null)
@@ -288,6 +312,41 @@ export default function ApplicationsKeys() {
         }
     }
 
+    async function impersonateSelectedKey(useSessionStorage = true) {
+        if (!selectedKey || !selectedKey.secretAccessKey) return
+
+        setS3TestLoading(true)
+        setS3TestResult(null)
+        try {
+            const s3EndpointResponse = await fetch('/api/getS3url')
+            if (!s3EndpointResponse.ok) {
+                throw new Error(`Failed to fetch S3 URL: ${s3EndpointResponse.status} ${s3EndpointResponse.statusText}`)
+            }
+            const { url: s3Endpoint } = await s3EndpointResponse.json()
+            if (!s3Endpoint) throw new Error('No S3 endpoint received from server')
+
+            // Persist session for S3 Browser
+            const session = {
+                endpoint: s3Endpoint,
+                accessKeyId: selectedKey.accessKeyId,
+                secretAccessKey: selectedKey.secretAccessKey,
+                region: 'garage',
+                forcePathStyle: true,
+            }
+            const storage = useSessionStorage ? sessionStorage : localStorage
+            storage.setItem('kexamanager:s3:session', JSON.stringify(session))
+
+            // Navigate to S3 Browser tab via hash
+            window.location.hash = '#s3'
+        } catch (e) {
+            console.error('Impersonate error:', e)
+            const msg = e instanceof Error ? e.message : String(e)
+            setS3TestResult(`error: ${msg}`)
+        } finally {
+            setS3TestLoading(false)
+        }
+    }
+
     return (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {error && (
@@ -358,6 +417,9 @@ export default function ApplicationsKeys() {
                                         <Stack direction="row" spacing={1} alignItems="center">
                                             <Button size="small" onClick={() => openDetails(k.id)}>
                                                 {t("common.details")}
+                                            </Button>
+                                            <Button size="small" variant="outlined" onClick={() => impersonateKeyById(k.id)}>
+                                                Impersonate
                                             </Button>
                                             <IconButton size="small" aria-label="delete" onClick={() => confirmDelete(k.id)}>
                                                 <span style={{ color: "error.main" }}>{t("common.delete")}</span>
@@ -492,14 +554,14 @@ export default function ApplicationsKeys() {
                                                     </Box>
                                                 )}
                                                 <Box sx={{ mt: 2 }}>
-                                                    <Button
-                                                        variant="outlined"
-                                                        size="small"
-                                                        onClick={testS3Connection}
-                                                        disabled={s3TestLoading}
-                                                        sx={{ mr: 1 }}
-                                                    >
+                                                    <Button variant="outlined" size="small" onClick={testS3Connection} disabled={s3TestLoading} sx={{ mr: 1 }}>
                                                         {s3TestLoading ? <CircularProgress size={16} /> : 'Test S3 Connection'}
+                                                    </Button>
+                                                    <Button variant="contained" size="small" onClick={() => impersonateSelectedKey(true)} disabled={s3TestLoading} sx={{ mr: 1 }}>
+                                                        Impersonate key (session)
+                                                    </Button>
+                                                    <Button size="small" onClick={() => impersonateSelectedKey(false)} disabled={s3TestLoading}>
+                                                        Impersonate key (local)
                                                     </Button>
                                                     {s3TestResult && (
                                                         <Chip

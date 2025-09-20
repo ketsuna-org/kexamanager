@@ -260,13 +260,13 @@ export default function Buckets() {
 
     return (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <Box sx={{ 
-                display: "flex", 
+            <Box sx={{
+                display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between", 
+                justifyContent: "space-between",
                 alignItems: { xs: "stretch", sm: "center" },
                 gap: 2,
-                mb: 2 
+                mb: 2
             }}>
                 <Stack sx={{ flex: 1 }}>
                     <Typography variant="h6">{t("dashboard.buckets")}</Typography>
@@ -274,8 +274,8 @@ export default function Buckets() {
                         {t("dashboard.buckets_desc")}
                     </Typography>
                 </Stack>
-                <Button 
-                    variant="contained" 
+                <Button
+                    variant="contained"
                     onClick={openModal}
                     sx={{ whiteSpace: "nowrap" }}
                 >
@@ -313,7 +313,7 @@ export default function Buckets() {
                                 <TableRow key={b.id} hover>
                                     <TableCell>
                                         <Tooltip title={b.id}>
-                                            <Box sx={{ 
+                                            <Box sx={{
                                                 maxWidth: { xs: 120, sm: 200 },
                                                 overflow: "hidden",
                                                 textOverflow: "ellipsis",
@@ -324,7 +324,7 @@ export default function Buckets() {
                                             </Box>
                                         </Tooltip>
                                     </TableCell>
-                                    <TableCell sx={{ 
+                                    <TableCell sx={{
                                         maxWidth: { xs: 100, sm: 150 },
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
@@ -334,7 +334,7 @@ export default function Buckets() {
                                             <span>{[...(b.globalAliases ?? []), ...(b.localAliases?.map((a) => a.alias) ?? [])].join(", ") || "-"}</span>
                                         </Tooltip>
                                     </TableCell>
-                                    <TableCell sx={{ 
+                                    <TableCell sx={{
                                         fontSize: { xs: "0.75rem", sm: "0.875rem" },
                                         whiteSpace: "nowrap"
                                     }}>
@@ -345,8 +345,8 @@ export default function Buckets() {
                                             <Button size="small" onClick={() => openDetails(b.id)}>
                                                 {t("common.details")}
                                             </Button>
-                                            <Button 
-                                                size="small" 
+                                            <Button
+                                                size="small"
                                                 color="error"
                                                 onClick={() => confirmDelete(b.id)}
                                             >
@@ -525,7 +525,11 @@ export default function Buckets() {
                                     value={allKeys.filter((k) => selectedKeyIds.includes(k.id))}
                                     onChange={(_, value) => setSelectedKeyIds(value.map((v) => v.id))}
                                     renderTags={(value: components["schemas"]["ListKeysResponseItem"][], getTagProps) =>
-                                        value.map((option, index) => <Chip variant="outlined" label={`${option.id}`} {...getTagProps({ index })} />)
+                                        value.map((option, index) => {
+                                            const tagProps = getTagProps({ index }) as { key: string | number } & Record<string, unknown>
+                                            const { key, ...rest } = tagProps
+                                            return <Chip key={String(key)} variant="outlined" label={`${option.id}`} {...rest} />
+                                        })
                                     }
                                     renderInput={(params) => <TextField {...params} size="small" label={t("buckets.details.assign_keys")} />}
                                 />
