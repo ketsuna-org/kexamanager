@@ -6,11 +6,13 @@
 
   packages = [
     pkgs.git
-    pkgs.go
-    pkgs.nodejs
-    pkgs.bun
     pkgs.awscli
   ];
 
+  languages = {
+    go.enable = true;
+    javascript.enable = true;
+    javascript.bun.enable = true;
+  };
 
 }
