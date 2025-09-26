@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleCreateBucket handles the create bucket request
@@ -34,9 +34,7 @@ func HandleCreateBucket() http.HandlerFunc {
 			return
 		}
 
-		_, err = client.CreateBucket(r.Context(), &s3.CreateBucketInput{
-			Bucket: &req.Bucket,
-		})
+		err = client.MakeBucket(r.Context(), req.Bucket, minio.MakeBucketOptions{Region: creds.Region})
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to create bucket: %v", err), http.StatusInternalServerError)
 			return

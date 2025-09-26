@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // HandleGetObject handles the get object request
@@ -35,17 +33,13 @@ func HandleGetObject() http.HandlerFunc {
 			return
 		}
 
-		psClient := s3.NewPresignClient(client)
-		presignReq, err := psClient.PresignGetObject(r.Context(), &s3.GetObjectInput{
-			Bucket: &req.Bucket,
-			Key:    &req.Key,
-		}, s3.WithPresignExpires(15*time.Minute))
+		presignedURL, err := client.PresignedGetObject(r.Context(), req.Bucket, req.Key, 15*time.Minute, nil)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to presign get object: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		resp := GetObjectResponse{PresignedURL: presignReq.URL}
+		resp := GetObjectResponse{PresignedURL: presignedURL.String()}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}

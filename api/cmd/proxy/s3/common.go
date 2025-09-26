@@ -1,18 +1,14 @@
 package s3
 
 import (
-	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/smithy-go/logging"
+	"github.com/minio/minio-go/v7"
+	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 // S3Credentials represents S3 credentials
@@ -200,35 +196,23 @@ func GetS3Credentials(keyId, secretAccessKey string) (S3Credentials, error) {
 	}, nil
 }
 
-// CreateS3Client creates an S3 client with the given credentials
-// addHeaderTransport adds X-Amz-User-Agent header to requests
-type addHeaderTransport struct {
-	rt http.RoundTripper
-}
+func CreateS3Client(creds S3Credentials) (*minio.Client, error) {
+	// Parse endpoint to remove protocol for MinIO
+	endpoint := creds.Endpoint
+	if strings.HasPrefix(endpoint, "https://") {
+		endpoint = strings.TrimPrefix(endpoint, "https://")
+	} else if strings.HasPrefix(endpoint, "http://") {
+		endpoint = strings.TrimPrefix(endpoint, "http://")
+	}
 
-func (t *addHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	req.Header.Set("X-Amz-User-Agent", "aws-sdk-go-v2/1.39.1")
-	return t.rt.RoundTrip(req)
-}
-
-func CreateS3Client(creds S3Credentials) (*s3.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithDefaultRegion(creds.Region),
-		config.WithBaseEndpoint(creds.Endpoint),
-		config.WithS3DisableExpressAuth(true),
-		config.WithCredentialsProvider(aws.CredentialsProviderFunc(func(ctx context.Context) (aws.Credentials, error) {
-			return aws.Credentials{
-				AccessKeyID:     creds.AccessKeyID,
-				SecretAccessKey: creds.SecretAccessKey,
-			}, nil
-		})),
-		config.WithLogger(logging.NewStandardLogger(os.Stdout)),
-		config.WithClientLogMode(aws.LogRequest|aws.LogResponse|aws.LogRetries),
-	)
+	client, err := minio.New(endpoint, &minio.Options{
+		Creds:  credentials.NewStaticV4(creds.AccessKeyID, creds.SecretAccessKey, ""),
+		Secure: strings.HasPrefix(creds.Endpoint, "https://"),
+		Region: creds.Region,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	client := s3.NewFromConfig(cfg)
 	return client, nil
 }

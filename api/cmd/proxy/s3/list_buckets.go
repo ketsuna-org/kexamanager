@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // HandleListBuckets handles the list buckets request
@@ -41,21 +39,21 @@ func HandleListBuckets() http.HandlerFunc {
 			return
 		}
 
-		result, err := client.ListBuckets(r.Context(), &s3.ListBucketsInput{})
+		buckets, err := client.ListBuckets(r.Context())
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to list buckets: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		buckets := make([]Bucket, len(result.Buckets))
-		for i, b := range result.Buckets {
-			buckets[i] = Bucket{
-				Name:         *b.Name,
+		respBuckets := make([]Bucket, len(buckets))
+		for i, b := range buckets {
+			respBuckets[i] = Bucket{
+				Name:         b.Name,
 				CreationDate: b.CreationDate.Format(time.RFC3339),
 			}
 		}
 
-		resp := ListBucketsResponse{Buckets: buckets}
+		resp := ListBucketsResponse{Buckets: respBuckets}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}

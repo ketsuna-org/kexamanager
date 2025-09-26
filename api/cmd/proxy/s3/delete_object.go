@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleDeleteObject handles the delete object request
@@ -34,10 +34,7 @@ func HandleDeleteObject() http.HandlerFunc {
 			return
 		}
 
-		_, err = client.DeleteObject(r.Context(), &s3.DeleteObjectInput{
-			Bucket: &req.Bucket,
-			Key:    &req.Key,
-		})
+		err = client.RemoveObject(r.Context(), req.Bucket, req.Key, minio.RemoveObjectOptions{})
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to delete object: %v", err), http.StatusInternalServerError)
 			return

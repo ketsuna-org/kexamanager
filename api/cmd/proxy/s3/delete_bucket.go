@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // HandleDeleteBucket handles the delete bucket request
@@ -34,9 +32,7 @@ func HandleDeleteBucket() http.HandlerFunc {
 			return
 		}
 
-		_, err = client.DeleteBucket(r.Context(), &s3.DeleteBucketInput{
-			Bucket: &req.Bucket,
-		})
+		err = client.RemoveBucket(r.Context(), req.Bucket)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to delete bucket: %v", err), http.StatusInternalServerError)
 			return

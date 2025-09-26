@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/minio/minio-go/v7"
 )
 
 // HandleListObjects handles the list objects request
@@ -35,43 +35,28 @@ func HandleListObjects() http.HandlerFunc {
 			return
 		}
 
-		input := &s3.ListObjectsV2Input{
-			Bucket: &req.Bucket,
-		}
-		if req.Prefix != "" {
-			input.Prefix = &req.Prefix
+		opts := minio.ListObjectsOptions{
+			Prefix: req.Prefix,
 		}
 
-		result, err := client.ListObjectsV2(r.Context(), input)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("Failed to list objects: %v", err), http.StatusInternalServerError)
-			return
-		}
+		objectCh := client.ListObjects(r.Context(), req.Bucket, opts)
 
-		objects := make([]S3Object, len(result.Contents))
-		for i, obj := range result.Contents {
-			size := int64(0)
-			if obj.Size != nil {
-				size = *obj.Size
+		var objects []S3Object
+		for object := range objectCh {
+			if object.Err != nil {
+				http.Error(w, fmt.Sprintf("Failed to list objects: %v", object.Err), http.StatusInternalServerError)
+				return
 			}
-			etag := ""
-			if obj.ETag != nil {
-				etag = *obj.ETag
-			}
-			objects[i] = S3Object{
-				Key:          *obj.Key,
-				Size:         size,
-				LastModified: obj.LastModified.Format(time.RFC3339),
-				ETag:         etag,
-			}
+			objects = append(objects, S3Object{
+				Key:          object.Key,
+				Size:         object.Size,
+				LastModified: object.LastModified.Format(time.RFC3339),
+				ETag:         object.ETag,
+			})
 		}
 
 		resp := ListObjectsResponse{
-			Objects:     objects,
-			IsTruncated: result.IsTruncated != nil && *result.IsTruncated,
-		}
-		if result.NextContinuationToken != nil {
-			resp.ContinuationToken = *result.NextContinuationToken
+			Objects: objects,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

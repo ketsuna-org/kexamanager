@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 // HandlePutObject handles the put object request
@@ -35,18 +33,13 @@ func HandlePutObject() http.HandlerFunc {
 			return
 		}
 
-		psClient := s3.NewPresignClient(client)
-		presignReq, err := psClient.PresignPutObject(r.Context(), &s3.PutObjectInput{
-			Bucket:      &req.Bucket,
-			Key:         &req.Key,
-			ContentType: &req.ContentType,
-		}, s3.WithPresignExpires(15*time.Minute))
+		presignedURL, err := client.PresignedPutObject(r.Context(), req.Bucket, req.Key, 15*time.Minute)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to presign put object: %v", err), http.StatusInternalServerError)
 			return
 		}
 
-		resp := PutObjectResponse{PresignedURL: presignReq.URL}
+		resp := PutObjectResponse{PresignedURL: presignedURL.String()}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}
