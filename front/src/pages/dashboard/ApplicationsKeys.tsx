@@ -22,10 +22,23 @@ import CircularProgress from "@mui/material/CircularProgress"
 import Chip from "@mui/material/Chip"
 import { ListKeys, CreateKey, DeleteKey, GetKeyInfo, UpdateKey, ImportKey } from "../../utils/apiWrapper"
 import type { components } from "../../types/openapi"
-import { S3Client, ListBucketsCommand } from "@aws-sdk/client-s3"
 
 type KeyItem = components["schemas"]["ListKeysResponseItem"]
 type KeyDetails = components["schemas"]["GetKeyInfoResponse"]
+
+async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
+  const response = await fetch(`/api/s3/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+  }
+  return response.json()
+}
 
 export default function ApplicationsKeys() {
     const { t } = useTranslation()
@@ -189,19 +202,10 @@ export default function ApplicationsKeys() {
         try {
             const res = await GetKeyInfo({ id, showSecretKey: true })
             if (!res?.secretAccessKey) throw new Error('Secret not available for this key')
-            const s3EndpointResponse = await fetch('/api/getS3url')
-            if (!s3EndpointResponse.ok) throw new Error(`Failed to fetch S3 URL: ${s3EndpointResponse.status} ${s3EndpointResponse.statusText}`)
-            const { url: s3Endpoint } = await s3EndpointResponse.json()
-            if (!s3Endpoint) throw new Error('No S3 endpoint received from server')
-            const session = {
-                endpoint: s3Endpoint,
-                accessKeyId: res.accessKeyId,
-                secretAccessKey: res.secretAccessKey,
-                region: 'garage',
-                forcePathStyle: true,
-            }
+            // Store both key ID and secret access key for backend authentication
             const storage = useSessionStorage ? sessionStorage : localStorage
-            storage.setItem('kexamanager:s3:session', JSON.stringify(session))
+            storage.setItem('kexamanager:s3:keyId', res.accessKeyId)
+            storage.setItem('kexamanager:s3:secretAccessKey', res.secretAccessKey)
             window.location.hash = '#s3'
         } catch (e) {
             console.error('Impersonate by id error', e)
@@ -256,43 +260,17 @@ export default function ApplicationsKeys() {
         setS3TestResult(null)
 
         try {
-            // Get S3 endpoint from environment
-            console.log('Fetching S3 URL from /api/getS3url...')
-            const s3EndpointResponse = await fetch('/api/getS3url')
-            if (!s3EndpointResponse.ok) {
-                throw new Error(`Failed to fetch S3 URL: ${s3EndpointResponse.status} ${s3EndpointResponse.statusText}`)
+            console.log('Testing S3 connection via API...')
+            const session = {
+                endpoint: 'https://localhost:9000/public', // or from env
+                accessKeyId: selectedKey.accessKeyId,
+                secretAccessKey: selectedKey.secretAccessKey,
+                region: 'garage',
+                forcePathStyle: true,
             }
-            const s3EndpointData = await s3EndpointResponse.json()
-            const s3Endpoint = s3EndpointData.url
-            console.log('S3 Endpoint received:', s3Endpoint)
-
-            if (!s3Endpoint) {
-                throw new Error('No S3 endpoint received from server')
-            }
-
-            // Validate URL format
-            try {
-                new URL(s3Endpoint)
-            } catch {
-                throw new Error(`Invalid S3 endpoint URL: ${s3Endpoint}`)
-            }
-
-            console.log('Creating S3 client...')
-            const s3Client = new S3Client({
-                region: 'garage', // Default region, can be made configurable
-                endpoint: s3Endpoint,
-                credentials: {
-                    accessKeyId: selectedKey.accessKeyId,
-                    secretAccessKey: selectedKey.secretAccessKey,
-                },
-                forcePathStyle: true, // Required for MinIO and some S3-compatible services
-                // Disable SSL verification for local development if using HTTP
-                ...(s3Endpoint.startsWith('http://') && { tls: false }),
+            const result = await s3ApiRequest<{ buckets: unknown[] }>('list-buckets', {
+                credentials: session
             })
-
-            console.log('Testing S3 connection...')
-            const command = new ListBucketsCommand({})
-            const result = await s3Client.send(command)
             console.log('S3 test successful:', result)
 
             setS3TestResult('success')
@@ -318,25 +296,10 @@ export default function ApplicationsKeys() {
         setS3TestLoading(true)
         setS3TestResult(null)
         try {
-            const s3EndpointResponse = await fetch('/api/getS3url')
-            if (!s3EndpointResponse.ok) {
-                throw new Error(`Failed to fetch S3 URL: ${s3EndpointResponse.status} ${s3EndpointResponse.statusText}`)
-            }
-            const { url: s3Endpoint } = await s3EndpointResponse.json()
-            if (!s3Endpoint) throw new Error('No S3 endpoint received from server')
-
-            // Persist session for S3 Browser
-            const session = {
-                endpoint: s3Endpoint,
-                accessKeyId: selectedKey.accessKeyId,
-                secretAccessKey: selectedKey.secretAccessKey,
-                region: 'garage',
-                forcePathStyle: true,
-            }
+            // Store both key ID and secret access key for backend authentication
             const storage = useSessionStorage ? sessionStorage : localStorage
-            storage.setItem('kexamanager:s3:session', JSON.stringify(session))
-
-            // Navigate to S3 Browser tab via hash
+            storage.setItem('kexamanager:s3:keyId', selectedKey.accessKeyId)
+            storage.setItem('kexamanager:s3:secretAccessKey', selectedKey.secretAccessKey)
             window.location.hash = '#s3'
         } catch (e) {
             console.error('Impersonate error:', e)

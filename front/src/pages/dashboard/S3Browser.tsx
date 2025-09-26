@@ -24,67 +24,52 @@ import RefreshIcon from "@mui/icons-material/Refresh"
 import AddIcon from "@mui/icons-material/Add"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import UploadIcon from "@mui/icons-material/Upload"
-import VisibilityIcon from "@mui/icons-material/Visibility"
-import DownloadIcon from "@mui/icons-material/Download"
 import {
-  S3Client,
-  CreateBucketCommand,
-  DeleteBucketCommand,
-  GetBucketLocationCommand,
-  HeadBucketCommand,
-  ListBucketsCommand,
-  HeadObjectCommand,
-  DeleteObjectCommand,
-  DeleteObjectsCommand,
-  CopyObjectCommand,
-  GetObjectCommand,
-  ListObjectsV2Command,
-  PutObjectCommand,
   type _Object as S3Object,
 } from "@aws-sdk/client-s3"
 
-type S3Session = {
-  endpoint: string
-  accessKeyId: string
-  secretAccessKey: string
-  region?: string
-  forcePathStyle?: boolean
-}
-
-function getStoredSession(): S3Session | null {
+function getStoredKeyId(): string | null {
   try {
-     const raw = sessionStorage.getItem("kexamanager:s3:session") || localStorage.getItem("kexamanager:s3:session")
-     if (!raw) return null
-     return JSON.parse(raw) as S3Session
+     const keyId = sessionStorage.getItem("kexamanager:s3:keyId") || localStorage.getItem("kexamanager:s3:keyId")
+     return keyId
   } catch {
      return null
   }
 }
 
-function useS3Client() {
-  const session = useMemo(() => getStoredSession(), [])
-  const client = useMemo(() => {
-    if (!session) return null
-    try {
-      return new S3Client({
-        region: session.region || "us-east-1",
-        endpoint: session.endpoint,
-        credentials: {
-          accessKeyId: session.accessKeyId,
-          secretAccessKey: session.secretAccessKey,
-        },
-        forcePathStyle: session.forcePathStyle ?? true,
-      })
-    } catch {
-      return null
-    }
-  }, [session])
-  return { client, session }
+function getStoredToken(): string | null {
+  try {
+     const token = sessionStorage.getItem("kexamanager:s3:secretAccessKey") || localStorage.getItem("kexamanager:s3:secretAccessKey")
+     return token
+  } catch {
+     return null
+  }
+}
+
+function useS3KeyId() {
+  const keyId = useMemo(() => getStoredKeyId(), [])
+  return keyId
+}
+
+async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
+  const keyId = getStoredKeyId()
+  const token = getStoredToken()
+  const response = await fetch(`/api/s3/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ keyId, token, ...(body as Record<string, unknown> || {}) }),
+  })
+  if (!response.ok) {
+    throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+  }
+  return response.json()
 }
 
 export default function S3Browser() {
   const { t } = useTranslation()
-  const { client, session } = useS3Client()
+  const keyId = useS3KeyId()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [buckets, setBuckets] = useState<{ Name?: string; CreationDate?: Date }[]>([])
@@ -102,13 +87,11 @@ export default function S3Browser() {
   const [bucketRegion, setBucketRegion] = useState<string | null>(null)
 
   async function refreshBuckets() {
-    if (!client) return
     setLoading(true)
     setError(null)
     try {
-      await client.send(new HeadBucketCommand({ Bucket: "__noop__" })).catch(() => Promise.resolve())
-      const res = await client.send(new ListBucketsCommand({}))
-      setBuckets(res.Buckets || [])
+      const res = await s3ApiRequest<{ buckets: { name: string; creationDate: string }[] }>('list-buckets', {})
+      setBuckets(res.buckets.map(b => ({ Name: b.name, CreationDate: new Date(b.creationDate) })))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setBuckets([])
@@ -118,11 +101,13 @@ export default function S3Browser() {
   }
 
   async function createBucket() {
-    if (!client || !newBucket) return
+    if (!newBucket) return
     setLoading(true)
     setError(null)
     try {
-      await client.send(new CreateBucketCommand({ Bucket: newBucket }))
+      await s3ApiRequest<{ success: boolean }>('create-bucket', {
+        bucket: newBucket
+      })
       setCreateOpen(false)
       setNewBucket("")
       await refreshBuckets()
@@ -134,11 +119,12 @@ export default function S3Browser() {
   }
 
   async function deleteBucket(name: string) {
-    if (!client) return
     setLoading(true)
     setError(null)
     try {
-      await client.send(new DeleteBucketCommand({ Bucket: name }))
+      await s3ApiRequest<{ success: boolean }>('delete-bucket', {
+        bucket: name
+      })
       if (selectedBucket === name) setSelectedBucket(null)
       await refreshBuckets()
     } catch (e) {
@@ -149,17 +135,22 @@ export default function S3Browser() {
   }
 
   async function listObjects(bucket: string, opts?: { loadMore?: boolean }) {
-    if (!client) return
     const loadingSetter = opts?.loadMore ? setIsListingMore : setLoading
     loadingSetter(true)
     setError(null)
     try {
-      const res = await client.send(
-        new ListObjectsV2Command({ Bucket: bucket, Prefix: prefix || undefined, ContinuationToken: opts?.loadMore ? continuationToken : undefined })
-      )
-      const items = res.Contents || []
+      const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean }>('list-objects', {
+        bucket,
+        prefix: prefix || undefined
+      })
+      const items = res.objects.map(obj => ({
+        Key: obj.key,
+        Size: obj.size,
+        LastModified: new Date(obj.lastModified),
+        ETag: obj.etag
+      }))
       setObjects((prev) => (opts?.loadMore ? [...prev, ...items] : items))
-      setContinuationToken(res.IsTruncated ? res.NextContinuationToken : undefined)
+      setContinuationToken(res.isTruncated ? res.continuationToken : undefined)
       if (!opts?.loadMore) setSelectedObjectKeys(new Set())
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -173,24 +164,17 @@ export default function S3Browser() {
     setSelectedBucket(name)
     setContinuationToken(undefined)
     setBucketRegion(null)
-    // Fetch bucket location best-effort
-    try {
-      if (client) {
-        const loc = await client.send(new GetBucketLocationCommand({ Bucket: name }))
-        const r = (loc as { LocationConstraint?: string }).LocationConstraint || ""
-        setBucketRegion(r || "")
-      }
-    } catch {
-      setBucketRegion(null)
-    }
+    // TODO: Fetch bucket location if needed
     await listObjects(name)
   }
 
   async function handleDeleteObject(bucket: string, key: string) {
-    if (!client) return
     setLoading(true)
     try {
-      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: key }))
+      await s3ApiRequest<{ success: boolean }>('delete-object', {
+        bucket,
+        key
+      })
       await listObjects(bucket)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -200,15 +184,23 @@ export default function S3Browser() {
   }
 
   async function handleUpload(bucket: string, files: FileList | null) {
-    if (!client || !files || !files.length) return
+    if (!files || !files.length) return
     setUploading(true)
     setError(null)
     try {
       for (const file of Array.from(files)) {
-        // Evite le chemin ReadableStream/getReader en envoyant un buffer binaire
-        const buf = await file.arrayBuffer()
-        const body = new Uint8Array(buf)
-        await client.send(new PutObjectCommand({ Bucket: bucket, Key: file.name, Body: body, ContentType: file.type || undefined }))
+        const res = await s3ApiRequest<{ presignedUrl: string }>('put-object', {
+          bucket,
+          key: file.name,
+          contentType: file.type || undefined
+        })
+        await fetch(res.presignedUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type || 'application/octet-stream'
+          }
+        })
       }
       await listObjects(bucket)
     } catch (e) {
@@ -219,13 +211,15 @@ export default function S3Browser() {
   }
 
   async function handleDeleteSelected(bucket: string) {
-    if (!client || selectedObjectKeys.size === 0) return
+    if (selectedObjectKeys.size === 0) return
     setLoading(true)
     try {
-      await client.send(new DeleteObjectsCommand({
-        Bucket: bucket,
-        Delete: { Objects: Array.from(selectedObjectKeys).map((k) => ({ Key: k })) },
-      }))
+      for (const key of selectedObjectKeys) {
+        await s3ApiRequest<{ success: boolean }>('delete-object', {
+          bucket,
+          key
+        })
+      }
       await listObjects(bucket)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -234,149 +228,33 @@ export default function S3Browser() {
     }
   }
 
-  async function handleCopyObject(bucket: string) {
-    if (!client || !copyDialog.sourceKey || !copyDialog.destKey) return
-    setLoading(true)
-    try {
-      // S3 CopyObject requires CopySource in the form bucket/source
-      await client.send(new CopyObjectCommand({
-        Bucket: bucket,
-        Key: copyDialog.destKey,
-        CopySource: `${bucket}/${encodeURIComponent(copyDialog.sourceKey)}`,
-      }))
-      setCopyDialog({ open: false })
-      await listObjects(bucket)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }
+  // async function handleCopyObject(bucket: string) {
+  //   if (!session || !copyDialog.sourceKey || !copyDialog.destKey) return
+  //   setLoading(true)
+  //   try {
+  //     // TODO: Implement copy via API
+  //     setCopyDialog({ open: false })
+  //     await listObjects(bucket)
+  //   } catch (e) {
+  //     setError(e instanceof Error ? e.message : String(e))
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
 
-  async function handlePreview(bucket: string, key: string) {
-    if (!client) return
-    setLoading(true)
-    setError(null)
-    try {
-      let contentType: string | undefined
-      try {
-        const head = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
-        contentType = head.ContentType || undefined
-      } catch {
-        // ignore
-      }
-      const getRes = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
-  const body = getRes.Body
-  if (!body) throw new Error("Empty body")
+  // async function handlePreview(bucket: string, key: string) {
+  //   // TODO: Implement preview via API
+  // }
 
-      // If it's a Blob (browser fetch)
-      if (typeof Blob !== "undefined" && body instanceof Blob) {
-        const blob = body
-        const url = URL.createObjectURL(blob)
-        setPreview({ key, url, mime: blob.type || contentType || "application/octet-stream" })
-        return
-      }
-      // If it has a .stream() method (some polyfills)
-      if (typeof (body as { stream?: () => unknown }).stream === "function") {
-        const stream = (body as { stream: () => unknown }).stream()
-  // Cast explicite pour Response
-  const resp = new Response(stream as ReadableStream<Uint8Array> | Blob)
-        const blob = await resp.blob()
-        const url = URL.createObjectURL(blob)
-        setPreview({ key, url, mime: blob.type || contentType || "application/octet-stream" })
-        return
-      }
-      // If it's a ReadableStream (native)
-      if (typeof ReadableStream !== "undefined" && body instanceof ReadableStream) {
-        const resp = new Response(body as ReadableStream<Uint8Array>)
-        const blob = await resp.blob()
-        const url = URL.createObjectURL(blob)
-        setPreview({ key, url, mime: blob.type || contentType || "application/octet-stream" })
-        return
-      }
-      // If it has getReader (duck typing, but only if ReadableStream is not available)
-      if (body && typeof (body as { getReader?: () => unknown }).getReader === "function") {
-        try {
-          const rs = new ReadableStream({
-            start(controller) {
-              const reader = (body as { getReader: () => ReadableStreamDefaultReader<Uint8Array> }).getReader()
-              function push() {
-                reader.read().then((result) => {
-                  if (result.done) {
-                    controller.close()
-                    return
-                  }
-                  if (result.value) {
-                    controller.enqueue(result.value)
-                  }
-                  push()
-                })
-              }
-              push()
-            }
-          })
-          const resp = new Response(rs)
-          const blob = await resp.blob()
-          const url = URL.createObjectURL(blob)
-          setPreview({ key, url, mime: blob.type || contentType || "application/octet-stream" })
-          return
-        } catch {
-          // Erreur lors de la tentative de lecture du flux, fallback plus bas
-        }
-      }
-      // If it's an ArrayBuffer or ArrayBufferView (Uint8Array, etc)
-      // Helper type guard for ArrayBufferView
-      function isArrayBufferView(val: unknown): val is ArrayBufferView {
-        return val != null && typeof val === "object" &&
-          "buffer" in val && "byteOffset" in val && "byteLength" in val
-      }
-      if (
-        (typeof SharedArrayBuffer !== "undefined" && body instanceof SharedArrayBuffer) ||
-        body instanceof ArrayBuffer ||
-        isArrayBufferView(body)
-      ) {
-        // Refuse SharedArrayBuffer (non supporté par Blob)
-        if (typeof SharedArrayBuffer !== "undefined" && body instanceof SharedArrayBuffer) {
-          setPreview({ key, url: "", mime: "" })
-          return
-        }
-        // Toujours convertir en ArrayBuffer pour Blob
-        let arrBuf: ArrayBuffer
-        if (body instanceof ArrayBuffer) {
-          arrBuf = body
-        } else if (isArrayBufferView(body)) {
-          const sliced = body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength)
-          if (sliced instanceof ArrayBuffer) {
-            arrBuf = sliced
-          } else {
-            // Fallback si SharedArrayBuffer (non supporté)
-            setPreview({ key, url: "", mime: "" })
-            return
-          }
-        } else {
-          // Ne devrait jamais arriver
-          setPreview({ key, url: "", mime: "" })
-          return
-        }
-        const blob = new Blob([arrBuf], { type: contentType || "application/octet-stream" })
-        const url = URL.createObjectURL(blob)
-        setPreview({ key, url, mime: blob.type })
-        return
-      }
-      setError("Unsupported response body (not a Blob, ReadableStream, or ArrayBuffer)")
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }
+  // async function handlePreview(bucket: string, key: string) {
+  //   // TODO: Implement preview via API
+  // }
 
   useEffect(() => {
-    if (client) refreshBuckets()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [client])
+    if (keyId) refreshBuckets()
+  }, [keyId])
 
-  if (!session || !client) {
+  if (!keyId) {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="h6">{t("s3browser.no_session_title", { defaultValue: "S3 Browser" })}</Typography>
@@ -392,9 +270,6 @@ export default function S3Browser() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
         <Stack>
           <Typography variant="h6">{t("s3browser.title", { defaultValue: "S3 Browser" })}</Typography>
-          <Typography variant="caption" color="text.secondary">
-            {session.endpoint} • {session.accessKeyId}
-          </Typography>
         </Stack>
         <Stack direction="row" spacing={1}>
           <Button startIcon={<RefreshIcon />} onClick={refreshBuckets} variant="outlined">
@@ -524,7 +399,7 @@ export default function S3Browser() {
                     <TableCell>{o.LastModified ? new Date(o.LastModified).toLocaleString() : ""}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1}>
-                        <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Preview">
+                        {/* <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Preview">
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
                         <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Download">
@@ -532,7 +407,7 @@ export default function S3Browser() {
                         </IconButton>
                         <Button size="small" onClick={() => setCopyDialog({ open: true, sourceKey: o.Key, destKey: `${o.Key}.copy` })}>
                           {t("common.copy", { defaultValue: "Copy" })}
-                        </Button>
+                        </Button> */}
                         <IconButton size="small" color="error" onClick={() => handleDeleteObject(selectedBucket!, o.Key!)}>
                           <DeleteIcon fontSize="small" />
                         </IconButton>
@@ -584,9 +459,9 @@ export default function S3Browser() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCopyDialog({ open: false })}>{t("common.cancel")}</Button>
-          <Button variant="contained" onClick={() => handleCopyObject(selectedBucket!)} disabled={!copyDialog.destKey}>
+          {/* <Button variant="contained" onClick={() => handleCopyObject(selectedBucket!)} disabled={!copyDialog.destKey}>
             {t("common.copy")}
-          </Button>
+          </Button> */}
         </DialogActions>
       </Dialog>
 

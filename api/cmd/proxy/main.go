@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/ketsuna-org/kexamanager/cmd/proxy/s3"
 )
 
 // getEnv returns the first non-empty environment variable value among keys.
@@ -138,18 +140,6 @@ func mustParse(raw string, name string) *url.URL {
 }
 
 func main() {
-	// Vérifier les variables d'environnement obligatoires
-	requiredEnvVars := []string{
-		"VITE_API_ADMIN_URL",
-		"VITE_API_PUBLIC_URL",
-		"PORT",
-	}
-
-	for _, envVar := range requiredEnvVars {
-		if value := strings.TrimSpace(os.Getenv(envVar)); value == "" {
-			log.Fatalf("Required environment variable %s is not set", envVar)
-		}
-	}
 
 	// Récupérer les valeurs des variables d'environnement
 	adminTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_ADMIN_URL"))
@@ -179,14 +169,19 @@ func main() {
 	mux.Handle("/api/admin/", adminProxy)
 	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
 
-	// Route pour retourner l'URL de VITE_API_PUBLIC_URL
-	publicURL := strings.TrimSpace(*publicTarget)
-	mux.HandleFunc("/api/getS3url", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(fmt.Sprintf(`{"url": "%s"}`, publicURL)))
-	})
-	log.Printf("/api/getS3url -> returns VITE_API_PUBLIC_URL: %s\n", publicURL)
+	publicURLParsed := mustParse(strings.TrimSpace(*publicTarget), "public-target")
+	publicProxy := newReverseProxy(publicURLParsed, "/api/public")
+	mux.Handle("/api/public/", publicProxy)
+	log.Printf("/api/public -> %s (changeOrigin: true, secure: false)\n", publicURLParsed.Redacted())
+
+	// S3 API endpoints
+	mux.HandleFunc("/api/s3/list-buckets", s3.HandleListBuckets())
+	mux.HandleFunc("/api/s3/list-objects", s3.HandleListObjects())
+	mux.HandleFunc("/api/s3/get-object", s3.HandleGetObject())
+	mux.HandleFunc("/api/s3/put-object", s3.HandlePutObject())
+	mux.HandleFunc("/api/s3/delete-object", s3.HandleDeleteObject())
+	mux.HandleFunc("/api/s3/create-bucket", s3.HandleCreateBucket())
+	mux.HandleFunc("/api/s3/delete-bucket", s3.HandleDeleteBucket())
 
 	// Basic health endpoint for convenience
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

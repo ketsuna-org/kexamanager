@@ -1,27 +1,12 @@
 import { defineConfig, loadEnv } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
-import type { Plugin, ViteDevServer } from "vite"
-
-// Plugin personnalisé pour l'API getS3url
-function getS3UrlPlugin(env: Record<string, string>): Plugin {
-    return {
-        name: 'get-s3-url-plugin',
-        configureServer(server: ViteDevServer) {
-            server.middlewares.use('/api/getS3url', (_req, res) => {
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ url: env.VITE_API_PUBLIC_URL }));
-            });
-        },
-    };
-}
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd())
     return {
         plugins: [
             react(),
-            getS3UrlPlugin(env),
         ],
         server: {
             proxy: {
@@ -30,6 +15,11 @@ export default defineConfig(({ mode }) => {
                     changeOrigin: true,
                     rewrite: (path) => path.replace(/^\/api\/admin/, ""),
                     secure: false, // Ignore la vérification du certificat
+                },
+                "/api/s3": {
+                    target: "http://localhost:8080",
+                    changeOrigin: true,
+                    secure: false,
                 },
             },
         },
