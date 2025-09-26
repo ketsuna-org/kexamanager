@@ -143,14 +143,12 @@ func main() {
 
 	// Récupérer les valeurs des variables d'environnement
 	adminTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_ADMIN_URL"))
-	publicTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_PUBLIC_URL"))
 	portEnv := strings.TrimSpace(os.Getenv("PORT"))
 
 	// Flags (avec fallback sur les variables d'environnement)
 	var (
 		portFlag      = flag.String("port", portEnv, "Port to listen on")
 		adminTarget   = flag.String("admin-target", adminTargetEnv, "Upstream URL for /api/admin reverse proxy")
-		publicTarget  = flag.String("public-target", publicTargetEnv, "Upstream URL for /api/public reverse proxy")
 		staticDirFlag = flag.String("static-dir", "./public", "Static files directory (relative to working dir)")
 	)
 	flag.Parse()
@@ -168,11 +166,6 @@ func main() {
 	adminProxy := newReverseProxy(adminURL, "/api/admin")
 	mux.Handle("/api/admin/", adminProxy)
 	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
-
-	publicURLParsed := mustParse(strings.TrimSpace(*publicTarget), "public-target")
-	publicProxy := newReverseProxy(publicURLParsed, "/api/public")
-	mux.Handle("/api/public/", publicProxy)
-	log.Printf("/api/public -> %s (changeOrigin: true, secure: false)\n", publicURLParsed.Redacted())
 
 	// S3 API endpoints
 	mux.HandleFunc("/api/s3/list-buckets", s3.HandleListBuckets())

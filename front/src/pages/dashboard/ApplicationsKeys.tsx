@@ -26,20 +26,6 @@ import type { components } from "../../types/openapi"
 type KeyItem = components["schemas"]["ListKeysResponseItem"]
 type KeyDetails = components["schemas"]["GetKeyInfoResponse"]
 
-async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
-  const response = await fetch(`/api/s3/${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`)
-  }
-  return response.json()
-}
-
 export default function ApplicationsKeys() {
     const { t } = useTranslation()
     const [keys, setKeys] = useState<KeyItem[]>([])
@@ -63,9 +49,6 @@ export default function ApplicationsKeys() {
 
     const [createdSecretOpen, setCreatedSecretOpen] = useState(false)
     const [createdSecret, setCreatedSecret] = useState<string | null>(null)
-
-    const [s3TestLoading, setS3TestLoading] = useState(false)
-    const [s3TestResult, setS3TestResult] = useState<string | null>(null)
 
     function getIsoDateString(stringDate: string) {
         const date = new Date(stringDate)
@@ -253,48 +236,9 @@ export default function ApplicationsKeys() {
         }
     }
 
-    async function testS3Connection() {
-        if (!selectedKey || !selectedKey.secretAccessKey) return
-
-        setS3TestLoading(true)
-        setS3TestResult(null)
-
-        try {
-            console.log('Testing S3 connection via API...')
-            const session = {
-                endpoint: 'https://localhost:9000/public', // or from env
-                accessKeyId: selectedKey.accessKeyId,
-                secretAccessKey: selectedKey.secretAccessKey,
-                region: 'garage',
-                forcePathStyle: true,
-            }
-            const result = await s3ApiRequest<{ buckets: unknown[] }>('list-buckets', {
-                credentials: session
-            })
-            console.log('S3 test successful:', result)
-
-            setS3TestResult('success')
-        } catch (e) {
-            console.error('S3 test error:', e)
-            // Provide more detailed error information
-            let errorMessage = 'Unknown error'
-            if (e instanceof Error) {
-                errorMessage = e.message
-                if (e.name === 'TypeError' && e.message.includes('Failed to fetch')) {
-                    errorMessage = 'Network error: Cannot connect to S3 endpoint. Check CORS policy or network connectivity.'
-                }
-            }
-            setS3TestResult(`error: ${errorMessage}`)
-        } finally {
-            setS3TestLoading(false)
-        }
-    }
-
     async function impersonateSelectedKey(useSessionStorage = true) {
         if (!selectedKey || !selectedKey.secretAccessKey) return
 
-        setS3TestLoading(true)
-        setS3TestResult(null)
         try {
             // Store both key ID and secret access key for backend authentication
             const storage = useSessionStorage ? sessionStorage : localStorage
@@ -303,10 +247,6 @@ export default function ApplicationsKeys() {
             window.location.hash = '#s3'
         } catch (e) {
             console.error('Impersonate error:', e)
-            const msg = e instanceof Error ? e.message : String(e)
-            setS3TestResult(`error: ${msg}`)
-        } finally {
-            setS3TestLoading(false)
         }
     }
 
@@ -517,22 +457,12 @@ export default function ApplicationsKeys() {
                                                     </Box>
                                                 )}
                                                 <Box sx={{ mt: 2 }}>
-                                                    <Button variant="outlined" size="small" onClick={testS3Connection} disabled={s3TestLoading} sx={{ mr: 1 }}>
-                                                        {s3TestLoading ? <CircularProgress size={16} /> : 'Test S3 Connection'}
-                                                    </Button>
-                                                    <Button variant="contained" size="small" onClick={() => impersonateSelectedKey(true)} disabled={s3TestLoading} sx={{ mr: 1 }}>
+                                                    <Button variant="contained" size="small" onClick={() => impersonateSelectedKey(true)} sx={{ mr: 1 }}>
                                                         Impersonate key (session)
                                                     </Button>
-                                                    <Button size="small" onClick={() => impersonateSelectedKey(false)} disabled={s3TestLoading}>
+                                                    <Button size="small" onClick={() => impersonateSelectedKey(false)}>
                                                         Impersonate key (local)
                                                     </Button>
-                                                    {s3TestResult && (
-                                                        <Chip
-                                                            label={s3TestResult === 'success' ? 'S3 Connection OK' : `S3 Error: ${s3TestResult}`}
-                                                            color={s3TestResult === 'success' ? 'success' : 'error'}
-                                                            size="small"
-                                                        />
-                                                    )}
                                                 </Box>
                                             </Box>
                                         ) : (
