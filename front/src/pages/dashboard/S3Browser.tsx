@@ -24,6 +24,8 @@ import RefreshIcon from "@mui/icons-material/Refresh"
 import AddIcon from "@mui/icons-material/Add"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import UploadIcon from "@mui/icons-material/Upload"
+import VisibilityIcon from "@mui/icons-material/Visibility"
+import DownloadIcon from "@mui/icons-material/Download"
 import {
   type _Object as S3Object,
 } from "@aws-sdk/client-s3"
@@ -189,18 +191,21 @@ export default function S3Browser() {
     setError(null)
     try {
       for (const file of Array.from(files)) {
-        const res = await s3ApiRequest<{ presignedUrl: string }>('put-object', {
-          bucket,
-          key: file.name,
-          contentType: file.type || undefined
+        const formData = new FormData()
+        formData.append('keyId', getStoredKeyId() || '')
+        formData.append('token', getStoredToken() || '')
+        formData.append('bucket', bucket)
+        formData.append('key', file.name)
+        formData.append('file', file)
+
+        const response = await fetch('/api/s3/put-object', {
+          method: 'POST',
+          body: formData,
         })
-        await fetch(res.presignedUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Content-Type': file.type || 'application/octet-stream'
-          }
-        })
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
+        }
       }
       await listObjects(bucket)
     } catch (e) {
@@ -246,9 +251,51 @@ export default function S3Browser() {
   //   // TODO: Implement preview via API
   // }
 
-  // async function handlePreview(bucket: string, key: string) {
-  //   // TODO: Implement preview via API
-  // }
+  async function handlePreview(bucket: string, key: string) {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await s3ApiRequest<{ presignedUrl: string }>('get-object', {
+        bucket,
+        key
+      })
+      // Determine MIME type from file extension
+      const extension = key.split('.').pop()?.toLowerCase()
+      let mime = 'application/octet-stream'
+      if (extension) {
+        if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
+          mime = `image/${extension === 'jpg' ? 'jpeg' : extension}`
+        } else if (['txt', 'json', 'xml', 'html', 'css', 'js', 'ts', 'md'].includes(extension)) {
+          mime = 'text/plain'
+        } else if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension)) {
+          mime = `video/${extension}`
+        }
+      }
+      setPreview({ key, url: res.presignedUrl, mime })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDownload(bucket: string, key: string) {
+    try {
+      const res = await s3ApiRequest<{ presignedUrl: string }>('get-object', {
+        bucket,
+        key
+      })
+      // Create a temporary link and trigger download
+      const link = document.createElement('a')
+      link.href = res.presignedUrl
+      link.download = key.split('/').pop() || key
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    }
+  }
 
   useEffect(() => {
     if (keyId) refreshBuckets()
@@ -399,13 +446,13 @@ export default function S3Browser() {
                     <TableCell>{o.LastModified ? new Date(o.LastModified).toLocaleString() : ""}</TableCell>
                     <TableCell>
                       <Stack direction="row" spacing={1}>
-                        {/* <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Preview">
+                        <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Preview">
                           <VisibilityIcon fontSize="small" />
                         </IconButton>
-                        <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Download">
+                        <IconButton size="small" onClick={() => handleDownload(selectedBucket!, o.Key!)} title="Download">
                           <DownloadIcon fontSize="small" />
                         </IconButton>
-                        <Button size="small" onClick={() => setCopyDialog({ open: true, sourceKey: o.Key, destKey: `${o.Key}.copy` })}>
+                        {/* <Button size="small" onClick={() => setCopyDialog({ open: true, sourceKey: o.Key, destKey: `${o.Key}.copy` })}>
                           {t("common.copy", { defaultValue: "Copy" })}
                         </Button> */}
                         <IconButton size="small" color="error" onClick={() => handleDeleteObject(selectedBucket!, o.Key!)}>
@@ -471,6 +518,11 @@ export default function S3Browser() {
           {preview?.url ? (
             preview.mime?.startsWith("image/") ? (
               <img src={preview.url} alt={preview.key} style={{ maxWidth: "100%" }} />
+            ) : preview.mime?.startsWith("video/") ? (
+              <video controls style={{ maxWidth: "100%" }}>
+                <source src={preview.url} type={preview.mime} />
+                Your browser does not support the video tag.
+              </video>
             ) : preview.mime?.startsWith("text/") ? (
               <iframe src={preview.url} title="preview" style={{ width: "100%", height: 400, border: 0 }} />
             ) : (
