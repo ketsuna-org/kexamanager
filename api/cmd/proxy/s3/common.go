@@ -1,8 +1,6 @@
 package s3
 
 import (
-	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -46,6 +44,7 @@ type ListObjectsResponse struct {
 	Objects           []S3Object `json:"objects"`
 	ContinuationToken string     `json:"continuationToken,omitempty"`
 	IsTruncated       bool       `json:"isTruncated"`
+	TotalSize         int64      `json:"totalSize"`
 }
 
 type S3Object struct {
@@ -117,47 +116,6 @@ func GetS3Credentials(keyId, secretAccessKey string) (S3Credentials, error) {
 
 	var claims map[string]interface{}
 	parsedJWT := false
-
-	// Debug: check if secretAccessKey looks like a JWT (AWSV4 token)
-	if strings.Contains(secretAccessKey, ".") {
-		fmt.Printf("DEBUG: Token contains dots, might be JWT or AWSV4 token\n")
-		parts := strings.Split(secretAccessKey, ".")
-		if len(parts) == 3 {
-			fmt.Printf("DEBUG: Token has 3 parts, likely JWT\n")
-			// Parse JWT to extract credentials
-			payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-			if err != nil {
-				return S3Credentials{}, fmt.Errorf("failed to decode JWT payload: %v", err)
-			}
-			if err := json.Unmarshal(payload, &claims); err != nil {
-				return S3Credentials{}, fmt.Errorf("failed to unmarshal JWT claims: %v", err)
-			}
-			fmt.Printf("DEBUG: JWT claims: %+v\n", claims)
-			parsedJWT = true
-			var secret string
-			var found bool
-			for _, field := range []string{"secretAccessKey", "secret", "key", "access_secret"} {
-				if s, ok := claims[field].(string); ok && s != "" {
-					secret = s
-					found = true
-					fmt.Printf("DEBUG: Found secret in field '%s'\n", field)
-					break
-				}
-			}
-			if !found {
-				return S3Credentials{}, fmt.Errorf("secretAccessKey not found in JWT claims (tried fields: secretAccessKey, secret, key, access_secret)")
-			}
-			secretAccessKey = secret
-			if ak, ok := claims["accessKeyId"].(string); ok && ak != "" {
-				keyId = ak
-				fmt.Printf("DEBUG: Overriding accessKeyId from JWT: %s\n", ak)
-			}
-		} else {
-			fmt.Printf("DEBUG: Token has %d parts\n", len(parts))
-		}
-	} else {
-		fmt.Printf("DEBUG: Token does not contain dots, treating as secret key\n")
-	}
 
 	// Get endpoint and region from environment
 	endpoint := os.Getenv("GARAGE_S3_URL")

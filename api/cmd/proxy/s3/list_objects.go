@@ -55,8 +55,22 @@ func HandleListObjects() http.HandlerFunc {
 			})
 		}
 
+		// Calculate total bucket size by listing all objects without prefix
+		totalOpts := minio.ListObjectsOptions{}
+		totalObjectCh := client.ListObjects(r.Context(), req.Bucket, totalOpts)
+		var totalSize int64
+		for object := range totalObjectCh {
+			if object.Err != nil {
+				// If we can't get total size, set to -1 to indicate unknown
+				totalSize = -1
+				break
+			}
+			totalSize += object.Size
+		}
+
 		resp := ListObjectsResponse{
-			Objects: objects,
+			Objects:   objects,
+			TotalSize: totalSize,
 		}
 
 		w.Header().Set("Content-Type", "application/json")

@@ -1,31 +1,21 @@
 import { useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
-import Button from "@mui/material/Button"
 import Typography from "@mui/material/Typography"
-import Stack from "@mui/material/Stack"
-import Paper from "@mui/material/Paper"
-import Table from "@mui/material/Table"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
-import TableCell from "@mui/material/TableCell"
-import TableBody from "@mui/material/TableBody"
-import TableContainer from "@mui/material/TableContainer"
+import Chip from "@mui/material/Chip"
 import Dialog from "@mui/material/Dialog"
 import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
-import TextField from "@mui/material/TextField"
-import IconButton from "@mui/material/IconButton"
-import CircularProgress from "@mui/material/CircularProgress"
-import Chip from "@mui/material/Chip"
-import DeleteIcon from "@mui/icons-material/Delete"
-import RefreshIcon from "@mui/icons-material/Refresh"
-import AddIcon from "@mui/icons-material/Add"
-import ArrowBackIcon from "@mui/icons-material/ArrowBack"
-import UploadIcon from "@mui/icons-material/Upload"
-import VisibilityIcon from "@mui/icons-material/Visibility"
-import DownloadIcon from "@mui/icons-material/Download"
+import Button from "@mui/material/Button"
+import {
+  BucketsList,
+  ObjectsList,
+  CreateBucketDialog,
+  CopyObjectDialog,
+  PreviewDialog,
+} from './components'
+import { GetBucketInfo } from '../../utils/apiWrapper'
 import {
   type _Object as S3Object,
 } from "@aws-sdk/client-s3"
@@ -64,7 +54,14 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
     body: JSON.stringify({ keyId, token, ...(body as Record<string, unknown> || {}) }),
   })
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+    // Try to parse JSON error response
+    try {
+      const errorData = await response.json()
+      throw new Error(`${errorData.error}: ${errorData.details || ''}`)
+    } catch {
+      // Fallback to status text if not JSON
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+    }
   }
   return response.json()
 }
@@ -78,15 +75,20 @@ export default function S3Browser() {
   const [createOpen, setCreateOpen] = useState(false)
   const [newBucket, setNewBucket] = useState("")
   const [selectedBucket, setSelectedBucket] = useState<string | null>(null)
+  const [bucketTotalSize, setBucketTotalSize] = useState<number>(0)
+  const [bucketQuota, setBucketQuota] = useState<{ maxSize?: number | null } | null>(null)
   const [objects, setObjects] = useState<S3Object[]>([])
   const [prefix, setPrefix] = useState<string>("")
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined)
   const [isListingMore, setIsListingMore] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  // const [uploadingFile, setUploadingFile] = useState<string | null>(null)
+  const [uploadingFile, setUploadingFile] = useState<string | null>(null)
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [preview, setPreview] = useState<{ key: string; url?: string; mime?: string } | null>(null)
   const [selectedObjectKeys, setSelectedObjectKeys] = useState<Set<string>>(new Set())
   const [copyDialog, setCopyDialog] = useState<{ open: boolean; sourceKey?: string; destKey?: string }>({ open: false })
   const [bucketRegion, setBucketRegion] = useState<string | null>(null)
+  const [quotaAlert, setQuotaAlert] = useState<{ open: boolean; message: string; onConfirm: () => void } | null>(null)
 
   async function refreshBuckets() {
     setLoading(true)
@@ -141,10 +143,11 @@ export default function S3Browser() {
     loadingSetter(true)
     setError(null)
     try {
-      const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean }>('list-objects', {
+      const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean; totalSize: number }>('list-objects', {
         bucket,
         prefix: prefix || undefined
       })
+      console.log('List objects response:', res)
       const items = res.objects.map(obj => ({
         Key: obj.key,
         Size: obj.size,
@@ -153,7 +156,11 @@ export default function S3Browser() {
       }))
       setObjects((prev) => (opts?.loadMore ? [...prev, ...items] : items))
       setContinuationToken(res.isTruncated ? res.continuationToken : undefined)
-      if (!opts?.loadMore) setSelectedObjectKeys(new Set())
+      if (!opts?.loadMore) {
+        setSelectedObjectKeys(new Set())
+        console.log('Setting bucket total size to:', res.totalSize)
+        setBucketTotalSize(res.totalSize)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       setObjects([])
@@ -166,7 +173,23 @@ export default function S3Browser() {
     setSelectedBucket(name)
     setContinuationToken(undefined)
     setBucketRegion(null)
-    // TODO: Fetch bucket location if needed
+    // Try to get bucket info for quota checking
+    try {
+      console.log('Trying to get bucket info for:', name)
+      let bucketInfo;
+      try {
+        bucketInfo = await GetBucketInfo({ globalAlias: name })
+      } catch {
+        // Try with search
+        bucketInfo = await GetBucketInfo({ search: name })
+      }
+      console.log('Got bucket info:', bucketInfo)
+      setBucketQuota(bucketInfo.quotas || null)
+    } catch (e) {
+      console.log('Failed to get bucket info:', e)
+      // Ignore if not admin or bucket not found
+      setBucketQuota(null)
+    }
     await listObjects(name)
   }
 
@@ -185,34 +208,102 @@ export default function S3Browser() {
     }
   }
 
+  function uploadFile(bucket: string, file: File): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      const formData = new FormData()
+      formData.append('keyId', getStoredKeyId() || '')
+      formData.append('token', getStoredToken() || '')
+      formData.append('bucket', bucket)
+      formData.append('key', file.name)
+      formData.append('fileSize', file.size.toString())
+      formData.append('file', file)
+
+      xhr.open('POST', '/api/s3/put-object')
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      })
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+          resolve()
+        } else {
+          // Try to parse JSON error response
+          try {
+            const errorData = JSON.parse(xhr.responseText)
+            reject(new Error(`${errorData.error}: ${errorData.details || ''}`))
+          } catch {
+            // Fallback to status text if not JSON
+            reject(new Error(`Upload failed: ${xhr.status} ${xhr.statusText}`))
+          }
+        }
+      })
+      xhr.addEventListener('error', () => reject(new Error('Upload failed')))
+      xhr.send(formData)
+    })
+  }
+
   async function handleUpload(bucket: string, files: FileList | null) {
     if (!files || !files.length) return
-    setUploading(true)
     setError(null)
-    try {
-      for (const file of Array.from(files)) {
-        const formData = new FormData()
-        formData.append('keyId', getStoredKeyId() || '')
-        formData.append('token', getStoredToken() || '')
-        formData.append('bucket', bucket)
-        formData.append('key', file.name)
-        formData.append('file', file)
 
-        const response = await fetch('/api/s3/put-object', {
-          method: 'POST',
-          body: formData,
-        })
-
-        if (!response.ok) {
-          throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
-        }
+    // Check bucket size quota before uploading
+    console.log('Bucket quota:', bucketQuota)
+    console.log('Bucket total size:', bucketTotalSize)
+    if (bucketQuota && typeof bucketQuota.maxSize === 'number') {
+      const totalFileSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
+      console.log('Total file size:', totalFileSize)
+      console.log('Would exceed?', bucketTotalSize + totalFileSize > bucketQuota.maxSize)
+      if (bucketTotalSize + totalFileSize > bucketQuota.maxSize) {
+        return new Promise<void>((resolve) => {
+          setQuotaAlert({
+            open: true,
+            message: `Upload would exceed bucket size quota. Current size: ${bucketTotalSize} bytes, adding: ${totalFileSize} bytes, limit: ${bucketQuota.maxSize} bytes. Do you want to continue anyway?`,
+            onConfirm: () => {
+              setQuotaAlert(null)
+              resolve()
+            }
+          })
+        }).then(() => proceedWithUpload(bucket, files))
       }
-      await listObjects(bucket)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setUploading(false)
+    } else if (bucketTotalSize >= 0) {
+      // Fallback check: warn if upload would make bucket very large (> 10GB)
+      const totalFileSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
+      const maxReasonableSize = 10 * 1024 * 1024 * 1024 // 10GB
+      if (bucketTotalSize + totalFileSize > maxReasonableSize) {
+        return new Promise<void>((resolve) => {
+          setQuotaAlert({
+            open: true,
+            message: `Upload would make bucket very large (>10GB). Current size: ${bucketTotalSize} bytes, adding: ${totalFileSize} bytes. Do you want to continue anyway?`,
+            onConfirm: () => {
+              setQuotaAlert(null)
+              resolve()
+            }
+          })
+        }).then(() => proceedWithUpload(bucket, files))
+      }
     }
+
+    return proceedWithUpload(bucket, files)
+  }
+
+  async function proceedWithUpload(bucket: string, files: FileList) {
+    for (const file of Array.from(files)) {
+      setUploadingFile(file.name)
+      setUploadProgress(0)
+      try {
+        await uploadFile(bucket, file)
+        setUploadProgress(100)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+        break
+      } finally {
+        setUploadingFile(null)
+        setUploadProgress(0)
+      }
+    }
+    await listObjects(bucket)
   }
 
   async function handleDeleteSelected(bucket: string) {
@@ -314,227 +405,93 @@ export default function S3Browser() {
 
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-        <Stack>
-          <Typography variant="h6">{t("s3browser.title", { defaultValue: "S3 Browser" })}</Typography>
-        </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button startIcon={<RefreshIcon />} onClick={refreshBuckets} variant="outlined">
-            {t("common.refresh")}
-          </Button>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={() => setCreateOpen(true)}>
-            {t("buckets.actions_add", { defaultValue: "Create bucket" })}
-          </Button>
-        </Stack>
-      </Box>
-
       {!selectedBucket ? (
-        <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>
-          <Table size="small" stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t("buckets.col.id")}</TableCell>
-                <TableCell>{t("buckets.col.creationDate")}</TableCell>
-                <TableCell>{t("buckets.actions")}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading && (
-                <TableRow>
-                  <TableCell colSpan={3} sx={{ textAlign: "center" }}>
-                    <CircularProgress size={20} /> {t("common.loading")}
-                  </TableCell>
-                </TableRow>
-              )}
-              {!loading && buckets.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={3} sx={{ textAlign: "center" }}>
-                    {t("buckets.empty")}
-                  </TableCell>
-                </TableRow>
-              )}
-              {buckets.map((b) => (
-                <TableRow key={b.Name} hover>
-                  <TableCell>{b.Name}</TableCell>
-                  <TableCell>{b.CreationDate ? new Date(b.CreationDate).toLocaleString() : ""}</TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1}>
-                      <Button size="small" onClick={() => handleOpenBucket(b.Name!)}>{t("common.open", { defaultValue: "Open" })}</Button>
-                      <IconButton size="small" color="error" onClick={() => deleteBucket(b.Name!)}>
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <BucketsList
+          buckets={buckets}
+          loading={loading}
+          onRefresh={refreshBuckets}
+          onOpenBucket={handleOpenBucket}
+          onDeleteBucket={deleteBucket}
+          onCreateOpen={() => setCreateOpen(true)}
+        />
       ) : (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-            <Button startIcon={<ArrowBackIcon />} onClick={() => setSelectedBucket(null)}>{t("common.back", { defaultValue: "Back" })}</Button>
-            <Typography variant="subtitle1">{selectedBucket}</Typography>
-            {bucketRegion !== null && (
-              <Chip size="small" label={bucketRegion ? `region: ${bucketRegion}` : "region: default"} />
-            )}
-            <Box sx={{ flex: 1 }} />
-            <TextField size="small" placeholder={t("common.search", { defaultValue: "Prefix" })} value={prefix} onChange={(e) => setPrefix(e.target.value)} />
-            <Button variant="outlined" onClick={() => listObjects(selectedBucket)} startIcon={<RefreshIcon />}>{t("common.refresh")}</Button>
-            <Button component="label" startIcon={<UploadIcon />} disabled={uploading}>
-              {uploading ? t("common.uploading", { defaultValue: "Uploading..." }) : t("common.upload", { defaultValue: "Upload" })}
-              <input type="file" multiple hidden onChange={(e) => handleUpload(selectedBucket, e.target.files)} />
-            </Button>
-            <Button color="error" disabled={selectedObjectKeys.size === 0} onClick={() => handleDeleteSelected(selectedBucket)}>
-              {t("common.delete_selected", { defaultValue: "Delete selected" })}
-            </Button>
-          </Stack>
-
-          <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>
-            <Table size="small" stickyHeader>
-              <TableHead>
-                <TableRow>
-                  <TableCell width={24}>
-                    <input
-                      type="checkbox"
-                      checked={objects.length > 0 && selectedObjectKeys.size === objects.length}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedObjectKeys(new Set(objects.map((o) => o.Key!)))
-                        else setSelectedObjectKeys(new Set())
-                      }}
-                    />
-                  </TableCell>
-                  <TableCell>Key</TableCell>
-                  <TableCell align="right">Size</TableCell>
-                  <TableCell>LastModified</TableCell>
-                  <TableCell>Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading && (
-                  <TableRow>
-                    <TableCell colSpan={4} sx={{ textAlign: "center" }}>
-                      <CircularProgress size={20} /> {t("common.loading")}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {!loading && objects.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={4} sx={{ textAlign: "center" }}>
-                      {t("common.empty", { defaultValue: "No objects" })}
-                    </TableCell>
-                  </TableRow>
-                )}
-                {objects.map((o) => (
-                  <TableRow key={`${o.Key}-${o.ETag}`} hover>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={selectedObjectKeys.has(o.Key!)}
-                        onChange={(e) => {
-                          setSelectedObjectKeys((prev) => {
-                            const next = new Set(prev)
-                            if (e.target.checked) next.add(o.Key!)
-                            else next.delete(o.Key!)
-                            return next
-                          })
-                        }}
-                      />
-                    </TableCell>
-                    <TableCell>{o.Key}</TableCell>
-                    <TableCell align="right">{o.Size}</TableCell>
-                    <TableCell>{o.LastModified ? new Date(o.LastModified).toLocaleString() : ""}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <IconButton size="small" onClick={() => handlePreview(selectedBucket!, o.Key!)} title="Preview">
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                        <IconButton size="small" onClick={() => handleDownload(selectedBucket!, o.Key!)} title="Download">
-                          <DownloadIcon fontSize="small" />
-                        </IconButton>
-                        {/* <Button size="small" onClick={() => setCopyDialog({ open: true, sourceKey: o.Key, destKey: `${o.Key}.copy` })}>
-                          {t("common.copy", { defaultValue: "Copy" })}
-                        </Button> */}
-                        <IconButton size="small" color="error" onClick={() => handleDeleteObject(selectedBucket!, o.Key!)}>
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {continuationToken && (
-                  <TableRow>
-                    <TableCell colSpan={4} sx={{ textAlign: "center" }}>
-                      <Button disabled={isListingMore} onClick={() => listObjects(selectedBucket!, { loadMore: true })}>
-                        {isListingMore ? <CircularProgress size={16} /> : t("common.load_more", { defaultValue: "Load more" })}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
-      )}
-
-      {error && (
+        <ObjectsList
+          selectedBucket={selectedBucket}
+          bucketRegion={bucketRegion}
+          objects={objects}
+          loading={loading}
+          isListingMore={isListingMore}
+          prefix={prefix}
+          onPrefixChange={setPrefix}
+          onRefresh={() => listObjects(selectedBucket)}
+          onBack={() => setSelectedBucket(null)}
+          onUpload={(files) => handleUpload(selectedBucket, files)}
+          onDeleteSelected={() => handleDeleteSelected(selectedBucket)}
+          onPreview={(key) => handlePreview(selectedBucket, key)}
+          onDownload={(key) => handleDownload(selectedBucket, key)}
+          onDeleteObject={(key) => handleDeleteObject(selectedBucket, key)}
+          onLoadMore={() => listObjects(selectedBucket, { loadMore: true })}
+          selectedObjectKeys={selectedObjectKeys}
+          onToggleSelect={(key) => {
+            setSelectedObjectKeys((prev) => {
+              const next = new Set(prev)
+              if (next.has(key)) next.delete(key)
+              else next.add(key)
+              return next
+            })
+          }}
+          onSelectAll={(select) => {
+            if (select) setSelectedObjectKeys(new Set(objects.map((o) => o.Key!)))
+            else setSelectedObjectKeys(new Set())
+          }}
+          uploadingFile={uploadingFile}
+          uploadProgress={uploadProgress}
+          continuationToken={continuationToken}
+        />
+      )}      {error && (
         <Box sx={{ mt: 1 }}>
           <Chip color="error" label={error} />
         </Box>
       )}
 
-      <Dialog open={createOpen} onClose={() => setCreateOpen(false)}>
-        <DialogTitle>{t("buckets.actions_add", { defaultValue: "Create bucket" })}</DialogTitle>
+      <CreateBucketDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        newBucket={newBucket}
+        onNewBucketChange={setNewBucket}
+        onCreate={createBucket}
+      />
+
+      <CopyObjectDialog
+        open={copyDialog.open}
+        onClose={() => setCopyDialog({ open: false })}
+        sourceKey={copyDialog.sourceKey || ""}
+        destKey={copyDialog.destKey || ""}
+        onDestKeyChange={(value) => setCopyDialog((c) => ({ ...c, destKey: value }))}
+        onCopy={() => {}}
+      />
+
+      <PreviewDialog
+        open={!!preview}
+        onClose={() => { if (preview?.url) URL.revokeObjectURL(preview.url); setPreview(null) }}
+        key={preview?.key || ""}
+        url={preview?.url}
+        mime={preview?.mime}
+      />
+
+      <Dialog
+        open={!!quotaAlert}
+        onClose={() => setQuotaAlert(null)}
+      >
+        <DialogTitle>Quota Warning</DialogTitle>
         <DialogContent>
-          <TextField autoFocus margin="dense" fullWidth label={t("buckets.form.globalAlias", { defaultValue: "Bucket name" })} value={newBucket} onChange={(e) => setNewBucket(e.target.value)} />
+          <Typography>{quotaAlert?.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setCreateOpen(false)}>{t("common.cancel")}</Button>
-          <Button variant="contained" onClick={createBucket} disabled={!newBucket}>
-            {t("common.create", { defaultValue: "Create" })}
+          <Button onClick={() => setQuotaAlert(null)}>Cancel</Button>
+          <Button onClick={quotaAlert?.onConfirm} variant="contained" color="warning">
+            Continue Upload
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={copyDialog.open} onClose={() => setCopyDialog({ open: false })}>
-        <DialogTitle>{t("s3browser.copy_object", { defaultValue: "Copy object" })}</DialogTitle>
-        <DialogContent>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField label={t("s3browser.source_key", { defaultValue: "Source key" })} value={copyDialog.sourceKey || ""} disabled fullWidth />
-            <TextField label={t("s3browser.dest_key", { defaultValue: "Destination key" })} value={copyDialog.destKey || ""} onChange={(e) => setCopyDialog((c) => ({ ...c, destKey: e.target.value }))} fullWidth />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCopyDialog({ open: false })}>{t("common.cancel")}</Button>
-          {/* <Button variant="contained" onClick={() => handleCopyObject(selectedBucket!)} disabled={!copyDialog.destKey}>
-            {t("common.copy")}
-          </Button> */}
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={!!preview} onClose={() => { if (preview?.url) URL.revokeObjectURL(preview.url); setPreview(null) }} fullWidth maxWidth="md">
-        <DialogTitle>{preview?.key}</DialogTitle>
-        <DialogContent>
-          {preview?.url ? (
-            preview.mime?.startsWith("image/") ? (
-              <img src={preview.url} alt={preview.key} style={{ maxWidth: "100%" }} />
-            ) : preview.mime?.startsWith("video/") ? (
-              <video controls style={{ maxWidth: "100%" }}>
-                <source src={preview.url} type={preview.mime} />
-                Your browser does not support the video tag.
-              </video>
-            ) : preview.mime?.startsWith("text/") ? (
-              <iframe src={preview.url} title="preview" style={{ width: "100%", height: 400, border: 0 }} />
-            ) : (
-              <Typography variant="body2">{t("s3browser.preview_unavailable", { defaultValue: "Aucun aperçu disponible pour ce type. Téléchargez le fichier pour l'ouvrir." })}</Typography>
-            )
-          ) : (
-            <CircularProgress size={20} />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { if (preview?.url) window.open(preview.url, "_blank"); }}>{t("common.download", { defaultValue: "Download" })}</Button>
-          <Button onClick={() => { if (preview?.url) URL.revokeObjectURL(preview.url); setPreview(null) }}>{t("common.close")}</Button>
         </DialogActions>
       </Dialog>
     </Box>

@@ -22,12 +22,21 @@ import Stack from "@mui/material/Stack"
 import CircularProgress from "@mui/material/CircularProgress"
 import Autocomplete from "@mui/material/Autocomplete"
 import Chip from "@mui/material/Chip"
+import Select from "@mui/material/Select"
+import MenuItem from "@mui/material/MenuItem"
 import { useTheme } from "@mui/material/styles"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { ListBuckets, CreateBucket, DeleteBucket, GetBucketInfo, AddBucketAlias, RemoveBucketAlias, UpdateBucket, ListKeys, AllowBucketKey, DenyBucketKey } from "../../utils/apiWrapper"
 import type { components } from "../../types/openapi"
 
 type Bucket = components["schemas"]["ListBucketsResponseItem"]
+
+const sizeUnits = [
+  { label: 'Octet', value: 'B', multiplier: 1 },
+  { label: 'Ko', value: 'KB', multiplier: 1024 },
+  { label: 'Mo', value: 'MB', multiplier: 1024 ** 2 },
+  { label: 'Go', value: 'GB', multiplier: 1024 ** 3 },
+]
 
 export default function Buckets() {
     const { t } = useTranslation()
@@ -47,7 +56,8 @@ export default function Buckets() {
         websiteEnabled: boolean
         websiteIndex: string
         websiteError: string
-    }>({ quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "" })
+        quotasMaxSizeUnit: string
+    }>({ quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "", quotasMaxSizeUnit: "MB" })
     const [allKeys, setAllKeys] = useState<components["schemas"]["ListKeysResponseItem"][]>([])
     const [selectedKeyIds, setSelectedKeyIds] = useState<string[]>([])
     const [aliasInput, setAliasInput] = useState("")
@@ -62,6 +72,7 @@ export default function Buckets() {
         websiteEnabled: boolean
         websiteIndex: string
         websiteError: string
+        quotasMaxSizeUnit: string
     }>({
         globalAlias: "",
         localAlias: "",
@@ -71,14 +82,27 @@ export default function Buckets() {
         websiteEnabled: false,
         websiteIndex: "",
         websiteError: "",
+        quotasMaxSizeUnit: "MB",
     })
 
     // theme / media query to make details dialog full screen on small devices
     const theme = useTheme()
     const isSmall = useMediaQuery(theme.breakpoints.down("sm"))
 
+    function getBestUnit(bytes: number): { value: string, display: number } {
+        if (bytes === 0) return { value: 'MB', display: 0 }
+        const units = ['B', 'KB', 'MB', 'GB']
+        const multipliers = [1, 1024, 1024 ** 2, 1024 ** 3]
+        for (let i = units.length - 1; i >= 0; i--) {
+            if (bytes >= multipliers[i]) {
+                return { value: units[i], display: Math.round((bytes / multipliers[i]) * 100) / 100 } // round to 2 decimals
+            }
+        }
+        return { value: 'B', display: bytes }
+    }
+
     function openModal() {
-        setForm({ globalAlias: "", localAlias: "", localAccessKeyId: "", quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "" })
+        setForm({ globalAlias: "", localAlias: "", localAccessKeyId: "", quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "", quotasMaxSizeUnit: "MB" })
         setOpen(true)
     }
     function closeModal() {
@@ -98,7 +122,9 @@ export default function Buckets() {
 
             const updateBody: components["schemas"]["UpdateBucketRequestBody"] = {}
             const quotas: components["schemas"]["ApiBucketQuotas"] = {}
-            if (form.quotasMaxSize) quotas.maxSize = Number(form.quotasMaxSize)
+            const unitMultiplier = sizeUnits.find(u => u.value === form.quotasMaxSizeUnit)?.multiplier || 1
+            const maxSizeBytes = Number(form.quotasMaxSize) * unitMultiplier
+            if (maxSizeBytes > 0) quotas.maxSize = maxSizeBytes
             if (form.quotasMaxObjects) quotas.maxObjects = Number(form.quotasMaxObjects)
             if (quotas.maxSize !== undefined || quotas.maxObjects !== undefined) updateBody.quotas = quotas
             if (form.websiteEnabled) updateBody.websiteAccess = { enabled: true, indexDocument: form.websiteIndex || undefined, errorDocument: form.websiteError || undefined }
@@ -169,8 +195,11 @@ export default function Buckets() {
             setSelectedBucket(res)
             // populate details form from response
             setEditing(false)
+            const maxSize = res?.quotas?.maxSize || 0
+            const { value: unit, display: size } = getBestUnit(maxSize)
             setDetailsForm({
-                quotasMaxSize: res?.quotas?.maxSize !== undefined ? String(res.quotas.maxSize) : "",
+                quotasMaxSize: size.toString(),
+                quotasMaxSizeUnit: unit,
                 quotasMaxObjects: res?.quotas?.maxObjects !== undefined ? String(res.quotas.maxObjects) : "",
                 websiteEnabled: !!res?.websiteAccess,
                 websiteIndex: res?.websiteConfig?.indexDocument || "",
@@ -191,7 +220,9 @@ export default function Buckets() {
         try {
             const updateBody: components["schemas"]["UpdateBucketRequestBody"] = {}
             const quotas: components["schemas"]["ApiBucketQuotas"] = {}
-            if (detailsForm.quotasMaxSize) quotas.maxSize = Number(detailsForm.quotasMaxSize)
+            const unitMultiplier = sizeUnits.find(u => u.value === detailsForm.quotasMaxSizeUnit)?.multiplier || 1
+            const maxSizeBytes = Number(detailsForm.quotasMaxSize) * unitMultiplier
+            if (maxSizeBytes > 0) quotas.maxSize = maxSizeBytes
             if (detailsForm.quotasMaxObjects) quotas.maxObjects = Number(detailsForm.quotasMaxObjects)
             if (quotas.maxSize !== undefined || quotas.maxObjects !== undefined) updateBody.quotas = quotas
 
@@ -400,6 +431,13 @@ export default function Buckets() {
                                 value={form.quotasMaxSize}
                                 onChange={(e) => setForm((f) => ({ ...f, quotasMaxSize: e.target.value }))}
                             />
+                            <Select
+                                size="small"
+                                value={form.quotasMaxSizeUnit}
+                                onChange={(e) => setForm((f) => ({ ...f, quotasMaxSizeUnit: e.target.value }))}
+                            >
+                                {sizeUnits.map(u => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+                            </Select>
                             <TextField
                                 margin="dense"
                                 label={t("buckets.form.quotas.maxObjects")}
@@ -547,6 +585,14 @@ export default function Buckets() {
                                     onChange={(e) => setDetailsForm((f) => ({ ...f, quotasMaxSize: e.target.value }))}
                                     disabled={!editing}
                                 />
+                                <Select
+                                    size="small"
+                                    value={detailsForm.quotasMaxSizeUnit}
+                                    onChange={(e) => setDetailsForm((f) => ({ ...f, quotasMaxSizeUnit: e.target.value }))}
+                                    disabled={!editing}
+                                >
+                                    {sizeUnits.map(u => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+                                </Select>
                                 <TextField
                                     size="small"
                                     label={t("buckets.form.quotas.maxObjects")}
@@ -621,8 +667,11 @@ export default function Buckets() {
                             <Button
                                 onClick={() => {
                                     /* cancel edits: reset form */ if (selectedBucket) {
+                                        const maxSize = selectedBucket.quotas?.maxSize || 0
+                                        const { value: unit, display: size } = getBestUnit(maxSize)
                                         setDetailsForm({
-                                            quotasMaxSize: selectedBucket.quotas?.maxSize !== undefined ? String(selectedBucket.quotas.maxSize) : "",
+                                            quotasMaxSize: size.toString(),
+                                            quotasMaxSizeUnit: unit,
                                             quotasMaxObjects: selectedBucket.quotas?.maxObjects !== undefined ? String(selectedBucket.quotas.maxObjects) : "",
                                             websiteEnabled: !!selectedBucket.websiteAccess,
                                             websiteIndex: selectedBucket.websiteConfig?.indexDocument || "",
