@@ -132,7 +132,7 @@ Access the application at `http://localhost:7400` after startup.
 - Ensure `VITE_API_ADMIN_URL` and `GARAGE_S3_URL` point to valid `http/https` endpoints.
 - For self-signed certificates, the Go proxy already skips TLS verification (dev only).
 - Provide an auth token in localStorage under the key `"kexamanager:token"` if your API requires it (see `front/src/utils/adminClient.ts`).
-- **New:** S3 operations (upload, download, preview) are now handled through the Go proxy at `/api/s3/*` endpoints, providing enhanced security without exposing direct S3 URLs.
+- **New:** S3 operatons (upload, download, preview) are now handled through the Go proxy at `/api/s3/*` endpoints, providing enhanced security without exposing direct S3 URLs.
 
 ### Useful scripts (frontend)
 From `front/`:

@@ -2,6 +2,7 @@ name: Build and push Docker image
 
 on:
   push:
+    branches: [ main ]
     tags: [ 'v*.*.*' ]
   workflow_dispatch:
 
@@ -62,3 +63,25 @@ jobs:
             ghcr.io/${{ github.repository_owner }}/kexamanager:latest
           cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kexamanager:cache
           cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/kexamanager:cache,mode=max
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    if: needs.build.result == 'success'
+
+    steps:
+      - name: Deploy to VPS via Cloudflare Tunnel
+        uses: and-fm/cloudflared-ssh-action@v3
+        with:
+          host: ${{ secrets.CLOUDFLARE_TUNNEL_HOST }}
+          username: ${{ secrets.SHH_USER }}
+          private_key_filename: id_ed25519
+          private_key_value: ${{ secrets.SSH_PRIVATE_KEY_VALUE }}
+          port: ${{ secrets.SSH_PORT }}
+          service_token_id: ${{ secrets.SERVICE_TOKEN_ID }}
+          service_token_secret: ${{ secrets.SERVICE_TOKEN_SECRET }}
+          commands: |
+            cd kexamanager
+            docker compose pull
+            docker compose down --remove-orphans
+            docker compose up -d --remove-orphans
