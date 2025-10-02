@@ -102,7 +102,6 @@ export default function ClusterLayout() {
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [rawVisible, setRawVisible] = useState(false)
     // Snackbar
     const [snack, setSnack] = useState<{ open: boolean; severity: "success" | "error" | "info"; message: string }>({ open: false, severity: "info", message: "" })
     // confirmation dialog for Apply
@@ -196,7 +195,11 @@ export default function ClusterLayout() {
             }
             const updated = await UpdateClusterLayout(updateReq)
             const newLayout = updated as components["schemas"]["GetClusterLayoutResponse"]
-            const version = newLayout.version
+            if (!layout) {
+                setError("No current layout available")
+                return
+            }
+            const version = layout.version + newLayout.version;
             const res = await ApplyClusterLayout({ version } as components["schemas"]["ApplyClusterLayoutRequest"])
             // apply may return a status-like response; refresh afterward
             await refreshAll()
@@ -291,9 +294,6 @@ export default function ClusterLayout() {
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ flexWrap: "wrap" }}>
                     <Button variant="outlined" onClick={refreshAll}>
                         {t("common.refresh")}
-                    </Button>
-                    <Button variant="outlined" onClick={() => setRawVisible((v) => !v)}>
-                        {rawVisible ? t("dashboard.hide_raw") : t("dashboard.show_raw")}
                     </Button>
                 </Stack>
             </Stack>
@@ -811,13 +811,6 @@ export default function ClusterLayout() {
                     </Button>
                 </Stack>
             </Paper>
-
-            {rawVisible && (
-                <Paper sx={{ p: 2, mb: 2 }}>
-                    <Typography variant="h6">{t("dashboard.show_raw")}</Typography>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ status, layout, history, health, stats }, null, 2)}</pre>
-                </Paper>
-            )}
 
             <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: "bottom", horizontal: "right" }}>
                 <Alert severity={snack.severity} onClose={() => setSnack((s) => ({ ...s, open: false }))}>
