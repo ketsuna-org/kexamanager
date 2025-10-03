@@ -20,6 +20,24 @@ loader.init().then(monaco => {
   }
 })
 
+function getStoredKeyId(): string | null {
+  try {
+     const keyId = sessionStorage.getItem("kexamanager:s3:keyId") || localStorage.getItem("kexamanager:s3:keyId")
+     return keyId
+  } catch {
+     return null
+  }
+}
+
+function getStoredToken(): string | null {
+  try {
+     const token = sessionStorage.getItem("kexamanager:s3:secretAccessKey") || localStorage.getItem("kexamanager:s3:secretAccessKey")
+     return token
+  } catch {
+     return null
+  }
+}
+
 export default function PreviewPage() {
   const { t } = useTranslation()
   const [editMode, setEditMode] = useState(false)
@@ -29,6 +47,7 @@ export default function PreviewPage() {
   const [key, setKey] = useState("")
   const [url, setUrl] = useState("")
   const [mime, setMime] = useState("")
+  const [bucket, setBucket] = useState("")
 
   useEffect(() => {
     const hash = window.location.hash
@@ -38,9 +57,11 @@ export default function PreviewPage() {
     const k = params.get('key') || ""
     const u = params.get('url') || ""
     const m = params.get('mime') || ""
+    const b = params.get('bucket') || ""
     setKey(k)
     setUrl(u)
     setMime(m)
+    setBucket(b)
 
     if (u && m?.startsWith("text/")) {
       fetch(u, {
@@ -67,13 +88,48 @@ export default function PreviewPage() {
   }, [])
 
   const handleSave = async () => {
-    // TODO: Implement save functionality
+    if (!bucket || !key) {
+      console.error('Bucket or key missing')
+      return
+    }
     setSaving(true)
-    // Simulate save
-    setTimeout(() => {
+    try {
+      const blob = new Blob([content], { type: mime || 'text/plain' })
+      const file = new File([blob], key.split('/').pop() || 'file', { type: mime || 'text/plain' })
+
+      const xhr = new XMLHttpRequest()
+      const formData = new FormData()
+      formData.append('keyId', getStoredKeyId() || '')
+      formData.append('token', getStoredToken() || '')
+      formData.append('bucket', bucket)
+      formData.append('key', key)
+      formData.append('fileSize', file.size.toString())
+      formData.append('file', file)
+
+      xhr.open('POST', '/api/s3/put-object')
+      xhr.addEventListener('load', () => {
+        if (xhr.status === 200) {
+          setSaving(false)
+          setEditMode(false)
+        } else {
+          try {
+            const errorData = JSON.parse(xhr.responseText)
+            console.error('Save failed:', errorData.error, errorData.details)
+          } catch {
+            console.error('Save failed:', xhr.status, xhr.statusText)
+          }
+          setSaving(false)
+        }
+      })
+      xhr.addEventListener('error', () => {
+        console.error('Save failed: Network error')
+        setSaving(false)
+      })
+      xhr.send(formData)
+    } catch (error) {
+      console.error('Save error:', error)
       setSaving(false)
-      setEditMode(false)
-    }, 1000)
+    }
   }
 
   const handleCancel = () => {

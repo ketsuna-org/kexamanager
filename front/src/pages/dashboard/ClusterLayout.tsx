@@ -199,7 +199,7 @@ export default function ClusterLayout() {
                 setError("No current layout available")
                 return
             }
-            const version = layout.version + newLayout.version;
+            const version = 1 + newLayout.version;
             const res = await ApplyClusterLayout({ version } as components["schemas"]["ApplyClusterLayoutRequest"])
             // apply may return a status-like response; refresh afterward
             await refreshAll()

@@ -482,7 +482,7 @@ export default function S3Browser() {
         }
       }
       // Navigate to preview page
-      window.location.hash = `preview?key=${encodeURIComponent(key)}&url=${encodeURIComponent(res.presignedUrl)}&mime=${encodeURIComponent(mime)}`
+      window.location.hash = `preview?key=${encodeURIComponent(key)}&url=${encodeURIComponent(res.presignedUrl)}&mime=${encodeURIComponent(mime)}&bucket=${encodeURIComponent(bucket)}`
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
