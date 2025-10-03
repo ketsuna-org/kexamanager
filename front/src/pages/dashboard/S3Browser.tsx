@@ -138,22 +138,22 @@ export default function S3Browser() {
     }
   }
 
-  async function listObjects(bucket: string, opts?: { loadMore?: boolean }) {
+  async function listObjects(bucket: string, opts?: { loadMore?: boolean; prefix?: string }) {
     const loadingSetter = opts?.loadMore ? setIsListingMore : setLoading
     loadingSetter(true)
     setError(null)
     try {
       const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean; totalSize: number }>('list-objects', {
         bucket,
-        prefix: prefix || undefined
+        prefix: opts?.prefix || prefix || undefined
       })
       console.log('List objects response:', res)
-      const items = res.objects.map(obj => ({
+      const items = res.objects ? res.objects.map(obj => ({
         Key: obj.key,
         Size: obj.size,
         LastModified: new Date(obj.lastModified),
         ETag: obj.etag
-      }))
+      })) : []
       setObjects((prev) => (opts?.loadMore ? [...prev, ...items] : items))
       setContinuationToken(res.isTruncated ? res.continuationToken : undefined)
       if (!opts?.loadMore) {
@@ -171,6 +171,7 @@ export default function S3Browser() {
 
   async function handleOpenBucket(name: string) {
     setSelectedBucket(name)
+    setPrefix("")  // Reset prefix when opening a bucket
     setContinuationToken(undefined)
     setBucketRegion(null)
     // Try to get bucket info for quota checking
@@ -208,14 +209,58 @@ export default function S3Browser() {
     }
   }
 
-  function uploadFile(bucket: string, file: File): Promise<void> {
+  async function handleDeleteDirectory(dirPrefix: string) {
+    if (!selectedBucket) return
+    setLoading(true)
+    setError(null)
+    try {
+      // List all objects under this directory
+      const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean; totalSize: number }>('list-objects', {
+        bucket: selectedBucket,
+        prefix: dirPrefix,
+        maxKeys: 1000 // Get up to 1000 objects to delete
+      })
+
+      // Delete all objects in the directory
+      for (const obj of res.objects) {
+        await s3ApiRequest<{ success: boolean }>('delete-object', {
+          bucket: selectedBucket,
+          key: obj.key
+        })
+      }
+
+      await listObjects(selectedBucket)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleCreateDirectory(dirName: string) {
+    if (!dirName.trim() || !selectedBucket) return
+    setLoading(true)
+    setError(null)
+    try {
+      const key = (prefix || '') + dirName.trim() + '/.dir'
+      const file = new File(['directory marker'], '.dir', { type: 'application/octet-stream' })
+      await uploadFile(selectedBucket, file, key)
+      await listObjects(selectedBucket)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function uploadFile(bucket: string, file: File, key?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       const formData = new FormData()
       formData.append('keyId', getStoredKeyId() || '')
       formData.append('token', getStoredToken() || '')
       formData.append('bucket', bucket)
-      formData.append('key', file.name)
+      formData.append('key', key || file.name)
       formData.append('fileSize', file.size.toString())
       formData.append('file', file)
 
@@ -388,6 +433,45 @@ export default function S3Browser() {
     }
   }
 
+  async function handleSaveFile(key: string, content: string) {
+    if (!selectedBucket) return
+    setLoading(true)
+    setError(null)
+    try {
+      const file = new File([content], key.split('/').pop() || 'file', { type: 'text/plain' })
+      await uploadFile(selectedBucket, file, key)
+      await listObjects(selectedBucket)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+async function handleUploadDirectory(files: FileList | null) {
+    if (!files || !files.length || !selectedBucket) return
+    setError(null)
+
+    for (const file of Array.from(files)) {
+      setUploadingFile(file.name)
+      setUploadProgress(0)
+      try {
+        const fileWithPath = file as File & { webkitRelativePath: string }
+        const relativePath = fileWithPath.webkitRelativePath || file.name
+        const key = (prefix || '') + relativePath
+        await uploadFile(selectedBucket, file, key)
+        setUploadProgress(100)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e))
+        break
+      } finally {
+        setUploadingFile(null)
+        setUploadProgress(0)
+      }
+    }
+    await listObjects(selectedBucket)
+  }
+
   useEffect(() => {
     if (keyId) refreshBuckets()
   }, [keyId])
@@ -422,9 +506,9 @@ export default function S3Browser() {
           loading={loading}
           isListingMore={isListingMore}
           prefix={prefix}
-          onPrefixChange={setPrefix}
+          onPrefixChange={(newPrefix) => { setPrefix(newPrefix); setObjects([]); listObjects(selectedBucket, { prefix: newPrefix }); }}
+          onBackToBuckets={() => { setSelectedBucket(null); setPrefix(""); }}
           onRefresh={() => listObjects(selectedBucket)}
-          onBack={() => setSelectedBucket(null)}
           onUpload={(files) => handleUpload(selectedBucket, files)}
           onDeleteSelected={() => handleDeleteSelected(selectedBucket)}
           onPreview={(key) => handlePreview(selectedBucket, key)}
@@ -441,12 +525,15 @@ export default function S3Browser() {
             })
           }}
           onSelectAll={(select) => {
-            if (select) setSelectedObjectKeys(new Set(objects.map((o) => o.Key!)))
+            if (select && objects) setSelectedObjectKeys(new Set(objects.filter(o => !o.Key!.slice(prefix.length).includes('/') && !o.Key!.endsWith('/.dir')).map((o) => o.Key!)))
             else setSelectedObjectKeys(new Set())
           }}
           uploadingFile={uploadingFile}
           uploadProgress={uploadProgress}
           continuationToken={continuationToken}
+          onUploadDirectory={handleUploadDirectory}
+          onDeleteDirectory={handleDeleteDirectory}
+          onCreateDirectory={handleCreateDirectory}
         />
       )}      {error && (
         <Box sx={{ mt: 1 }}>
@@ -477,6 +564,7 @@ export default function S3Browser() {
         key={preview?.key || ""}
         url={preview?.url}
         mime={preview?.mime}
+        onSave={handleSaveFile}
       />
 
       <Dialog
