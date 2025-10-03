@@ -1,16 +1,15 @@
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { useState, useEffect } from "react"
-import Dialog from "@mui/material/Dialog"
-import DialogTitle from "@mui/material/DialogTitle"
-import DialogContent from "@mui/material/DialogContent"
-import DialogActions from "@mui/material/DialogActions"
+import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
 import CircularProgress from "@mui/material/CircularProgress"
+import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import EditIcon from "@mui/icons-material/Edit"
 import SaveIcon from "@mui/icons-material/Save"
 import CancelIcon from "@mui/icons-material/Cancel"
+import DownloadIcon from "@mui/icons-material/Download"
 import Editor, { loader } from "@monaco-editor/react"
 
 // Configure Monaco Editor
@@ -21,102 +20,65 @@ loader.init().then(monaco => {
   }
 })
 
-interface PreviewDialogProps {
-  open: boolean
-  onClose: () => void
-  key: string
-  url?: string
-  mime?: string
-  onSave?: (key: string, content: string) => Promise<void>
-}
-
-export default function PreviewDialog({
-  open,
-  onClose,
-  key,
-  url,
-  mime,
-  onSave,
-}: PreviewDialogProps) {
+export default function PreviewPage() {
   const { t } = useTranslation()
   const [editMode, setEditMode] = useState(false)
   const [content, setContent] = useState("")
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [key, setKey] = useState("")
+  const [url, setUrl] = useState("")
+  const [mime, setMime] = useState("")
 
-  // Fetch text content when opening text files
   useEffect(() => {
-    if (open && url && mime?.startsWith("text/")) {
-      console.log('Fetching content for:', key, 'from:', url)
-      console.log('MIME type:', mime)
-      setLoading(true)
-      setContent("") // Clear content while loading
-      fetch(url, {
+    const hash = window.location.hash
+    const queryIndex = hash.indexOf('?')
+    const queryString = queryIndex !== -1 ? hash.substring(queryIndex + 1) : ''
+    const params = new URLSearchParams(queryString)
+    const k = params.get('key') || ""
+    const u = params.get('url') || ""
+    const m = params.get('mime') || ""
+    setKey(k)
+    setUrl(u)
+    setMime(m)
+
+    if (u && m?.startsWith("text/")) {
+      fetch(u, {
         method: 'GET',
       })
         .then(response => {
-          console.log('Fetch response status:', response.status)
-          console.log('Fetch response ok:', response.ok)
-          console.log('Fetch response type:', response.type)
-
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unknown error'}`)
           }
-
-          // Check if we can read the response
-          const contentType = response.headers.get('content-type')
-          console.log('Content-Type:', contentType)
-
           return response.text()
         })
         .then(text => {
-          console.log('Fetched content length:', text.length)
-          console.log('First 200 chars:', text.substring(0, 200))
           setContent(text)
           setLoading(false)
         })
         .catch(error => {
           console.error('Error fetching content:', error)
-          console.error('Error name:', error.name)
-          console.error('Error message:', error.message)
-
-          let errorMessage = 'Failed to load file content'
-          if (error.name === 'TypeError' && error.message.includes('fetch')) {
-            errorMessage = 'Network error: Unable to connect to the file server'
-          } else if (error.message.includes('CORS')) {
-            errorMessage = 'CORS error: File server does not allow cross-origin requests'
-          } else if (error.message.includes('HTTP 403')) {
-            errorMessage = 'Access denied: The file URL may have expired'
-          } else if (error.message.includes('HTTP 404')) {
-            errorMessage = 'File not found: The file may have been deleted'
-          }
-
-          setContent(`Error: ${errorMessage}\n\nTechnical details: ${error.message}`)
+          setContent(`Error: ${error.message}`)
           setLoading(false)
         })
-    } else if (!open) {
-      // Clear content when dialog closes
-      setContent("")
-      setEditMode(false)
+    } else {
+      setLoading(false)
     }
-  }, [open, url, mime, key])
+  }, [])
 
   const handleSave = async () => {
-    if (!onSave) return
+    // TODO: Implement save functionality
     setSaving(true)
-    try {
-      await onSave(key, content)
-      setEditMode(false)
-    } catch (error) {
-      console.error("Failed to save file:", error)
-    } finally {
+    // Simulate save
+    setTimeout(() => {
       setSaving(false)
-    }
+      setEditMode(false)
+    }, 1000)
   }
 
   const handleCancel = () => {
     setEditMode(false)
-    // Re-fetch content to discard changes
+    // Re-fetch content
     if (url && mime?.startsWith("text/")) {
       setLoading(true)
       fetch(url, {
@@ -136,39 +98,6 @@ export default function PreviewDialog({
         })
         .catch(error => {
           console.error('Error refetching in cancel:', error)
-          setContent(`Error loading file content: ${error.message}`)
-          setLoading(false)
-        })
-    }
-  }
-
-  const handleEditToggle = () => {
-    const newEditMode = !editMode
-    setEditMode(newEditMode)
-
-    // If entering edit mode and content is empty, try fetching again
-    if (newEditMode && !content && url && mime?.startsWith("text/")) {
-      console.log('Content is empty in edit mode, refetching...')
-      setLoading(true)
-      fetch(url, {
-        method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
-      })
-        .then(response => {
-          console.log('Refetch response status:', response.status)
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unknown error'}`)
-          }
-          return response.text()
-        })
-        .then(text => {
-          console.log('Refetched content length:', text.length)
-          setContent(text)
-          setLoading(false)
-        })
-        .catch(error => {
-          console.error('Error refetching in edit toggle:', error)
           setContent(`Error loading file content: ${error.message}`)
           setLoading(false)
         })
@@ -368,28 +297,37 @@ export default function PreviewDialog({
   const language = mime ? getLanguageFromMime(mime) : getLanguageFromKey(key)
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl">
-      <DialogTitle>
-        {key}
-        {mime?.startsWith("text/") && onSave && (
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#121212' }}>
+      <Box sx={{ p: 2, borderBottom: '1px solid #333', display: 'flex', alignItems: 'center' }}>
+        <IconButton onClick={() => window.location.hash = 's3'} sx={{ mr: 1 }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h6" sx={{ flex: 1 }}>{key}</Typography>
+        {mime?.startsWith("text/") && (
           <IconButton
-            onClick={handleEditToggle}
+            onClick={() => setEditMode(!editMode)}
             color="primary"
-            sx={{ ml: 1 }}
             disabled={saving}
           >
             <EditIcon />
           </IconButton>
         )}
-      </DialogTitle>
-      <DialogContent sx={{ backgroundColor: '#121212', minHeight: '70vh' }}>
+        <Button
+          onClick={() => { if (url) window.open(url, "_blank") }}
+          startIcon={<DownloadIcon />}
+          sx={{ ml: 1 }}
+        >
+          {t("common.download", { defaultValue: "Download" })}
+        </Button>
+      </Box>
+      <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
         {loading ? (
           <CircularProgress size={20} />
         ) : url ? (
           mime?.startsWith("image/") ? (
-            <img src={url} alt={key} style={{ maxWidth: "100%" }} />
+            <img src={url} alt={key} style={{ maxWidth: "100%", maxHeight: "100%" }} />
           ) : mime?.startsWith("video/") ? (
-            <video controls style={{ maxWidth: "100%" }}>
+            <video controls style={{ maxWidth: "100%", maxHeight: "100%" }}>
               <source src={url} type={mime} />
               Your browser does not support the video tag.
             </video>
@@ -399,8 +337,8 @@ export default function PreviewDialog({
                 Language: {language} | Content length: {content.length} chars
               </div>
               <Editor
-                key={`editor-${key}-${editMode}`} // Force re-render when switching modes
-                height="60vh"
+                key={`editor-${key}-${editMode}`}
+                height="calc(100vh - 120px)"
                 language={language}
                 value={content}
                 onChange={(value) => setContent(value || "")}
@@ -419,7 +357,7 @@ export default function PreviewDialog({
             <pre style={{
               whiteSpace: 'pre-wrap',
               wordWrap: 'break-word',
-              maxHeight: '60vh',
+              height: 'calc(100vh - 120px)',
               overflow: 'auto',
               fontFamily: 'monospace',
               fontSize: '14px',
@@ -437,33 +375,28 @@ export default function PreviewDialog({
         ) : (
           <CircularProgress size={20} />
         )}
-      </DialogContent>
-      <DialogActions>
-        {editMode ? (
-          <>
-            <Button
-              onClick={handleSave}
-              startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
-              disabled={saving}
-              color="primary"
-            >
-              {saving ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save" })}
-            </Button>
-            <Button
-              onClick={handleCancel}
-              startIcon={<CancelIcon />}
-              disabled={saving}
-            >
-              {t("common.cancel", { defaultValue: "Cancel" })}
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button onClick={() => { if (url) window.open(url, "_blank") }}>{t("common.download", { defaultValue: "Download" })}</Button>
-            <Button onClick={onClose}>{t("common.close")}</Button>
-          </>
-        )}
-      </DialogActions>
-    </Dialog>
+      </Box>
+      {editMode && (
+        <Box sx={{ p: 2, borderTop: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            onClick={handleSave}
+            startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
+            disabled={saving}
+            color="primary"
+            variant="contained"
+          >
+            {saving ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save" })}
+          </Button>
+          <Button
+            onClick={handleCancel}
+            startIcon={<CancelIcon />}
+            disabled={saving}
+            sx={{ ml: 1 }}
+          >
+            {t("common.cancel", { defaultValue: "Cancel" })}
+          </Button>
+        </Box>
+      )}
+    </Box>
   )
 }

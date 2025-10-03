@@ -13,7 +13,6 @@ import {
   ObjectsList,
   CreateBucketDialog,
   CopyObjectDialog,
-  PreviewDialog,
 } from './components'
 import { GetBucketInfo } from '../../utils/apiWrapper'
 import {
@@ -84,7 +83,6 @@ export default function S3Browser() {
   // const [uploadingFile, setUploadingFile] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
-  const [preview, setPreview] = useState<{ key: string; url?: string; mime?: string } | null>(null)
   const [selectedObjectKeys, setSelectedObjectKeys] = useState<Set<string>>(new Set())
   const [copyDialog, setCopyDialog] = useState<{ open: boolean; sourceKey?: string; destKey?: string }>({ open: false })
   const [bucketRegion, setBucketRegion] = useState<string | null>(null)
@@ -401,13 +399,90 @@ export default function S3Browser() {
       if (extension) {
         if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension)) {
           mime = `image/${extension === 'jpg' ? 'jpeg' : extension}`
-        } else if (['txt', 'json', 'xml', 'html', 'css', 'js', 'ts', 'md'].includes(extension)) {
+        } else if (extension === 'json') {
+          mime = 'application/json'
+        } else if (['js', 'mjs'].includes(extension)) {
+          mime = 'text/javascript'
+        } else if (['ts', 'tsx'].includes(extension)) {
+          mime = 'text/typescript'
+        } else if (extension === 'html') {
+          mime = 'text/html'
+        } else if (extension === 'css') {
+          mime = 'text/css'
+        } else if (extension === 'xml') {
+          mime = 'text/xml'
+        } else if (extension === 'md') {
+          mime = 'text/markdown'
+        } else if (extension === 'py') {
+          mime = 'text/x-python'
+        } else if (extension === 'java') {
+          mime = 'text/x-java'
+        } else if (['cpp', 'cc', 'cxx'].includes(extension)) {
+          mime = 'text/x-c++'
+        } else if (extension === 'c') {
+          mime = 'text/x-c'
+        } else if (extension === 'php') {
+          mime = 'text/x-php'
+        } else if (extension === 'rb') {
+          mime = 'text/x-ruby'
+        } else if (extension === 'go') {
+          mime = 'text/x-go'
+        } else if (extension === 'rs') {
+          mime = 'text/x-rust'
+        } else if (extension === 'sh') {
+          mime = 'text/x-shell'
+        } else if (extension === 'sql') {
+          mime = 'text/x-sql'
+        } else if (extension === 'txt') {
           mime = 'text/plain'
+        } else if (['yaml', 'yml'].includes(extension)) {
+          mime = 'text/yaml'
+        } else if (extension === 'dart') {
+          mime = 'text/x-dart'
+        } else if (extension === 'kt') {
+          mime = 'text/x-kotlin'
+        } else if (extension === 'scala') {
+          mime = 'text/x-scala'
+        } else if (extension === 'lua') {
+          mime = 'text/x-lua'
+        } else if (extension === 'r') {
+          mime = 'text/x-r'
+        } else if (extension === 'swift') {
+          mime = 'text/x-swift'
+        } else if (extension === 'cs') {
+          mime = 'text/x-csharp'
+        } else if (extension === 'fs') {
+          mime = 'text/x-fsharp'
+        } else if (extension === 'hs') {
+          mime = 'text/x-haskell'
+        } else if (extension === 'ml') {
+          mime = 'text/x-ocaml'
+        } else if (extension === 'pl') {
+          mime = 'text/x-perl'
+        } else if (extension === 'tcl') {
+          mime = 'text/x-tcl'
+        } else if (extension === 'dockerfile') {
+          mime = 'text/x-dockerfile'
+        } else if (extension === 'makefile') {
+          mime = 'text/x-makefile'
+        } else if (extension === 'cmake') {
+          mime = 'text/x-cmake'
+        } else if (extension === 'gradle') {
+          mime = 'text/x-gradle'
+        } else if (extension === 'toml') {
+          mime = 'text/x-toml'
+        } else if (extension === 'ini') {
+          mime = 'text/x-ini'
+        } else if (extension === 'bat') {
+          mime = 'text/x-batch'
+        } else if (extension === 'ps1') {
+          mime = 'text/x-powershell'
         } else if (['mp4', 'avi', 'mov', 'wmv', 'flv', 'webm'].includes(extension)) {
           mime = `video/${extension}`
         }
       }
-      setPreview({ key, url: res.presignedUrl, mime })
+      // Navigate to preview page
+      window.location.hash = `preview?key=${encodeURIComponent(key)}&url=${encodeURIComponent(res.presignedUrl)}&mime=${encodeURIComponent(mime)}`
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -433,20 +508,7 @@ export default function S3Browser() {
     }
   }
 
-  async function handleSaveFile(key: string, content: string) {
-    if (!selectedBucket) return
-    setLoading(true)
-    setError(null)
-    try {
-      const file = new File([content], key.split('/').pop() || 'file', { type: 'text/plain' })
-      await uploadFile(selectedBucket, file, key)
-      await listObjects(selectedBucket)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-    } finally {
-      setLoading(false)
-    }
-  }
+
 
 async function handleUploadDirectory(files: FileList | null) {
     if (!files || !files.length || !selectedBucket) return
@@ -556,15 +618,6 @@ async function handleUploadDirectory(files: FileList | null) {
         destKey={copyDialog.destKey || ""}
         onDestKeyChange={(value) => setCopyDialog((c) => ({ ...c, destKey: value }))}
         onCopy={() => {}}
-      />
-
-      <PreviewDialog
-        open={!!preview}
-        onClose={() => { if (preview?.url) URL.revokeObjectURL(preview.url); setPreview(null) }}
-        key={preview?.key || ""}
-        url={preview?.url}
-        mime={preview?.mime}
-        onSave={handleSaveFile}
       />
 
       <Dialog

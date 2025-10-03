@@ -8,6 +8,7 @@ import Nodes from "./pages/dashboard/Nodes"
 import Blocks from "./pages/dashboard/Blocks"
 import Workers from "./pages/dashboard/Workers"
 import ClusterLayout from "./pages/dashboard/ClusterLayout"
+import PreviewPage from "./pages/dashboard/PreviewPage"
 import { ThemeProvider } from "@mui/material/styles"
 import { lightTheme, darkTheme } from "./theme"
 import Box from "@mui/material/Box"
@@ -21,8 +22,8 @@ function App() {
     // example counter removed
     const [authed, setAuthed] = useState(false)
     const [tab, setTab] = useState<string>(() => {
-        const h = window.location.hash.replace('#', '')
-        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster') {
+        const h = window.location.hash.replace('#', '').split('?')[0]
+        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
             return h
         }
         return "buckets"
@@ -50,8 +51,10 @@ function App() {
     // sync hash -> tab and tab -> hash
     useEffect(() => {
         function onHashChange() {
-            const h = window.location.hash.replace('#', '')
-            if (h) setTab(h)
+            const h = window.location.hash.replace('#', '').split('?')[0]
+            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+                setTab(h)
+            }
         }
         window.addEventListener('hashchange', onHashChange)
         return () => window.removeEventListener('hashchange', onHashChange)
@@ -113,6 +116,7 @@ function App() {
                     {tab === "blocks" && <Blocks />}
                     {tab === "workers" && <Workers />}
                     {tab === "cluster" && <ClusterLayout />}
+                    {tab === "preview" && <PreviewPage />}
                 </Box>
             </Box>
         </ThemeProvider>
