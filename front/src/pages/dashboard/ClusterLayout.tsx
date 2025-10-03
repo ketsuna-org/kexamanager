@@ -196,7 +196,7 @@ export default function ClusterLayout() {
             const updated = await UpdateClusterLayout(updateReq)
             const newLayout = updated as components["schemas"]["GetClusterLayoutResponse"]
             if (!layout) {
-                setError("No current layout available")
+                setError(t("dashboard.no_current_layout"))
                 return
             }
             const version = 1 + newLayout.version;
@@ -350,7 +350,7 @@ export default function ClusterLayout() {
                                                 <TableCell>{n.hostname ?? "-"}</TableCell>
                                                 <TableCell>{n.addr ?? "-"}</TableCell>
                                                 <TableCell>{n.garageVersion ?? "-"}</TableCell>
-                                                <TableCell>{n.isUp ? <Chip label="up" color="success" size="small" /> : <Chip label="down" color="default" size="small" />}</TableCell>
+                                                <TableCell>{n.isUp ? <Chip label={t("dashboard.node_up")} color="success" size="small" /> : <Chip label={t("dashboard.node_down")} color="default" size="small" />}</TableCell>
                                                 <TableCell>{n.draining ? <Chip label="draining" size="small" /> : "-"}</TableCell>
                                                 <TableCell>{n.role?.zone ?? "-"}</TableCell>
                                                 <TableCell>

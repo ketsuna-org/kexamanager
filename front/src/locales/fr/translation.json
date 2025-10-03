@@ -19,6 +19,7 @@
     },
     "dashboard": {
         "title": "Tableau de bord",
+        "subtitle": "Gestion du cluster",
         "buckets": "Buckets",
         "buckets_desc": "Contenu et gestion des buckets",
         "buckets_add": "Ajouter un bucket",
@@ -85,7 +86,21 @@
         "remove_role": "Supprimer le rôle",
         "add_role_change": "Ajouter le changement de rôle",
         "cluster_apply_confirm_title": "Appliquer la disposition mise en attente ?",
-        "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?"
+        "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?",
+        "s3_browser": "Navigateur S3",
+        "cluster_storage_overview": "Aperçu du stockage du cluster",
+        "data_storage": "Stockage des données",
+        "used_space": "Utilisé",
+        "available_space": "Disponible",
+        "storage_breakdown": "Répartition du stockage",
+        "used": "Utilisé",
+        "available": "Disponible",
+        "total_usage": "Utilisation totale",
+        "total_data_capacity": "Capacité totale des données",
+        "used_data": "Données utilisées",
+        "no_current_layout": "Aucune disposition actuelle disponible",
+        "node_up": "en ligne",
+        "node_down": "hors ligne"
     },
     "blocks": {
         "col": {
@@ -133,6 +148,7 @@
     },
     "common": {
         "cancel": "Annuler",
+        "confirm": "Confirmer",
         "never_expire": "Jamais expirer",
         "add": "Ajouter",
         "loading": "Chargement...",
@@ -148,6 +164,9 @@
         "edit": "Modifier",
         "copy": "Copier",
         "copied": "Copié !"
+    },
+    "settings": {
+        "darkMode": "Sombre"
     },
     "buckets": {
         "col": {

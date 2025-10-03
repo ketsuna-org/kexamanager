@@ -102,7 +102,7 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
         </ListItemButton>
         <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
           <ListItemIcon><StorageIcon /></ListItemIcon>
-          <ListItemText primary={"S3 Browser"} />
+          <ListItemText primary={t("dashboard.s3_browser")} />
         </ListItemButton>
         <Divider sx={{ my: 1 }} />
         <ListItemButton selected={tab === "adminTokens"} onClick={() => { setTab("adminTokens"); setMobileOpen(false) }}>
@@ -177,7 +177,7 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
         </ListItemButton>
         <ListItemButton selected={tab === "s3"} onClick={() => setTab("s3")}>
           <ListItemIcon><StorageIcon /></ListItemIcon>
-          <ListItemText primary={"S3 Browser"} />
+          <ListItemText primary={t("dashboard.s3_browser")} />
         </ListItemButton>
         <Divider sx={{ my: 1 }} />
         <ListItemButton selected={tab === "adminTokens"} onClick={() => setTab("adminTokens")}>
