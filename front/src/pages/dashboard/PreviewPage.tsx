@@ -4,14 +4,12 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
-import Tooltip from "@mui/material/Tooltip"
 import CircularProgress from "@mui/material/CircularProgress"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import EditIcon from "@mui/icons-material/Edit"
 import SaveIcon from "@mui/icons-material/Save"
 import CancelIcon from "@mui/icons-material/Cancel"
 import DownloadIcon from "@mui/icons-material/Download"
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import Editor, { loader } from "@monaco-editor/react"
 import { clearPreviewSession } from "../../utils/previewSession"
 
@@ -380,26 +378,6 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
   }
 
   const language = mime ? getLanguageFromMime(mime) : getLanguageFromKey(key)
-
-  const formatUrlForDisplay = (u?: string) => {
-    if (!u) return ''
-    try {
-      const p = new URL(u)
-      return `${p.origin}${p.pathname}`
-    } catch {
-      // fallback: truncate
-      return u.length > 80 ? `${u.slice(0, 77)}...` : u
-    }
-  }
-
-  const handleCopyUrl = async () => {
-    if (!url) return
-    try {
-      await navigator.clipboard.writeText(url)
-    } catch {
-      // ignore
-    }
-  }
 
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#121212' }}>
