@@ -18,8 +18,8 @@ RUN bun run build
 FROM golang:1.24.5-alpine AS go-builder
 WORKDIR /src
 
-# Installer git pour go mod download
-RUN apk add --no-cache git
+# Installer git et les dépendances de build pour CGO et SQLite
+RUN apk add --no-cache git gcc musl-dev sqlite-dev
 
 # Copier les modules Go
 COPY api/go.mod ./api/
@@ -32,7 +32,7 @@ COPY api/ ./
 # Utiliser TARGETARCH et TARGETOS de BuildKit pour le build multi-arch
 ARG TARGETOS
 ARG TARGETARCH
-RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags='-s -w' -o /out/proxy ./cmd/proxy
+RUN CGO_ENABLED=1 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -ldflags='-s -w' -o /out/proxy ./cmd/proxy
 
 # Stage 3: Image finale
 FROM alpine:3.20
