@@ -188,20 +188,28 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     setContinuationToken(undefined)
     setBucketRegion(null)
     // Try to get bucket info for quota checking
-    try {
-      console.log('Trying to get bucket info for:', name)
-      let bucketInfo;
+    // Only call admin GetBucketInfo if we have a selectedProject with an admin_url
+    // and it's not a plain 's3' project (which doesn't expose the admin API).
+    if (selectedProject && selectedProject.admin_url && selectedProject.type !== 's3') {
       try {
-        bucketInfo = await GetBucketInfo({ globalAlias: name })
-      } catch {
-        // Try with search
-        bucketInfo = await GetBucketInfo({ search: name })
+        console.log('Trying to get bucket info for:', name)
+        let bucketInfo;
+        try {
+          bucketInfo = await GetBucketInfo({ globalAlias: name })
+        } catch {
+          // Try with search
+          bucketInfo = await GetBucketInfo({ search: name })
+        }
+        console.log('Got bucket info:', bucketInfo)
+        setBucketQuota(bucketInfo.quotas || null)
+      } catch (e) {
+        console.log('Failed to get bucket info:', e)
+        // Ignore if not admin or bucket not found
+        setBucketQuota(null)
       }
-      console.log('Got bucket info:', bucketInfo)
-      setBucketQuota(bucketInfo.quotas || null)
-    } catch (e) {
-      console.log('Failed to get bucket info:', e)
-      // Ignore if not admin or bucket not found
+    } else {
+      // No admin API available for this project — clear quota and continue
+      console.log('Skipping admin GetBucketInfo: no admin_url or project is type s3')
       setBucketQuota(null)
     }
     await listObjects(name)
@@ -502,8 +510,19 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
           mime = `video/${extension}`
         }
       }
-      // Navigate to preview page
-      window.location.hash = `preview?key=${encodeURIComponent(key)}&url=${encodeURIComponent(res.presignedUrl)}&mime=${encodeURIComponent(mime)}&bucket=${encodeURIComponent(bucket)}`
+      // Store preview params in sessionStorage and navigate to preview route
+      try {
+        // lazy import to avoid circular deps in some setups
+        const { setPreviewSession } = await import('../../utils/previewSession')
+        setPreviewSession({ key, url: res.presignedUrl, mime, bucket })
+      } catch {
+        // fallback: include params in hash if sessionStorage not available
+        window.location.hash = `preview?key=${encodeURIComponent(key)}&url=${encodeURIComponent(res.presignedUrl)}&mime=${encodeURIComponent(mime)}&bucket=${encodeURIComponent(bucket)}`
+        setLoading(false)
+        return
+      }
+
+      window.location.hash = 'preview'
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {

@@ -4,13 +4,16 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
+import Tooltip from "@mui/material/Tooltip"
 import CircularProgress from "@mui/material/CircularProgress"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import EditIcon from "@mui/icons-material/Edit"
 import SaveIcon from "@mui/icons-material/Save"
 import CancelIcon from "@mui/icons-material/Cancel"
 import DownloadIcon from "@mui/icons-material/Download"
+import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import Editor, { loader } from "@monaco-editor/react"
+import { clearPreviewSession } from "../../utils/previewSession"
 
 // Configure Monaco Editor
 loader.init().then(monaco => {
@@ -22,19 +25,19 @@ loader.init().then(monaco => {
 
 function getStoredKeyId(): string | null {
   try {
-     const keyId = sessionStorage.getItem("kexamanager:s3:keyId") || localStorage.getItem("kexamanager:s3:keyId")
-     return keyId
+    const keyId = sessionStorage.getItem("kexamanager:s3:keyId") || localStorage.getItem("kexamanager:s3:keyId")
+    return keyId
   } catch {
-     return null
+    return null
   }
 }
 
 function getStoredToken(): string | null {
   try {
-     const token = sessionStorage.getItem("kexamanager:s3:secretAccessKey") || localStorage.getItem("kexamanager:s3:secretAccessKey")
-     return token
+    const token = sessionStorage.getItem("kexamanager:s3:secretAccessKey") || localStorage.getItem("kexamanager:s3:secretAccessKey")
+    return token
   } catch {
-     return null
+    return null
   }
 }
 
@@ -50,18 +53,42 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
   const [bucket, setBucket] = useState("")
 
   useEffect(() => {
-    const hash = window.location.hash
-    const queryIndex = hash.indexOf('?')
-    const queryString = queryIndex !== -1 ? hash.substring(queryIndex + 1) : ''
-    const params = new URLSearchParams(queryString)
-    const k = params.get('key') || ""
-    const u = params.get('url') || ""
-    const m = params.get('mime') || ""
-    const b = params.get('bucket') || ""
+    // First try to read preview params from sessionStorage (set by the caller),
+    // fallback to the existing hash parsing logic if not present.
+    const sKey = sessionStorage.getItem('kexamanager:preview:key')
+    const sUrl = sessionStorage.getItem('kexamanager:preview:url')
+    const sMime = sessionStorage.getItem('kexamanager:preview:mime')
+    const sBucket = sessionStorage.getItem('kexamanager:preview:bucket')
+
+    let k = sKey || ""
+    let u = sUrl || ""
+    let m = sMime || ""
+    let b = sBucket || ""
+
+    if (!k && !u && !m && !b) {
+      const hash = window.location.hash
+      const queryIndex = hash.indexOf('?')
+      const queryString = queryIndex !== -1 ? hash.substring(queryIndex + 1) : ''
+      const params = new URLSearchParams(queryString)
+      k = params.get('key') || ""
+      u = params.get('url') || ""
+      m = params.get('mime') || ""
+      b = params.get('bucket') || ""
+    }
+
     setKey(k)
     setUrl(u)
     setMime(m)
     setBucket(b)
+
+    // NOTE: Do NOT remove the sessionStorage keys here. In React 18 StrictMode
+    // the component may mount, run effects, then unmount and mount again during
+    // development; removing the keys here causes the second mount to see empty
+    // values (that's why you observed a second log with empty params). If you
+    // want to clear the preview params, do it explicitly from the caller or
+    // provide a dedicated 'clearPreview' action.
+
+    // Debug logging removed
 
     if (u && m?.startsWith("text/")) {
       fetch(u, {
@@ -354,10 +381,30 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
 
   const language = mime ? getLanguageFromMime(mime) : getLanguageFromKey(key)
 
+  const formatUrlForDisplay = (u?: string) => {
+    if (!u) return ''
+    try {
+      const p = new URL(u)
+      return `${p.origin}${p.pathname}`
+    } catch {
+      // fallback: truncate
+      return u.length > 80 ? `${u.slice(0, 77)}...` : u
+    }
+  }
+
+  const handleCopyUrl = async () => {
+    if (!url) return
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#121212' }}>
       <Box sx={{ p: 2, borderBottom: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-        <IconButton onClick={() => window.location.hash = 's3'} sx={{ mr: 1 }}>
+        <IconButton onClick={() => { clearPreviewSession(); window.location.hash = 's3' }} sx={{ mr: 1 }}>
           <ArrowBackIcon />
         </IconButton>
         <Typography variant="h6" sx={{ flex: 1 }}>{key}</Typography>
@@ -378,6 +425,7 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
           {t("common.download", { defaultValue: "Download" })}
         </Button>
       </Box>
+
       <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
         {loading ? (
           <CircularProgress size={20} />
@@ -431,7 +479,9 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
             <Typography variant="body2">{t("s3browser.preview_unavailable", { defaultValue: "Aucun aperçu disponible pour ce type. Téléchargez le fichier pour l'ouvrir." })}</Typography>
           )
         ) : (
-          <CircularProgress size={20} />
+          <Typography variant="body2" color="text.secondary">
+            {t("s3browser.no_url", { defaultValue: "Aucun URL disponible pour ce fichier — impossible de prévisualiser. Utilisez Admin API ou fournissez une URL signée." })}
+          </Typography>
         )}
       </Box>
       {editMode && (
