@@ -575,8 +575,8 @@ async function handleUploadDirectory(files: FileList | null) {
   }
 
   useEffect(() => {
-    if (keyId && selectedConfigId) refreshBuckets()
-  }, [keyId, selectedConfigId, refreshBuckets])
+    if (selectedConfigId) refreshBuckets()
+  }, [selectedConfigId, refreshBuckets])
 
   if (!keyId && selectedProject && selectedProject.admin_url) {
     return (
