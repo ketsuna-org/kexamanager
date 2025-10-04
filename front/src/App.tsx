@@ -94,13 +94,15 @@ function App() {
         setCurrentProjectId(selectedProject)
     }, [selectedProject])
 
-    // When a project is selected and we're on the projects tab, switch to s3 tab
+    // When no project is selected, redirect to projects page
     useEffect(() => {
-        if (selectedProject && tab === "projects") {
-            setTab("s3")
-            window.location.hash = "#s3"
+        if (selectedProject === null && tab !== "projects") {
+            setTab("projects")
+            window.location.hash = "#projects"
         }
     }, [selectedProject, tab])
+
+    // Removed automatic redirection to S3 tab - users should be able to access projects management anytime
     useEffect(() => {
         function onHashChange() {
             const h = window.location.hash.replace('#', '').split('?')[0]
@@ -147,6 +149,8 @@ function App() {
                         setMobileOpen={setMobileOpen}
                         onLogout={logout}
                         selectedProject={getSelectedProjectInfo()}
+                        projects={projects}
+                        onSelectProject={setSelectedProject}
                     />
                 )}
 

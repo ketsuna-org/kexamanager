@@ -8,16 +8,15 @@ import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
 import Button from "@mui/material/Button"
-import {
-  BucketsList,
-  ObjectsList,
-  CreateBucketDialog,
-  CopyObjectDialog,
-} from './components'
-import { GetBucketInfo } from '../../utils/apiWrapper'
-import {
-  type _Object as S3Object,
-} from "@aws-sdk/client-s3"
+import { GetBucketInfo } from "../../utils/apiWrapper"
+import { BucketsList, ObjectsList, CreateBucketDialog, CopyObjectDialog } from "./components"
+
+interface S3Object {
+  Key: string
+  Size: number
+  LastModified: Date
+  ETag: string
+}
 
 function getStoredKeyId(): string | null {
   try {

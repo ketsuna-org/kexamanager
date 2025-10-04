@@ -38,9 +38,11 @@ export interface NavigationProps {
   setMobileOpen: (v: boolean) => void
   onLogout: () => void
   selectedProject?: { id: number; name: string } | null
+  projects: Array<{ id: number; name: string }>
+  onSelectProject: (projectId: number | null) => void
 }
 
-export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, mobileOpen, setMobileOpen, onLogout, selectedProject }: NavigationProps) {
+export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, mobileOpen, setMobileOpen, onLogout, selectedProject, projects, onSelectProject }: NavigationProps) {
   const { t } = useTranslation()
 
   const MobileAppBar = (
@@ -63,6 +65,22 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
           {selectedProject ? `${t("dashboard.title")} - ${selectedProject.name}` : t("dashboard.title")}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Select
+            value={selectedProject?.id || ""}
+            size="small"
+            onChange={(e) => onSelectProject(e.target.value ? parseInt(String(e.target.value)) : null)}
+            displayEmpty
+            sx={{ minWidth: 120, maxWidth: 200 }}
+          >
+            <MenuItem value="">
+              <em>{t("dashboard.select_project", "Select Project")}</em>
+            </MenuItem>
+            {projects.map((project) => (
+              <MenuItem key={project.id} value={project.id}>
+                {project.name}
+              </MenuItem>
+            ))}
+          </Select>
           <FormControlLabel
             control={<Switch size="small" checked={dark} onChange={(e) => setDark(e.target.checked)} />}
             label=""
@@ -160,6 +178,24 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
       <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
         <Typography variant="h5" fontWeight={700}>{t("dashboard.title")}</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{t("dashboard.subtitle", "Cluster Management")}</Typography>
+        <Box sx={{ mt: 2 }}>
+          <Select
+            value={selectedProject?.id || ""}
+            size="small"
+            onChange={(e) => onSelectProject(e.target.value ? parseInt(String(e.target.value)) : null)}
+            displayEmpty
+            fullWidth
+          >
+            <MenuItem value="">
+              <em>{t("dashboard.select_project", "Select Project")}</em>
+            </MenuItem>
+            {projects.map((project) => (
+              <MenuItem key={project.id} value={project.id}>
+                {project.name}
+              </MenuItem>
+            ))}
+          </Select>
+        </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
           <FormControlLabel
             control={<Switch size="small" checked={dark} onChange={(e) => setDark(e.target.checked)} />}

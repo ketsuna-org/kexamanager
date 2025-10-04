@@ -20,6 +20,7 @@
     "dashboard": {
         "title": "Dashboard",
         "subtitle": "Cluster Management",
+        "select_project": "Select Project",
         "buckets": "Buckets",
         "buckets_desc": "Buckets content and management",
         "buckets_add": "Add bucket",

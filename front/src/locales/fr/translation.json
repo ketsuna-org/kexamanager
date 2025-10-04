@@ -20,6 +20,7 @@
     "dashboard": {
         "title": "Tableau de bord",
         "subtitle": "Gestion du cluster",
+        "select_project": "Sélectionner un projet",
         "buckets": "Buckets",
         "buckets_desc": "Contenu et gestion des buckets",
         "buckets_add": "Ajouter un bucket",
