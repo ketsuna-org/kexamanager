@@ -39,7 +39,7 @@ export default function Nodes() {
     useEffect(() => {
         let mounted = true
 
-        Promise.allSettled([GetNodeInfo(), GetNodeStatistics()])
+        Promise.allSettled([GetNodeInfo({}), GetNodeStatistics({})])
             .then((results) => {
                 if (!mounted) return
 

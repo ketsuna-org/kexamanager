@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import type { components } from "../../types/openapi"
 import {
@@ -115,11 +115,7 @@ export default function ClusterLayout() {
     const [roleEdits, setRoleEdits] = useState<RoleEdit[]>([])
     const [skipNodesInput, setSkipNodesInput] = useState<string>("")
 
-    useEffect(() => {
-        refreshAll()
-    }, [])
-
-    function refreshAll() {
+    const refreshAll = useCallback(() => {
         setLoading(true)
         setError(null)
         Promise.allSettled([GetClusterStatus(), GetClusterLayout(), GetClusterLayoutHistory(), GetClusterHealth(), GetClusterStatistics()])
@@ -138,7 +134,11 @@ export default function ClusterLayout() {
             })
             .catch((e: unknown) => setError((e as { message?: string })?.message || String(e)))
             .finally(() => setLoading(false))
-    }
+    }, [])
+
+    useEffect(() => {
+        refreshAll()
+    }, [refreshAll])
 
     async function handleUpdateLayout() {
         setError(null)

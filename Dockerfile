@@ -46,6 +46,9 @@ COPY --from=go-builder /out/proxy /app/proxy
 # Copier les fichiers frontend construits
 COPY --from=frontend-builder /src/output/public /app/public
 
+# Créer le répertoire data pour la base de données
+RUN mkdir -p /app/data
+
 # S'assurer que le proxy est exécutable
 RUN chmod +x /app/proxy
 

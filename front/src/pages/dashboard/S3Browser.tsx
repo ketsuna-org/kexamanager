@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -8,16 +8,15 @@ import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
 import Button from "@mui/material/Button"
-import {
-  BucketsList,
-  ObjectsList,
-  CreateBucketDialog,
-  CopyObjectDialog,
-} from './components'
-import { GetBucketInfo } from '../../utils/apiWrapper'
-import {
-  type _Object as S3Object,
-} from "@aws-sdk/client-s3"
+import { GetBucketInfo } from "../../utils/apiWrapper"
+import { BucketsList, ObjectsList, CreateBucketDialog, CopyObjectDialog } from "./components"
+
+interface S3Object {
+  Key: string
+  Size: number
+  LastModified: Date
+  ETag: string
+}
 
 function getStoredKeyId(): string | null {
   try {
@@ -42,14 +41,20 @@ function useS3KeyId() {
   return keyId
 }
 
-async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
+async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: number): Promise<T> {
   const keyId = getStoredKeyId()
   const token = getStoredToken()
-  const response = await fetch(`/api/s3/${endpoint}`, {
+  const baseUrl = configId ? `/api/${configId}/s3` : '/api/s3'
+  const jwtToken = localStorage.getItem("kexamanager:token")
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (jwtToken) {
+    headers['Authorization'] = `Bearer ${jwtToken}`
+  }
+  const response = await fetch(`${baseUrl}/${endpoint}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({ keyId, token, ...(body as Record<string, unknown> || {}) }),
   })
   if (!response.ok) {
@@ -65,9 +70,19 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
   return response.json()
 }
 
-export default function S3Browser() {
+interface S3BrowserProps {
+    selectedProject: { id: number; name: string; admin_url?: string; type?: string } | null
+}
+
+export default function S3Browser({ selectedProject }: S3BrowserProps) {
   const { t } = useTranslation()
   const keyId = useS3KeyId()
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(selectedProject?.id || null)
+
+  // Update selectedConfigId when selectedProject changes
+  useEffect(() => {
+    setSelectedConfigId(selectedProject?.id || null)
+  }, [selectedProject])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [buckets, setBuckets] = useState<{ Name?: string; CreationDate?: Date }[]>([])
@@ -88,11 +103,11 @@ export default function S3Browser() {
   const [bucketRegion, setBucketRegion] = useState<string | null>(null)
   const [quotaAlert, setQuotaAlert] = useState<{ open: boolean; message: string; onConfirm: () => void } | null>(null)
 
-  async function refreshBuckets() {
+  const refreshBuckets = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await s3ApiRequest<{ buckets: { name: string; creationDate: string }[] }>('list-buckets', {})
+      const res = await s3ApiRequest<{ buckets: { name: string; creationDate: string }[] }>('list-buckets', {}, selectedConfigId || undefined)
       setBuckets(res.buckets.map(b => ({ Name: b.name, CreationDate: new Date(b.creationDate) })))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -100,7 +115,7 @@ export default function S3Browser() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedConfigId])
 
   async function createBucket() {
     if (!newBucket) return
@@ -109,7 +124,7 @@ export default function S3Browser() {
     try {
       await s3ApiRequest<{ success: boolean }>('create-bucket', {
         bucket: newBucket
-      })
+      }, selectedConfigId || undefined)
       setCreateOpen(false)
       setNewBucket("")
       await refreshBuckets()
@@ -126,7 +141,7 @@ export default function S3Browser() {
     try {
       await s3ApiRequest<{ success: boolean }>('delete-bucket', {
         bucket: name
-      })
+      }, selectedConfigId || undefined)
       if (selectedBucket === name) setSelectedBucket(null)
       await refreshBuckets()
     } catch (e) {
@@ -144,7 +159,7 @@ export default function S3Browser() {
       const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean; totalSize: number }>('list-objects', {
         bucket,
         prefix: opts?.prefix || prefix || undefined
-      })
+      }, selectedConfigId || undefined)
       console.log('List objects response:', res)
       const items = res.objects ? res.objects.map(obj => ({
         Key: obj.key,
@@ -198,7 +213,7 @@ export default function S3Browser() {
       await s3ApiRequest<{ success: boolean }>('delete-object', {
         bucket,
         key
-      })
+      }, selectedConfigId || undefined)
       await listObjects(bucket)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -217,14 +232,14 @@ export default function S3Browser() {
         bucket: selectedBucket,
         prefix: dirPrefix,
         maxKeys: 1000 // Get up to 1000 objects to delete
-      })
+      }, selectedConfigId || undefined)
 
       // Delete all objects in the directory
       for (const obj of res.objects) {
         await s3ApiRequest<{ success: boolean }>('delete-object', {
           bucket: selectedBucket,
           key: obj.key
-        })
+        }, selectedConfigId || undefined)
       }
 
       await listObjects(selectedBucket)
@@ -262,7 +277,11 @@ export default function S3Browser() {
       formData.append('fileSize', file.size.toString())
       formData.append('file', file)
 
-      xhr.open('POST', '/api/s3/put-object')
+      const jwtToken = localStorage.getItem("kexamanager:token")
+      xhr.open('POST', `/api/${selectedConfigId}/s3/put-object`)
+      if (jwtToken) {
+        xhr.setRequestHeader('Authorization', `Bearer ${jwtToken}`)
+      }
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           setUploadProgress(Math.round((e.loaded / e.total) * 100))
@@ -357,7 +376,7 @@ export default function S3Browser() {
         await s3ApiRequest<{ success: boolean }>('delete-object', {
           bucket,
           key
-        })
+        }, selectedConfigId || undefined)
       }
       await listObjects(bucket)
     } catch (e) {
@@ -392,7 +411,7 @@ export default function S3Browser() {
       const res = await s3ApiRequest<{ presignedUrl: string }>('get-object', {
         bucket,
         key
-      })
+      }, selectedConfigId || undefined)
       // Determine MIME type from file extension
       const extension = key.split('.').pop()?.toLowerCase()
       let mime = 'application/octet-stream'
@@ -495,7 +514,7 @@ export default function S3Browser() {
       const res = await s3ApiRequest<{ presignedUrl: string }>('get-object', {
         bucket,
         key
-      })
+      }, selectedConfigId || undefined)
       // Create a temporary link and trigger download
       const link = document.createElement('a')
       link.href = res.presignedUrl
@@ -535,10 +554,10 @@ async function handleUploadDirectory(files: FileList | null) {
   }
 
   useEffect(() => {
-    if (keyId) refreshBuckets()
-  }, [keyId])
+    if (keyId && selectedConfigId) refreshBuckets()
+  }, [keyId, selectedConfigId, refreshBuckets])
 
-  if (!keyId) {
+  if (!keyId && selectedProject && selectedProject.admin_url) {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="h6">{t("s3browser.no_session_title", { defaultValue: "S3 Browser" })}</Typography>
@@ -551,6 +570,11 @@ async function handleUploadDirectory(files: FileList | null) {
 
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography variant="h6">
+          {selectedProject ? `Project: ${selectedProject.name}` : 'No project selected'}
+        </Typography>
+      </Box>
       {!selectedBucket ? (
         <BucketsList
           buckets={buckets}

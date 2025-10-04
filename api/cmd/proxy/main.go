@@ -10,11 +10,41 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ketsuna-org/kexamanager/cmd/proxy/s3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+var db *gorm.DB
+
+// Fonctions exposées pour les handlers S3
+var ValidateTokenFunc func(*http.Request) (uint, error) = validateToken
+var GetS3ConfigFunc func(uint, uint) (s3.S3ConfigData, error) = getS3Config
+
+// getS3Config récupère une config S3 depuis la DB
+func getS3Config(configID uint, userID uint) (s3.S3ConfigData, error) {
+	var config S3Config
+	if err := db.Where("id = ? AND user_id = ?", configID, userID).First(&config).Error; err != nil {
+		return s3.S3ConfigData{}, err
+	}
+	return s3.S3ConfigData{
+		ID:             config.ID,
+		UserID:         config.UserID,
+		Name:           config.Name,
+		Type:           config.Type,
+		S3URL:          config.S3URL,
+		AdminURL:       config.AdminURL,
+		AdminToken:     config.AdminToken,
+		ClientID:       config.ClientID,
+		ClientSecret:   config.ClientSecret,
+		Region:         config.Region,
+		ForcePathStyle: config.ForcePathStyle,
+	}, nil
+}
 
 // getEnv returns the first non-empty environment variable value among keys.
 // kept small helpers below; environment-driven configuration has been removed
@@ -118,17 +148,119 @@ func singleJoin(a, b string) string {
 	}
 }
 
-func clientIP(r *http.Request) string {
-	// Best-effort: try X-Real-IP then RemoteAddr
-	if ip := r.Header.Get("X-Real-IP"); ip != "" {
-		return ip
+func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
+	// Parse path: /api/{project}/{endpoint}
+	// For example: /api/123/v2/CreateBucket or /api/123/s3/list-buckets
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
+	if len(pathParts) < 2 {
+		http.NotFound(w, r)
+		return
 	}
-	// RemoteAddr may include port
-	host := r.RemoteAddr
-	if i := strings.LastIndex(host, ":"); i != -1 {
-		return host[:i]
+
+	projectIDStr := pathParts[0]
+	endpointStart := pathParts[1]
+
+	projectID, err := strconv.Atoi(projectIDStr)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
 	}
-	return host
+
+	// Validate token and get user ID
+	userID, err := validateToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get the S3 config for this project
+	config, err := getS3Config(uint(projectID), userID)
+	if err != nil {
+		http.Error(w, "Project not found", http.StatusNotFound)
+		return
+	}
+
+	// Determine service and remaining path
+	var service string
+	var remainingPath string
+
+	if endpointStart == "s3" {
+		service = "s3"
+		remainingPath = "/" + strings.Join(pathParts[2:], "/")
+	} else if strings.HasPrefix(endpointStart, "v2") {
+		service = "admin"
+		remainingPath = "/" + strings.Join(pathParts[1:], "/")
+	} else {
+		http.NotFound(w, r)
+		return
+	}
+
+	switch service {
+	case "admin":
+		handleAdminProxy(w, r, config, remainingPath)
+	case "s3":
+		handleS3Request(w, r, config, remainingPath)
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, remainingPath string) {
+	if config.AdminURL == "" {
+		http.Error(w, "Admin URL not configured for this project", http.StatusBadRequest)
+		return
+	}
+
+	adminURL, err := url.Parse(config.AdminURL)
+	if err != nil {
+		http.Error(w, "Invalid admin URL", http.StatusInternalServerError)
+		return
+	}
+
+	// Extract project ID from the path to create stripPrefix
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
+	if len(pathParts) == 0 || pathParts[0] == "" {
+		http.Error(w, "Project ID missing in path", http.StatusBadRequest)
+		return
+	}
+
+	projectIDStr := pathParts[0]
+	stripPrefix := "/api/" + projectIDStr + "/"
+
+	// Create proxy with the stripPrefix
+	proxy := newReverseProxy(adminURL, stripPrefix)
+
+	// For admin requests, use the admin token instead of user's JWT
+	if config.AdminToken != "" {
+		r.Header.Set("Authorization", "Bearer "+config.AdminToken)
+	}
+
+	proxy.ServeHTTP(w, r)
+}
+
+func handleS3Request(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, endpoint string) {
+	// Trim leading slash from endpoint
+	endpoint = strings.TrimPrefix(endpoint, "/")
+
+	// Map endpoints to handlers
+	switch endpoint {
+	case "list-buckets":
+		s3.HandleListBucketsWithConfig(config).ServeHTTP(w, r)
+	case "create-bucket":
+		s3.HandleCreateBucketWithConfig(config).ServeHTTP(w, r)
+	case "delete-bucket":
+		s3.HandleDeleteBucketWithConfig(config).ServeHTTP(w, r)
+	case "list-objects":
+		s3.HandleListObjectsWithConfig(config).ServeHTTP(w, r)
+	case "get-object":
+		s3.HandleGetObjectWithConfig(config).ServeHTTP(w, r)
+	case "put-object":
+		s3.HandlePutObjectWithConfig(config).ServeHTTP(w, r)
+	case "delete-object":
+		s3.HandleDeleteObjectWithConfig(config).ServeHTTP(w, r)
+	default:
+		http.NotFound(w, r)
+	}
 }
 
 func mustParse(raw string, name string) *url.URL {
@@ -142,16 +274,30 @@ func mustParse(raw string, name string) *url.URL {
 func main() {
 
 	// Récupérer les valeurs des variables d'environnement
-	adminTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_ADMIN_URL"))
 	portEnv := strings.TrimSpace(os.Getenv("PORT"))
 
 	// Flags (avec fallback sur les variables d'environnement)
 	var (
 		portFlag      = flag.String("port", portEnv, "Port to listen on")
-		adminTarget   = flag.String("admin-target", adminTargetEnv, "Upstream URL for /api/admin reverse proxy")
 		staticDirFlag = flag.String("static-dir", "./public", "Static files directory (relative to working dir)")
 	)
 	flag.Parse()
+
+	// Initialiser la base de données
+	var err error
+	db, err = gorm.Open(sqlite.Open("./data/kexamanager.db"), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("failed to connect database: %v", err)
+	}
+
+	// Migrer les schémas
+	err = db.AutoMigrate(&User{}, &S3Config{})
+	if err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
+	}
+
+	// Initialiser les handlers S3
+	s3.InitHandlers(validateToken, getS3Config)
 
 	// Utiliser les valeurs des flags (qui incluent maintenant les variables d'environnement)
 	listenPort := strings.TrimSpace(*portFlag)
@@ -161,20 +307,16 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Configuration des proxies avec les URLs obligatoires
-	adminURL := mustParse(strings.TrimSpace(*adminTarget), "admin-target")
-	adminProxy := newReverseProxy(adminURL, "/api/admin")
-	mux.Handle("/api/admin/", adminProxy)
-	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
+	// Dynamic admin proxy based on project ID
+	mux.HandleFunc("/api/", handleProjectRoutes)
 
-	// S3 API endpoints
-	mux.HandleFunc("/api/s3/list-buckets", s3.HandleListBuckets())
-	mux.HandleFunc("/api/s3/list-objects", s3.HandleListObjects())
-	mux.HandleFunc("/api/s3/get-object", s3.HandleGetObject())
-	mux.HandleFunc("/api/s3/put-object", s3.HandlePutObject())
-	mux.HandleFunc("/api/s3/delete-object", s3.HandleDeleteObject())
-	mux.HandleFunc("/api/s3/create-bucket", s3.HandleCreateBucket())
-	mux.HandleFunc("/api/s3/delete-bucket", s3.HandleDeleteBucket())
+	// Auth endpoints (not project-specific)
+	mux.HandleFunc("/api/auth/login", HandleLogin)
+	mux.HandleFunc("/api/auth/create-user", HandleCreateUser)
+	mux.HandleFunc("/api/s3-configs", HandleGetS3Configs)
+	mux.HandleFunc("/api/s3-configs/create", HandleCreateS3Config)
+	mux.HandleFunc("/api/s3-configs/update", HandleUpdateS3Config)
+	mux.HandleFunc("/api/s3-configs/delete", HandleDeleteS3Config)
 
 	// Basic health endpoint for convenience
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -253,4 +395,17 @@ type respWriter struct {
 func (w *respWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
+}
+
+func clientIP(r *http.Request) string {
+	// Best-effort: try X-Real-IP then RemoteAddr
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	// RemoteAddr may include port
+	host := r.RemoteAddr
+	if i := strings.LastIndex(host, ":"); i != -1 {
+		return host[:i]
+	}
+	return host
 }

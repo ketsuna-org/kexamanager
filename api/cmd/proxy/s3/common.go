@@ -2,12 +2,26 @@ package s3
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
+// S3ConfigData represents S3 configuration
+type S3ConfigData struct {
+	ID             uint   `json:"id"`
+	UserID         uint   `json:"user_id"`
+	Name           string `json:"name"`
+	Type           string `json:"type"`
+	S3URL          string `json:"s3_url"`
+	AdminURL       string `json:"admin_url"`
+	AdminToken     string `json:"admin_token"`
+	ClientID       string `json:"client_id"`
+	ClientSecret   string `json:"client_secret"`
+	Region         string `json:"region"`
+	ForcePathStyle bool   `json:"force_path_style"`
+}
 
 // S3Credentials represents S3 credentials
 type S3Credentials struct {
@@ -20,8 +34,9 @@ type S3Credentials struct {
 
 // Common request/response types
 type ListBucketsRequest struct {
-	KeyId string `json:"keyId"`
-	Token string `json:"token"`
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	ConfigID uint   `json:"configId"`
 }
 
 type ListBucketsResponse struct {
@@ -34,10 +49,11 @@ type Bucket struct {
 }
 
 type ListObjectsRequest struct {
-	KeyId  string `json:"keyId"`
-	Token  string `json:"token"`
-	Bucket string `json:"bucket"`
-	Prefix string `json:"prefix,omitempty"`
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	Prefix   string `json:"prefix,omitempty"`
+	ConfigID uint   `json:"configId"`
 }
 
 type ListObjectsResponse struct {
@@ -55,10 +71,11 @@ type S3Object struct {
 }
 
 type GetObjectRequest struct {
-	KeyId  string `json:"keyId"`
-	Token  string `json:"token"`
-	Bucket string `json:"bucket"`
-	Key    string `json:"key"`
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	Key      string `json:"key"`
+	ConfigID uint   `json:"configId"`
 }
 
 type GetObjectResponse struct {
@@ -71,6 +88,7 @@ type PutObjectRequest struct {
 	Bucket      string `json:"bucket"`
 	Key         string `json:"key"`
 	ContentType string `json:"contentType,omitempty"`
+	ConfigID    uint   `json:"configId"`
 }
 
 type PutObjectResponse struct {
@@ -78,10 +96,11 @@ type PutObjectResponse struct {
 }
 
 type DeleteObjectRequest struct {
-	KeyId  string `json:"keyId"`
-	Token  string `json:"token"`
-	Bucket string `json:"bucket"`
-	Key    string `json:"key"`
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	Key      string `json:"key"`
+	ConfigID uint   `json:"configId"`
 }
 
 type DeleteObjectResponse struct {
@@ -89,9 +108,10 @@ type DeleteObjectResponse struct {
 }
 
 type CreateBucketRequest struct {
-	KeyId  string `json:"keyId"`
-	Token  string `json:"token"`
-	Bucket string `json:"bucket"`
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	ConfigID uint   `json:"configId"`
 }
 
 type CreateBucketResponse struct {
@@ -99,28 +119,32 @@ type CreateBucketResponse struct {
 }
 
 type DeleteBucketRequest struct {
-	KeyId  string `json:"keyId"`
-	Token  string `json:"token"`
-	Bucket string `json:"bucket"`
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	ConfigID uint   `json:"configId"`
 }
 
 type DeleteBucketResponse struct {
 	Success bool `json:"success"`
 }
 
-// getS3Credentials creates S3 credentials from the provided keyId and secretAccessKey
-func GetS3Credentials(keyId, secretAccessKey string) (S3Credentials, error) {
-	if keyId == "" || secretAccessKey == "" {
-		return S3Credentials{}, fmt.Errorf("keyId and secretAccessKey are required")
+// getS3Credentials creates S3 credentials from the config, with optional override from request
+func GetS3Credentials(config S3ConfigData, requestKeyId, requestToken string) (S3Credentials, error) {
+	keyId := config.ClientID
+	secretAccessKey := config.ClientSecret
+
+	// For Garage configs, allow credentials to be overridden by request
+	if config.Type == "garage" && requestKeyId != "" && requestToken != "" {
+		keyId = requestKeyId
+		secretAccessKey = requestToken
+	} else if keyId == "" || secretAccessKey == "" {
+		return S3Credentials{}, fmt.Errorf("clientId and clientSecret are required in config")
 	}
 
-	var claims map[string]interface{}
-	parsedJWT := false
-
-	// Get endpoint and region from environment
-	endpoint := os.Getenv("GARAGE_S3_URL")
+	endpoint := config.S3URL
 	if endpoint == "" {
-		return S3Credentials{}, fmt.Errorf("GARAGE_S3_URL environment variable not set")
+		return S3Credentials{}, fmt.Errorf("S3 URL not configured")
 	}
 
 	// Ensure endpoint has protocol
@@ -128,20 +152,12 @@ func GetS3Credentials(keyId, secretAccessKey string) (S3Credentials, error) {
 		endpoint = "http://" + endpoint // Try HTTP instead of HTTPS
 	}
 
-	region := os.Getenv("GARAGE_REGION")
+	region := config.Region
 	if region == "" {
-		region = "garage" // Default region for Garage S3 compatibility
-	}
-
-	// Override from JWT if present
-	if parsedJWT {
-		if reg, ok := claims["region"].(string); ok && reg != "" {
-			region = reg
-			fmt.Printf("DEBUG: Overriding region from JWT: %s\n", reg)
-		}
-		if ep, ok := claims["endpoint"].(string); ok && ep != "" {
-			endpoint = ep
-			fmt.Printf("DEBUG: Overriding endpoint from JWT: %s\n", ep)
+		if config.Type == "garage" {
+			region = "garage" // Default region for Garage S3 compatibility
+		} else {
+			region = "us-east-1"
 		}
 	}
 
@@ -150,7 +166,7 @@ func GetS3Credentials(keyId, secretAccessKey string) (S3Credentials, error) {
 		AccessKeyID:     keyId,
 		SecretAccessKey: secretAccessKey,
 		Region:          region,
-		ForcePathStyle:  true, // For Garage S3 compatibility
+		ForcePathStyle:  config.ForcePathStyle,
 	}, nil
 }
 

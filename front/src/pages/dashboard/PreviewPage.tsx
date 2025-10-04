@@ -38,7 +38,7 @@ function getStoredToken(): string | null {
   }
 }
 
-export default function PreviewPage() {
+export default function PreviewPage({ selectedProject }: { selectedProject: { id: number; name: string } | null }) {
   const { t } = useTranslation()
   const [editMode, setEditMode] = useState(false)
   const [content, setContent] = useState("")
@@ -106,7 +106,7 @@ export default function PreviewPage() {
       formData.append('fileSize', file.size.toString())
       formData.append('file', file)
 
-      xhr.open('POST', '/api/s3/put-object')
+      xhr.open('POST', `/api/${selectedProject?.id}/s3/put-object`)
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
           setSaving(false)

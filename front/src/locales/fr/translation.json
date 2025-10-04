@@ -20,6 +20,7 @@
     "dashboard": {
         "title": "Tableau de bord",
         "subtitle": "Gestion du cluster",
+        "select_project": "Sélectionner un projet",
         "buckets": "Buckets",
         "buckets_desc": "Contenu et gestion des buckets",
         "buckets_add": "Ajouter un bucket",
@@ -88,6 +89,7 @@
         "cluster_apply_confirm_title": "Appliquer la disposition mise en attente ?",
         "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?",
         "s3_browser": "Navigateur S3",
+        "projects": "Projets",
         "cluster_storage_overview": "Aperçu du stockage du cluster",
         "data_storage": "Stockage des données",
         "used_space": "Utilisé",
@@ -255,5 +257,19 @@
         },
         "empty": "Aucune clé",
         "no_permissions": "Aucune permission"
+    },
+    "projects": {
+        "title": "Projets",
+        "addConfig": "Ajouter un projet",
+        "editConfig": "Modifier le projet",
+        "name": "Nom",
+        "type": "Type",
+        "s3Url": "URL S3",
+        "adminUrl": "URL Admin",
+        "adminToken": "Token Admin",
+        "clientId": "ID Client",
+        "clientSecret": "Secret Client",
+        "region": "Région",
+        "forcePathStyle": "Forcer le style chemin"
     }
 }

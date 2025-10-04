@@ -6,12 +6,13 @@ import TextField from "@mui/material/TextField"
 import Button from "@mui/material/Button"
 import Alert from "@mui/material/Alert"
 import CircularProgress from "@mui/material/CircularProgress"
-import VpnKeyIcon from "@mui/icons-material/VpnKey"
-import { authenticateWithToken } from "../auth/tokenAuth"
+import PersonIcon from "@mui/icons-material/Person"
+import { authenticateWithCredentials } from "../auth/tokenAuth"
 import { useTranslation } from "react-i18next"
 
 export default function Login({ onAuth }: { onAuth: () => void }) {
-    const [token, setToken] = useState("")
+    const [username, setUsername] = useState("")
+    const [password, setPassword] = useState("")
     const [error, setError] = useState("")
     const [loading, setLoading] = useState(false)
     const { t } = useTranslation()
@@ -21,21 +22,17 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
         setError("")
         setLoading(true)
 
-        if (!token || token.trim().length === 0) {
-            setError(t("login.errorEmptyToken", "Le token ne peut pas être vide"))
+        if (!username || !password) {
+            setError(t("login.errorEmpty", "Username and password are required"))
             setLoading(false)
             return
         }
 
         try {
-            // Authentifier avec le token en utilisant l'endpoint GetClusterHealth
-            await authenticateWithToken(token)
-
-            // Si l'authentification réussit, passer à l'interface principale
+            await authenticateWithCredentials(username, password)
             onAuth()
         } catch (err) {
-            // Afficher le message d'erreur retourné par la fonction d'authentification
-            setError(err instanceof Error ? err.message : t("login.errorUnknown", "Une erreur inconnue est survenue"))
+            setError(err instanceof Error ? err.message : t("login.errorUnknown", "An unknown error occurred"))
         } finally {
             setLoading(false)
         }
@@ -78,7 +75,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                             justifyContent: "center",
                         }}
                     >
-                        <VpnKeyIcon sx={{ color: "white", fontSize: 32 }} />
+                        <PersonIcon sx={{ color: "white", fontSize: 32 }} />
                     </Box>
 
                     <Typography variant="h4" component="h1" gutterBottom fontWeight={700} textAlign="center">
@@ -86,7 +83,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                     </Typography>
 
                     <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
-                        {t("login.instructions", "Veuillez entrer votre token d'accès pour vous connecter à l'interface de gestion.")}
+                        {t("login.instructions", "Veuillez entrer vos identifiants pour vous connecter.")}
                     </Typography>
                 </Box>
 
@@ -97,22 +94,34 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                 )}
 
                 <TextField
-                    label={t("login.tokenLabel", "Token d'accès")}
-                    type="password"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
+                    label={t("login.usernameLabel", "Nom d'utilisateur")}
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
                     fullWidth
                     autoFocus
                     margin="normal"
                     disabled={loading}
-                    placeholder={t("login.tokenPlaceholder", "Entrez votre token ici")}
+                    placeholder={t("login.usernamePlaceholder", "Entrez votre nom d'utilisateur")}
+                    sx={{ mb: 2 }}
+                />
+
+                <TextField
+                    label={t("login.passwordLabel", "Mot de passe")}
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    fullWidth
+                    margin="normal"
+                    disabled={loading}
+                    placeholder={t("login.passwordPlaceholder", "Entrez votre mot de passe")}
                     sx={{ mb: 3 }}
                 />
 
                 <Button
                     variant="contained"
                     type="submit"
-                    disabled={loading || !token.trim()}
+                    disabled={loading || !username.trim() || !password.trim()}
                     fullWidth
                     size="large"
                     sx={{
@@ -139,7 +148,8 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                 <Button
                     variant="text"
                     onClick={() => {
-                        setToken("")
+                        setUsername("")
+                        setPassword("")
                         setError("")
                     }}
                     disabled={loading}

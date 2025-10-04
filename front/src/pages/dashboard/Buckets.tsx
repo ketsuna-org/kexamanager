@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -38,8 +38,18 @@ const sizeUnits = [
   { label: 'Go', value: 'GB', multiplier: 1024 ** 3 },
 ]
 
-export default function Buckets() {
+interface BucketsProps {
+    selectedProject: { id: number; name: string } | null
+}
+
+export default function Buckets({ selectedProject }: BucketsProps) {
     const { t } = useTranslation()
+    const [selectedConfigId, setSelectedConfigId] = useState<number | null>(selectedProject?.id || null)
+
+    // Update selectedConfigId when selectedProject changes
+    useEffect(() => {
+        setSelectedConfigId(selectedProject?.id || null)
+    }, [selectedProject])
     const [buckets, setBuckets] = useState<Bucket[]>([])
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -142,10 +152,11 @@ export default function Buckets() {
         }
     }
 
-    async function fetchBuckets() {
+    const fetchBuckets = useCallback(async () => {
+        if (!selectedConfigId) return
         setLoading(true)
         try {
-            const res = await ListBuckets()
+            const res = await ListBuckets(selectedConfigId)
             if (Array.isArray(res)) setBuckets(res as Bucket[])
             else setBuckets([])
         } catch {
@@ -153,7 +164,7 @@ export default function Buckets() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [selectedConfigId])
 
     async function fetchKeysList() {
         try {
@@ -169,7 +180,7 @@ export default function Buckets() {
 
     useEffect(() => {
         fetchBuckets()
-    }, [])
+    }, [fetchBuckets])
 
     function confirmDelete(id: string) {
         setToDeleteId(id)
@@ -312,6 +323,12 @@ export default function Buckets() {
                 >
                     {t("dashboard.buckets_add")}
                 </Button>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+                <Typography variant="h6">
+                    {selectedProject ? `Project: ${selectedProject.name}` : 'No project selected'}
+                </Typography>
             </Box>
 
             <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>
