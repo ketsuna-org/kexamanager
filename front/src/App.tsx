@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import Login from "./pages/Login"
 import Buckets from "./pages/dashboard/Buckets"
 import S3Browser from "./pages/dashboard/S3Browser"
+import S3Configs from "./pages/dashboard/S3Configs"
 import ApplicationsKeys from "./pages/dashboard/ApplicationsKeys"
 import AdminTokens from "./pages/dashboard/AdminTokens"
 import Nodes from "./pages/dashboard/Nodes"
@@ -23,7 +24,7 @@ function App() {
     const [authed, setAuthed] = useState(false)
     const [tab, setTab] = useState<string>(() => {
         const h = window.location.hash.replace('#', '').split('?')[0]
-        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 's3configs' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
             return h
         }
         return "buckets"
@@ -52,7 +53,7 @@ function App() {
     useEffect(() => {
         function onHashChange() {
             const h = window.location.hash.replace('#', '').split('?')[0]
-            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 's3configs' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
                 setTab(h)
             }
         }
@@ -110,6 +111,7 @@ function App() {
                 >
                     {tab === "buckets" && <Buckets />}
                     {tab === "apps" && <ApplicationsKeys />}
+                    {tab === "s3configs" && <S3Configs />}
                     {tab === "s3" && <S3Browser />}
                     {tab === "adminTokens" && <AdminTokens />}
                     {tab === "nodes" && <Nodes />}

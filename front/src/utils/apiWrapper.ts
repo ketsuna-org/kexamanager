@@ -1,5 +1,5 @@
 import type { components, paths } from "../types/openapi"
-import { adminGet, adminPost } from "./adminClient"
+import { adminGet, adminPost, adminPut, adminDelete } from "./adminClient"
 /**
  * {
     "code": "InvalidRequest",
@@ -229,8 +229,8 @@ function CreateMetadataSnapshot(node: string): Promise<components["schemas"]["Mu
     return adminGet<components["schemas"]["MultiResponse_LocalCreateMetadataSnapshotResponse"]>("/v2/CreateMetadataSnapshot", { query: { node } })
 }
 
-function ListBuckets(): Promise<components["schemas"]["ListBucketsResponse"]> {
-    return adminGet<components["schemas"]["ListBucketsResponse"]>("/v2/ListBuckets")
+function ListBuckets(configId: number): Promise<components["schemas"]["ListBucketsResponse"]> {
+    return adminPost<components["schemas"]["ListBucketsResponse"]>("/api/s3/list-buckets", { configId, keyId: "", token: "" })
 }
 
 function ListKeys(): Promise<components["schemas"]["ListKeysResponse"]> {
@@ -291,4 +291,41 @@ export {
     ListBuckets,
     ListKeys,
     ListAdminTokensSimple,
+}
+
+// --- S3 Configurations ---
+export interface S3Config {
+    id: number
+    user_id: number
+    name: string
+    type: 'garage' | 's3'
+    s3_url?: string
+    admin_url?: string
+    client_id: string
+    region: string
+    force_path_style: boolean
+}
+
+function GetS3Configs(): Promise<S3Config[]> {
+    return adminGet<S3Config[]>("/s3-configs")
+}
+
+function CreateS3Config(data: Omit<S3Config, 'id' | 'user_id'>): Promise<S3Config> {
+    return adminPost<S3Config>("/s3-configs", data)
+}
+
+function UpdateS3Config(id: number, data: Partial<Omit<S3Config, 'id' | 'user_id'>>): Promise<S3Config> {
+    return adminPut<S3Config>(`/s3-configs/${id}`, data)
+}
+
+function DeleteS3Config(id: number): Promise<void> {
+    return adminDelete<void>(`/s3-configs/${id}`)
+}
+
+export {
+    // ... existing exports ...
+    GetS3Configs,
+    CreateS3Config,
+    UpdateS3Config,
+    DeleteS3Config,
 }

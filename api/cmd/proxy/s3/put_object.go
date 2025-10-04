@@ -37,9 +37,36 @@ func HandlePutObject() http.HandlerFunc {
 		token := r.FormValue("token")
 		bucket := r.FormValue("bucket")
 		key := r.FormValue("key")
+		configIdStr := r.FormValue("configId")
 		fileSizeStr := r.FormValue("fileSize")
 
-		fmt.Printf("DEBUG: Received upload request - keyId: %s, bucket: %s, key: %s, fileSizeStr: %s\n", keyId, bucket, key, fileSizeStr)
+		fmt.Printf("DEBUG: Received upload request - keyId: %s, bucket: %s, key: %s, configId: %s, fileSizeStr: %s\n", keyId, bucket, key, configIdStr, fileSizeStr)
+
+		configID, err := strconv.Atoi(configIdStr)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"error": "Invalid configId"}`))
+			return
+		}
+
+		// Valider le token et récupérer l'user ID
+		userID, err := ValidateTokenFunc(r)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(fmt.Sprintf(`{"error": "Unauthorized", "details": "%s"}`, err.Error())))
+			return
+		}
+
+		// Récupérer la config S3
+		config, err := GetS3ConfigFunc(uint(configID), userID)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte(`{"error": "Config not found"}`))
+			return
+		}
 
 		fileSize := int64(-1)
 		if fileSizeStr != "" {
@@ -72,7 +99,7 @@ func HandlePutObject() http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(keyId, token)
+		creds, err := GetS3Credentials(config)
 		if err != nil {
 			fmt.Printf("DEBUG: Failed to get credentials: %v\n", err)
 			w.Header().Set("Content-Type", "application/json")

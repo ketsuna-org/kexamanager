@@ -22,7 +22,21 @@ func HandleDeleteObject() http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(req.KeyId, req.Token)
+		// Valider le token et récupérer l'user ID
+		userID, err := ValidateTokenFunc(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+
+		// Récupérer la config S3
+		config, err := GetS3ConfigFunc(req.ConfigID, userID)
+		if err != nil {
+			http.Error(w, "Config not found", http.StatusNotFound)
+			return
+		}
+
+		creds, err := GetS3Credentials(config)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
 			return

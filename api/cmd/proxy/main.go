@@ -14,7 +14,35 @@ import (
 	"time"
 
 	"github.com/ketsuna-org/kexamanager/cmd/proxy/s3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
+
+var db *gorm.DB
+
+// Fonctions exposées pour les handlers S3
+var ValidateTokenFunc func(*http.Request) (uint, error) = validateToken
+var GetS3ConfigFunc func(uint, uint) (s3.S3ConfigData, error) = getS3Config
+
+// getS3Config récupère une config S3 depuis la DB
+func getS3Config(configID uint, userID uint) (s3.S3ConfigData, error) {
+	var config S3Config
+	if err := db.Where("id = ? AND user_id = ?", configID, userID).First(&config).Error; err != nil {
+		return s3.S3ConfigData{}, err
+	}
+	return s3.S3ConfigData{
+		ID:             config.ID,
+		UserID:         config.UserID,
+		Name:           config.Name,
+		Type:           config.Type,
+		S3URL:          config.S3URL,
+		AdminURL:       config.AdminURL,
+		ClientID:       config.ClientID,
+		ClientSecret:   config.ClientSecret,
+		Region:         config.Region,
+		ForcePathStyle: config.ForcePathStyle,
+	}, nil
+}
 
 // getEnv returns the first non-empty environment variable value among keys.
 // kept small helpers below; environment-driven configuration has been removed
@@ -153,6 +181,35 @@ func main() {
 	)
 	flag.Parse()
 
+	// Initialiser la base de données
+	var err error
+	db, err = gorm.Open(sqlite.Open("kexamanager.db"), &gorm.Config{})
+	if err != nil {
+		log.Fatalf("failed to connect database: %v", err)
+	}
+
+	// Migrer les schémas
+	err = db.AutoMigrate(&User{}, &S3Config{})
+	if err != nil {
+		log.Fatalf("failed to migrate database: %v", err)
+	}
+
+	// Créer un utilisateur par défaut si aucun n'existe
+	var userCount int64
+	db.Model(&User{}).Count(&userCount)
+	if userCount == 0 {
+		defaultUser := User{
+			Username: "admin",
+			Password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // "password" hashé
+			IsAdmin:  true,
+		}
+		db.Create(&defaultUser)
+		log.Println("Default user created: admin/password")
+	}
+
+	// Initialiser les handlers S3
+	s3.InitHandlers(validateToken, getS3Config)
+
 	// Utiliser les valeurs des flags (qui incluent maintenant les variables d'environnement)
 	listenPort := strings.TrimSpace(*portFlag)
 	if listenPort == "" {
@@ -168,13 +225,21 @@ func main() {
 	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
 
 	// S3 API endpoints
+	mux.HandleFunc("/api/auth/login", HandleLogin)
+	mux.HandleFunc("/api/auth/create-user", HandleCreateUser)
+	mux.HandleFunc("/api/s3-configs", HandleGetS3Configs)
+	mux.HandleFunc("/api/s3-configs/create", HandleCreateS3Config)
+	mux.HandleFunc("/api/s3-configs/update", HandleUpdateS3Config)
+	mux.HandleFunc("/api/s3-configs/delete", HandleDeleteS3Config)
+
+	// S3 API endpoints
 	mux.HandleFunc("/api/s3/list-buckets", s3.HandleListBuckets())
+	mux.HandleFunc("/api/s3/create-bucket", s3.HandleCreateBucket())
+	mux.HandleFunc("/api/s3/delete-bucket", s3.HandleDeleteBucket())
 	mux.HandleFunc("/api/s3/list-objects", s3.HandleListObjects())
 	mux.HandleFunc("/api/s3/get-object", s3.HandleGetObject())
 	mux.HandleFunc("/api/s3/put-object", s3.HandlePutObject())
 	mux.HandleFunc("/api/s3/delete-object", s3.HandleDeleteObject())
-	mux.HandleFunc("/api/s3/create-bucket", s3.HandleCreateBucket())
-	mux.HandleFunc("/api/s3/delete-bucket", s3.HandleDeleteBucket())
 
 	// Basic health endpoint for convenience
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {

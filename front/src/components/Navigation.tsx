@@ -23,8 +23,9 @@ import AppsIcon from "@mui/icons-material/Apps"
 import BuildIcon from "@mui/icons-material/Build"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import LogoutIcon from "@mui/icons-material/Logout"
+import SettingsIcon from "@mui/icons-material/Settings"
 
-type TabKey = "buckets" | "apps" | "s3" | "adminTokens" | "nodes" | "blocks" | "workers" | "cluster"
+type TabKey = "buckets" | "apps" | "s3configs" | "s3" | "adminTokens" | "nodes" | "blocks" | "workers" | "cluster"
 
 export interface NavigationProps {
   tab: TabKey
@@ -99,6 +100,10 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
         <ListItemButton selected={tab === "apps"} onClick={() => { setTab("apps"); setMobileOpen(false) }}>
           <ListItemIcon><VpnKeyIcon /></ListItemIcon>
           <ListItemText primary={t("dashboard.apps")} />
+        </ListItemButton>
+        <ListItemButton selected={tab === "s3configs"} onClick={() => { setTab("s3configs"); setMobileOpen(false) }}>
+          <ListItemIcon><SettingsIcon /></ListItemIcon>
+          <ListItemText primary={t("dashboard.s3_configs", { defaultValue: "S3 Configurations" })} />
         </ListItemButton>
         <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
           <ListItemIcon><StorageIcon /></ListItemIcon>

@@ -21,13 +21,21 @@ func HandleListBuckets() http.HandlerFunc {
 			return
 		}
 
-		if len(req.Token) > 10 {
-			fmt.Printf("DEBUG: Token starts with: %s...\n", req.Token[:10])
-		} else {
-			fmt.Printf("DEBUG: Token: %s\n", req.Token)
+		// Valider le token et récupérer l'user ID
+		userID, err := ValidateTokenFunc(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
 		}
 
-		creds, err := GetS3Credentials(req.KeyId, req.Token)
+		// Récupérer la config S3
+		config, err := GetS3ConfigFunc(req.ConfigID, userID)
+		if err != nil {
+			http.Error(w, "Config not found", http.StatusNotFound)
+			return
+		}
+
+		creds, err := GetS3Credentials(config)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
 			return
