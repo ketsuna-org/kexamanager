@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -27,6 +27,7 @@ import MenuItem from "@mui/material/MenuItem"
 import { useTheme } from "@mui/material/styles"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { ListBuckets, CreateBucket, DeleteBucket, GetBucketInfo, AddBucketAlias, RemoveBucketAlias, UpdateBucket, ListKeys, AllowBucketKey, DenyBucketKey } from "../../utils/apiWrapper"
+import S3ConfigSelector from "../../components/S3ConfigSelector"
 import type { components } from "../../types/openapi"
 
 type Bucket = components["schemas"]["ListBucketsResponseItem"]
@@ -40,6 +41,7 @@ const sizeUnits = [
 
 export default function Buckets() {
     const { t } = useTranslation()
+    const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null)
     const [buckets, setBuckets] = useState<Bucket[]>([])
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -117,7 +119,7 @@ export default function Buckets() {
 
         setSubmitting(true)
         try {
-            const created = await CreateBucket(createReq)
+            const created = await CreateBucket(createReq, selectedConfigId || undefined)
             const bucketId = created?.id
 
             const updateBody: components["schemas"]["UpdateBucketRequestBody"] = {}
@@ -142,10 +144,11 @@ export default function Buckets() {
         }
     }
 
-    async function fetchBuckets() {
+    const fetchBuckets = useCallback(async () => {
+        if (!selectedConfigId) return
         setLoading(true)
         try {
-            const res = await ListBuckets()
+            const res = await ListBuckets(selectedConfigId)
             if (Array.isArray(res)) setBuckets(res as Bucket[])
             else setBuckets([])
         } catch {
@@ -153,11 +156,11 @@ export default function Buckets() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [selectedConfigId])
 
     async function fetchKeysList() {
         try {
-            const res = await ListKeys()
+            const res = await ListKeys(selectedConfigId || undefined)
             if (Array.isArray(res)) setAllKeys(res)
             else setAllKeys([])
         } catch {
@@ -169,7 +172,7 @@ export default function Buckets() {
 
     useEffect(() => {
         fetchBuckets()
-    }, [])
+    }, [fetchBuckets])
 
     function confirmDelete(id: string) {
         setToDeleteId(id)
@@ -179,7 +182,7 @@ export default function Buckets() {
     async function doDelete() {
         if (!toDeleteId) return
         try {
-            await DeleteBucket({ id: toDeleteId })
+            await DeleteBucket({ id: toDeleteId }, selectedConfigId || undefined)
             await fetchBuckets()
         } catch {
             // ignore for now
@@ -191,7 +194,7 @@ export default function Buckets() {
 
     async function openDetails(id: string) {
         try {
-            const res = await GetBucketInfo({ id })
+            const res = await GetBucketInfo({ id }, selectedConfigId || undefined)
             setSelectedBucket(res)
             // populate details form from response
             setEditing(false)
@@ -229,18 +232,18 @@ export default function Buckets() {
             if (detailsForm.websiteEnabled) updateBody.websiteAccess = { enabled: true, indexDocument: detailsForm.websiteIndex || undefined, errorDocument: detailsForm.websiteError || undefined }
             else updateBody.websiteAccess = { enabled: false }
 
-            await UpdateBucket({ id: selectedBucket.id }, updateBody)
+            await UpdateBucket({ id: selectedBucket.id }, updateBody, selectedConfigId || undefined)
             // handle key assignments: compute diffs and call Allow/Deny
             const currentKeyIds = selectedBucket.keys?.map((k) => k.accessKeyId) ?? []
             const toAdd = selectedKeyIds.filter((id) => !currentKeyIds.includes(id))
             const toRemove = currentKeyIds.filter((id) => !selectedKeyIds.includes(id))
             // grant full perms when adding, and revoke when removing
             await Promise.all([
-                ...toAdd.map((id) => AllowBucketKey({ accessKeyId: id, bucketId: selectedBucket.id, permissions: { owner: true, read: true, write: true } })),
-                ...toRemove.map((id) => DenyBucketKey({ accessKeyId: id, bucketId: selectedBucket.id, permissions: { owner: true, read: true, write: true } })),
+                ...toAdd.map((id) => AllowBucketKey({ accessKeyId: id, bucketId: selectedBucket.id, permissions: { owner: true, read: true, write: true } }, selectedConfigId || undefined)),
+                ...toRemove.map((id) => DenyBucketKey({ accessKeyId: id, bucketId: selectedBucket.id, permissions: { owner: true, read: true, write: true } }, selectedConfigId || undefined)),
             ])
             // refresh
-            const refreshed = await GetBucketInfo({ id: selectedBucket.id })
+            const refreshed = await GetBucketInfo({ id: selectedBucket.id }, selectedConfigId || undefined)
             setSelectedBucket(refreshed)
             await fetchBuckets()
             setEditing(false)
@@ -254,9 +257,9 @@ export default function Buckets() {
     async function doAddAlias() {
         if (!selectedBucket || !aliasInput) return
         try {
-            await AddBucketAlias({ bucketId: selectedBucket.id, globalAlias: aliasInput })
+            await AddBucketAlias({ bucketId: selectedBucket.id, globalAlias: aliasInput }, selectedConfigId || undefined)
             // refresh details and list
-            const refreshed = await GetBucketInfo({ id: selectedBucket.id })
+            const refreshed = await GetBucketInfo({ id: selectedBucket.id }, selectedConfigId || undefined)
             setSelectedBucket(refreshed)
             await fetchBuckets()
             setAliasInput("")
@@ -274,11 +277,11 @@ export default function Buckets() {
         if (!selectedBucket || !aliasToRemove) return
         try {
             if (aliasToRemove.kind === "global") {
-                await RemoveBucketAlias({ bucketId: selectedBucket.id, globalAlias: aliasToRemove.value })
+                await RemoveBucketAlias({ bucketId: selectedBucket.id, globalAlias: aliasToRemove.value }, selectedConfigId || undefined)
             } else {
-                await RemoveBucketAlias({ bucketId: selectedBucket.id, accessKeyId: aliasToRemove.accessKeyId!, localAlias: aliasToRemove.value })
+                await RemoveBucketAlias({ bucketId: selectedBucket.id, accessKeyId: aliasToRemove.accessKeyId!, localAlias: aliasToRemove.value }, selectedConfigId || undefined)
             }
-            const refreshed = await GetBucketInfo({ id: selectedBucket.id })
+            const refreshed = await GetBucketInfo({ id: selectedBucket.id }, selectedConfigId || undefined)
             setSelectedBucket(refreshed)
             await fetchBuckets()
         } catch {
@@ -312,6 +315,13 @@ export default function Buckets() {
                 >
                     {t("dashboard.buckets_add")}
                 </Button>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+                <S3ConfigSelector
+                    selectedConfigId={selectedConfigId}
+                    onConfigChange={setSelectedConfigId}
+                />
             </Box>
 
             <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>

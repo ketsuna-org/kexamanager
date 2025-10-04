@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
@@ -15,6 +15,7 @@ import {
   CopyObjectDialog,
 } from './components'
 import { GetBucketInfo } from '../../utils/apiWrapper'
+import S3ConfigSelector from '../../components/S3ConfigSelector'
 import {
   type _Object as S3Object,
 } from "@aws-sdk/client-s3"
@@ -42,10 +43,11 @@ function useS3KeyId() {
   return keyId
 }
 
-async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
+async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: number): Promise<T> {
   const keyId = getStoredKeyId()
   const token = getStoredToken()
-  const response = await fetch(`/api/s3/${endpoint}`, {
+  const baseUrl = configId ? `/api/${configId}/s3` : '/api/s3'
+  const response = await fetch(`${baseUrl}/${endpoint}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -68,6 +70,7 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown): Promise<T> {
 export default function S3Browser() {
   const { t } = useTranslation()
   const keyId = useS3KeyId()
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [buckets, setBuckets] = useState<{ Name?: string; CreationDate?: Date }[]>([])
@@ -88,11 +91,11 @@ export default function S3Browser() {
   const [bucketRegion, setBucketRegion] = useState<string | null>(null)
   const [quotaAlert, setQuotaAlert] = useState<{ open: boolean; message: string; onConfirm: () => void } | null>(null)
 
-  async function refreshBuckets() {
+  const refreshBuckets = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const res = await s3ApiRequest<{ buckets: { name: string; creationDate: string }[] }>('list-buckets', {})
+      const res = await s3ApiRequest<{ buckets: { name: string; creationDate: string }[] }>('list-buckets', {}, selectedConfigId || undefined)
       setBuckets(res.buckets.map(b => ({ Name: b.name, CreationDate: new Date(b.creationDate) })))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -100,7 +103,7 @@ export default function S3Browser() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedConfigId])
 
   async function createBucket() {
     if (!newBucket) return
@@ -109,7 +112,7 @@ export default function S3Browser() {
     try {
       await s3ApiRequest<{ success: boolean }>('create-bucket', {
         bucket: newBucket
-      })
+      }, selectedConfigId || undefined)
       setCreateOpen(false)
       setNewBucket("")
       await refreshBuckets()
@@ -126,7 +129,7 @@ export default function S3Browser() {
     try {
       await s3ApiRequest<{ success: boolean }>('delete-bucket', {
         bucket: name
-      })
+      }, selectedConfigId || undefined)
       if (selectedBucket === name) setSelectedBucket(null)
       await refreshBuckets()
     } catch (e) {
@@ -144,7 +147,7 @@ export default function S3Browser() {
       const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean; totalSize: number }>('list-objects', {
         bucket,
         prefix: opts?.prefix || prefix || undefined
-      })
+      }, selectedConfigId || undefined)
       console.log('List objects response:', res)
       const items = res.objects ? res.objects.map(obj => ({
         Key: obj.key,
@@ -198,7 +201,7 @@ export default function S3Browser() {
       await s3ApiRequest<{ success: boolean }>('delete-object', {
         bucket,
         key
-      })
+      }, selectedConfigId || undefined)
       await listObjects(bucket)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -217,14 +220,14 @@ export default function S3Browser() {
         bucket: selectedBucket,
         prefix: dirPrefix,
         maxKeys: 1000 // Get up to 1000 objects to delete
-      })
+      }, selectedConfigId || undefined)
 
       // Delete all objects in the directory
       for (const obj of res.objects) {
         await s3ApiRequest<{ success: boolean }>('delete-object', {
           bucket: selectedBucket,
           key: obj.key
-        })
+        }, selectedConfigId || undefined)
       }
 
       await listObjects(selectedBucket)
@@ -357,7 +360,7 @@ export default function S3Browser() {
         await s3ApiRequest<{ success: boolean }>('delete-object', {
           bucket,
           key
-        })
+        }, selectedConfigId || undefined)
       }
       await listObjects(bucket)
     } catch (e) {
@@ -392,7 +395,7 @@ export default function S3Browser() {
       const res = await s3ApiRequest<{ presignedUrl: string }>('get-object', {
         bucket,
         key
-      })
+      }, selectedConfigId || undefined)
       // Determine MIME type from file extension
       const extension = key.split('.').pop()?.toLowerCase()
       let mime = 'application/octet-stream'
@@ -495,7 +498,7 @@ export default function S3Browser() {
       const res = await s3ApiRequest<{ presignedUrl: string }>('get-object', {
         bucket,
         key
-      })
+      }, selectedConfigId || undefined)
       // Create a temporary link and trigger download
       const link = document.createElement('a')
       link.href = res.presignedUrl
@@ -535,8 +538,8 @@ async function handleUploadDirectory(files: FileList | null) {
   }
 
   useEffect(() => {
-    if (keyId) refreshBuckets()
-  }, [keyId])
+    if (keyId && selectedConfigId) refreshBuckets()
+  }, [keyId, selectedConfigId, refreshBuckets])
 
   if (!keyId) {
     return (
@@ -551,6 +554,12 @@ async function handleUploadDirectory(files: FileList | null) {
 
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+        <S3ConfigSelector
+          selectedConfigId={selectedConfigId}
+          onConfigChange={setSelectedConfigId}
+        />
+      </Box>
       {!selectedBucket ? (
         <BucketsList
           buckets={buckets}

@@ -1,22 +1,15 @@
-import { defineConfig, loadEnv } from "vite"
+import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd())
+export default defineConfig(() => {
     return {
         plugins: [
             react(),
         ],
         server: {
             proxy: {
-                "/api/admin": {
-                    target: env.VITE_API_ADMIN_URL,
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api\/admin/, ""),
-                    secure: false, // Ignore la vérification du certificat
-                },
-                "/api/s3": {
+                "/api": {
                     target: "http://localhost:8080",
                     changeOrigin: true,
                     secure: false,

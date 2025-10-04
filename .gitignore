@@ -25,7 +25,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
-
+kexamanager.db
 # Devenv
 .devenv*
 devenv.local.nix
@@ -35,3 +35,4 @@ devenv.local.nix
 
 # pre-commit
 .pre-commit-config.yaml
+front/vite.config.ts

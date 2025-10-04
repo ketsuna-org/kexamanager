@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -146,17 +147,88 @@ func singleJoin(a, b string) string {
 	}
 }
 
-func clientIP(r *http.Request) string {
-	// Best-effort: try X-Real-IP then RemoteAddr
-	if ip := r.Header.Get("X-Real-IP"); ip != "" {
-		return ip
+func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
+	// Parse path: /api/{project}/{service}/{endpoint}
+	// For example: /api/123/admin/v2/CreateBucket or /api/123/s3/list-buckets
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
+	if len(pathParts) < 2 {
+		http.NotFound(w, r)
+		return
 	}
-	// RemoteAddr may include port
-	host := r.RemoteAddr
-	if i := strings.LastIndex(host, ":"); i != -1 {
-		return host[:i]
+
+	projectIDStr := pathParts[0]
+	service := pathParts[1]
+
+	projectID, err := strconv.Atoi(projectIDStr)
+	if err != nil {
+		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		return
 	}
-	return host
+
+	// Validate token and get user ID
+	userID, err := validateToken(r)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusUnauthorized)
+		return
+	}
+
+	// Get the S3 config for this project
+	config, err := getS3Config(uint(projectID), userID)
+	if err != nil {
+		http.Error(w, "Project not found", http.StatusNotFound)
+		return
+	}
+
+	// Reconstruct the remaining path
+	remainingPath := "/" + strings.Join(pathParts[2:], "/")
+
+	switch service {
+	case "admin":
+		handleAdminProxy(w, r, config, remainingPath)
+	case "s3":
+		handleS3Request(w, r, config, remainingPath)
+	default:
+		http.NotFound(w, r)
+	}
+}
+
+func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, remainingPath string) {
+	if config.AdminURL == "" {
+		http.Error(w, "Admin URL not configured for this project", http.StatusBadRequest)
+		return
+	}
+
+	adminURL, err := url.Parse(config.AdminURL)
+	if err != nil {
+		http.Error(w, "Invalid admin URL", http.StatusInternalServerError)
+		return
+	}
+
+	// Create proxy with the remaining path
+	proxy := newReverseProxy(adminURL, "")
+	proxy.ServeHTTP(w, r)
+}
+
+func handleS3Request(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, endpoint string) {
+	// Map endpoints to handlers
+	switch endpoint {
+	case "list-buckets":
+		s3.HandleListBucketsWithConfig(config).ServeHTTP(w, r)
+	case "create-bucket":
+		s3.HandleCreateBucketWithConfig(config).ServeHTTP(w, r)
+	case "delete-bucket":
+		s3.HandleDeleteBucketWithConfig(config).ServeHTTP(w, r)
+	case "list-objects":
+		s3.HandleListObjectsWithConfig(config).ServeHTTP(w, r)
+	case "get-object":
+		s3.HandleGetObjectWithConfig(config).ServeHTTP(w, r)
+	case "put-object":
+		s3.HandlePutObjectWithConfig(config).ServeHTTP(w, r)
+	case "delete-object":
+		s3.HandleDeleteObjectWithConfig(config).ServeHTTP(w, r)
+	default:
+		http.NotFound(w, r)
+	}
 }
 
 func mustParse(raw string, name string) *url.URL {
@@ -170,13 +242,11 @@ func mustParse(raw string, name string) *url.URL {
 func main() {
 
 	// Récupérer les valeurs des variables d'environnement
-	adminTargetEnv := strings.TrimSpace(os.Getenv("VITE_API_ADMIN_URL"))
 	portEnv := strings.TrimSpace(os.Getenv("PORT"))
 
 	// Flags (avec fallback sur les variables d'environnement)
 	var (
 		portFlag      = flag.String("port", portEnv, "Port to listen on")
-		adminTarget   = flag.String("admin-target", adminTargetEnv, "Upstream URL for /api/admin reverse proxy")
 		staticDirFlag = flag.String("static-dir", "./public", "Static files directory (relative to working dir)")
 	)
 	flag.Parse()
@@ -218,28 +288,16 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Configuration des proxies avec les URLs obligatoires
-	adminURL := mustParse(strings.TrimSpace(*adminTarget), "admin-target")
-	adminProxy := newReverseProxy(adminURL, "/api/admin")
-	mux.Handle("/api/admin/", adminProxy)
-	log.Printf("/api/admin -> %s (changeOrigin: true, secure: false)\n", adminURL.Redacted())
+	// Dynamic admin proxy based on project ID
+	mux.HandleFunc("/api/", handleProjectRoutes)
 
-	// S3 API endpoints
+	// Auth endpoints (not project-specific)
 	mux.HandleFunc("/api/auth/login", HandleLogin)
 	mux.HandleFunc("/api/auth/create-user", HandleCreateUser)
 	mux.HandleFunc("/api/s3-configs", HandleGetS3Configs)
 	mux.HandleFunc("/api/s3-configs/create", HandleCreateS3Config)
 	mux.HandleFunc("/api/s3-configs/update", HandleUpdateS3Config)
 	mux.HandleFunc("/api/s3-configs/delete", HandleDeleteS3Config)
-
-	// S3 API endpoints
-	mux.HandleFunc("/api/s3/list-buckets", s3.HandleListBuckets())
-	mux.HandleFunc("/api/s3/create-bucket", s3.HandleCreateBucket())
-	mux.HandleFunc("/api/s3/delete-bucket", s3.HandleDeleteBucket())
-	mux.HandleFunc("/api/s3/list-objects", s3.HandleListObjects())
-	mux.HandleFunc("/api/s3/get-object", s3.HandleGetObject())
-	mux.HandleFunc("/api/s3/put-object", s3.HandlePutObject())
-	mux.HandleFunc("/api/s3/delete-object", s3.HandleDeleteObject())
 
 	// Basic health endpoint for convenience
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -318,4 +376,17 @@ type respWriter struct {
 func (w *respWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
+}
+
+func clientIP(r *http.Request) string {
+	// Best-effort: try X-Real-IP then RemoteAddr
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	// RemoteAddr may include port
+	host := r.RemoteAddr
+	if i := strings.LastIndex(host, ":"); i != -1 {
+		return host[:i]
+	}
+	return host
 }

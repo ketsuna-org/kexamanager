@@ -66,3 +66,43 @@ func HandleListBuckets() http.HandlerFunc {
 		json.NewEncoder(w).Encode(resp)
 	}
 }
+
+// HandleListBucketsWithConfig handles the list buckets request with pre-validated config
+func HandleListBucketsWithConfig(config S3ConfigData) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		creds, err := GetS3Credentials(config)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
+			return
+		}
+
+		client, err := CreateS3Client(creds)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to create S3 client: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		buckets, err := client.ListBuckets(r.Context())
+		if err != nil {
+			http.Error(w, fmt.Sprintf("Failed to list buckets: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		respBuckets := make([]Bucket, len(buckets))
+		for i, b := range buckets {
+			respBuckets[i] = Bucket{
+				Name:         b.Name,
+				CreationDate: b.CreationDate.Format(time.RFC3339),
+			}
+		}
+
+		resp := ListBucketsResponse{Buckets: respBuckets}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}
+}

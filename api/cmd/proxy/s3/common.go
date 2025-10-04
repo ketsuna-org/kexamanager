@@ -7,6 +7,7 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 )
+
 // S3ConfigData represents S3 configuration
 type S3ConfigData struct {
 	ID             uint   `json:"id"`

@@ -67,18 +67,20 @@ func HandleCreateS3Config(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Type == "garage" && req.AdminURL == "" {
-		http.Error(w, "Admin URL required for Garage type", http.StatusBadRequest)
+	// For garage type, admin URL is optional but if provided, token is required
+	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
+		http.Error(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
 		return
 	}
 
-	if req.Type == "garage" && req.AdminToken == "" {
-		http.Error(w, "Admin Token required for Garage type", http.StatusBadRequest)
+	// For S3 type, admin URL should not be provided
+	if req.Type == "s3" && req.AdminURL != "" {
+		http.Error(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
 		return
 	}
 
-	// Validation des credentials : requis pour S3 ou Garage sans AdminToken
-	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminToken == "")
+	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
+	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
 	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
 		http.Error(w, "Client ID and Client Secret are required", http.StatusBadRequest)
 		return
@@ -150,18 +152,20 @@ func HandleUpdateS3Config(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Type == "garage" && req.AdminURL == "" {
-		http.Error(w, "Admin URL required for Garage type", http.StatusBadRequest)
+	// For garage type, admin URL is optional but if provided, token is required
+	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
+		http.Error(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
 		return
 	}
 
-	if req.Type == "garage" && req.AdminToken == "" {
-		http.Error(w, "Admin Token required for Garage type", http.StatusBadRequest)
+	// For S3 type, admin URL should not be provided
+	if req.Type == "s3" && req.AdminURL != "" {
+		http.Error(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
 		return
 	}
 
-	// Validation des credentials : requis pour S3 ou Garage sans AdminToken
-	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminToken == "")
+	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
+	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
 	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
 		http.Error(w, "Client ID and Client Secret are required", http.StatusBadRequest)
 		return
