@@ -93,6 +93,8 @@ services:
     image: ghcr.io/ketsuna-org/kexamanager:latest
     ports:
       - "7400:7400"
+    volumes:
+      - ./data:/app/data
     environment:
       - PORT=7400
       - PASSWORD=your-admin-password
@@ -216,6 +218,8 @@ services:
     image: ghcr.io/ketsuna-org/kexamanager:latest
     ports:
       - "7400:7400"
+    volumes:
+      - ./data:/app/data
     environment:
       - PORT=7400
       - PASSWORD=votre-mot-de-passe-admin

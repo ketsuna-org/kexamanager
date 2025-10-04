@@ -17,13 +17,20 @@ import { useTranslation } from "react-i18next"
 import i18n from "./i18n"
 import { logout as authLogout, isLoggedIn } from "./auth/tokenAuth"
 import Navigation, { type NavigationProps } from "./components/Navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { setCurrentProjectId } from "./utils/adminClient"
+
+interface S3Config {
+    id: number
+    name: string
+    admin_url?: string
+    type?: string
+}
 
 function App() {
     // example counter removed
     const [authed, setAuthed] = useState(false)
-    const [projects, setProjects] = useState<Array<{id: number, name: string}>>([])
+    const [projects, setProjects] = useState<S3Config[]>([])
     const [selectedProject, setSelectedProject] = useState<number | null>(() => {
         const saved = localStorage.getItem("kexamanager:selectedProject")
         const parsed = saved ? parseInt(saved) : null
@@ -59,8 +66,8 @@ function App() {
                     }
                 })
                 if (response.ok) {
-                    const data = await response.json()
-                    setProjects(data.map((p: {id: number, name: string}) => ({ id: p.id, name: p.name })))
+                    const data: S3Config[] = await response.json()
+                    setProjects(data)
                 }
             } catch (error) {
                 console.error('Failed to load projects:', error)
@@ -71,10 +78,10 @@ function App() {
         }
     }, [authed])
 
-    const getSelectedProjectInfo = () => {
+    const getSelectedProjectInfo = useCallback(() => {
         if (!selectedProject) return null
         return projects.find(p => p.id === selectedProject) || null
-    }
+    }, [selectedProject, projects])
 
     const theme = dark ? darkTheme : lightTheme
 
@@ -101,6 +108,15 @@ function App() {
             window.location.hash = "#projects"
         }
     }, [selectedProject, tab])
+
+    // When project is selected and has no admin API, redirect to s3 page if not on s3 or projects
+    useEffect(() => {
+        const selected = getSelectedProjectInfo()
+        if (selected && !selected.admin_url && tab !== "s3" && tab !== "projects") {
+            setTab("s3")
+            window.location.hash = "#s3"
+        }
+    }, [selectedProject, tab, getSelectedProjectInfo])
 
     // Removed automatic redirection to S3 tab - users should be able to access projects management anytime
     useEffect(() => {

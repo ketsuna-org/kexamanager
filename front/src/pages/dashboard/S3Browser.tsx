@@ -71,7 +71,7 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: numbe
 }
 
 interface S3BrowserProps {
-    selectedProject: { id: number; name: string } | null
+    selectedProject: { id: number; name: string; admin_url?: string; type?: string } | null
 }
 
 export default function S3Browser({ selectedProject }: S3BrowserProps) {
@@ -557,7 +557,7 @@ async function handleUploadDirectory(files: FileList | null) {
     if (keyId && selectedConfigId) refreshBuckets()
   }, [keyId, selectedConfigId, refreshBuckets])
 
-  if (!keyId) {
+  if (!keyId && selectedProject && selectedProject.admin_url) {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="h6">{t("s3browser.no_session_title", { defaultValue: "S3 Browser" })}</Typography>

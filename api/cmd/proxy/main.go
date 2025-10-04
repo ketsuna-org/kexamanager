@@ -285,7 +285,7 @@ func main() {
 
 	// Initialiser la base de données
 	var err error
-	db, err = gorm.Open(sqlite.Open("kexamanager.db"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open("./data/kexamanager.db"), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("failed to connect database: %v", err)
 	}
