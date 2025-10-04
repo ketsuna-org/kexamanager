@@ -132,8 +132,11 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
       formData.append('key', key)
       formData.append('fileSize', file.size.toString())
       formData.append('file', file)
-
+      const jwtToken = localStorage.getItem('kexamanager:token')
       xhr.open('POST', `/api/${selectedProject?.id}/s3/put-object`)
+      if (jwtToken) {
+        xhr.setRequestHeader('Authorization', `Bearer ${jwtToken}`)
+      }
       xhr.addEventListener('load', () => {
         if (xhr.status === 200) {
           setSaving(false)
@@ -166,8 +169,6 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
       setLoading(true)
       fetch(url, {
         method: 'GET',
-        mode: 'cors',
-        credentials: 'omit',
       })
         .then(response => {
           if (!response.ok) {
