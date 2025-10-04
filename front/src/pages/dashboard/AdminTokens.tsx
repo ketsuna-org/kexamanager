@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { ListAdminTokens, CreateAdminToken, DeleteAdminToken, UpdateAdminToken, GetAdminTokenInfo, type ApiError } from "../../utils/apiWrapper"
 import type { components } from "../../types/openapi"
@@ -66,9 +66,11 @@ export default function AdminTokens() {
         }
     }
 
+    const loadCallback = useCallback(load, [])
+
     useEffect(() => {
-        load()
-    }, [])
+        loadCallback()
+    }, [loadCallback])
 
     function openCreate() {
         setEditing(null)
@@ -138,7 +140,7 @@ export default function AdminTokens() {
                         expiration: form.neverExpires ? null : form.expiration ? getIsoDateString(form.expiration) : null,
                         neverExpires: form.neverExpires || false,
                         scope: form.scope ? form.scope.split(",").map((s) => s.trim()) : undefined,
-                    },
+                    }
                 )
                 setSnack({ open: true, severity: "success", message: t("adminTokens.updated") })
             } else {

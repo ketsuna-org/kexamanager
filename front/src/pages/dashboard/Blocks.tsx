@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react"
+import { useEffect, useState, Fragment, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { ListBlockErrors, PurgeBlocks, RetryBlockResync } from "../../utils/apiWrapper"
 import Table from "@mui/material/Table"
@@ -44,11 +44,11 @@ export default function Blocks() {
     const [retryConfirm, setRetryConfirm] = useState<null | { nodeId: string; blockHash: string }>(null)
     const [actionBusy, setActionBusy] = useState(false)
 
-    async function load() {
+    const load = useCallback(async () => {
         setLoading(true)
         setError(null)
         try {
-            const res = await ListBlockErrors()
+            const res = await ListBlockErrors({})
             const maybe = res as unknown
             const parsed = maybe && typeof maybe === "object" ? (maybe as MultiResp) : { success: {}, error: {} }
 
@@ -58,21 +58,22 @@ export default function Blocks() {
 
             const combined: NodeErrors[] = Array.from(ids).map((id) => ({
                 id,
-                errors: (parsed.success && (parsed.success as Record<string, components["schemas"]["BlockError"][]>)[id]) ?? undefined,
-                error: (parsed.error && parsed.error[id]) ?? undefined,
+                errors: parsed.success?.[id],
+                error: parsed.error?.[id],
             }))
 
             setItems(combined)
         } catch (e) {
-            setError((e as unknown as { message?: string })?.message || String(e))
+            const msg = (e as unknown) instanceof Error ? (e as Error).message : String(e)
+            setError(msg)
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
     useEffect(() => {
         load()
-    }, [])
+    }, [load])
 
     function openDetails(i: unknown) {
         setDetailItem(i)

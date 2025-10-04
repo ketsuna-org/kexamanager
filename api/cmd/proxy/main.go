@@ -38,6 +38,7 @@ func getS3Config(configID uint, userID uint) (s3.S3ConfigData, error) {
 		Type:           config.Type,
 		S3URL:          config.S3URL,
 		AdminURL:       config.AdminURL,
+		AdminToken:     config.AdminToken,
 		ClientID:       config.ClientID,
 		ClientSecret:   config.ClientSecret,
 		Region:         config.Region,
@@ -148,8 +149,8 @@ func singleJoin(a, b string) string {
 }
 
 func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
-	// Parse path: /api/{project}/{service}/{endpoint}
-	// For example: /api/123/admin/v2/CreateBucket or /api/123/s3/list-buckets
+	// Parse path: /api/{project}/{endpoint}
+	// For example: /api/123/v2/CreateBucket or /api/123/s3/list-buckets
 	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
 	if len(pathParts) < 2 {
 		http.NotFound(w, r)
@@ -157,7 +158,7 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	projectIDStr := pathParts[0]
-	service := pathParts[1]
+	endpointStart := pathParts[1]
 
 	projectID, err := strconv.Atoi(projectIDStr)
 	if err != nil {
@@ -179,8 +180,20 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Reconstruct the remaining path
-	remainingPath := "/" + strings.Join(pathParts[2:], "/")
+	// Determine service and remaining path
+	var service string
+	var remainingPath string
+
+	if endpointStart == "s3" {
+		service = "s3"
+		remainingPath = "/" + strings.Join(pathParts[2:], "/")
+	} else if strings.HasPrefix(endpointStart, "v2") {
+		service = "admin"
+		remainingPath = "/" + strings.Join(pathParts[1:], "/")
+	} else {
+		http.NotFound(w, r)
+		return
+	}
 
 	switch service {
 	case "admin":
@@ -204,12 +217,31 @@ func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3Config
 		return
 	}
 
-	// Create proxy with the remaining path
-	proxy := newReverseProxy(adminURL, "")
+	// Extract project ID from the path to create stripPrefix
+	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
+	if len(pathParts) == 0 || pathParts[0] == "" {
+		http.Error(w, "Project ID missing in path", http.StatusBadRequest)
+		return
+	}
+
+	projectIDStr := pathParts[0]
+	stripPrefix := "/api/" + projectIDStr + "/"
+
+	// Create proxy with the stripPrefix
+	proxy := newReverseProxy(adminURL, stripPrefix)
+
+	// For admin requests, use the admin token instead of user's JWT
+	if config.AdminToken != "" {
+		r.Header.Set("Authorization", "Bearer "+config.AdminToken)
+	}
+
 	proxy.ServeHTTP(w, r)
 }
 
 func handleS3Request(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, endpoint string) {
+	// Trim leading slash from endpoint
+	endpoint = strings.TrimPrefix(endpoint, "/")
+
 	// Map endpoints to handlers
 	switch endpoint {
 	case "list-buckets":
@@ -262,19 +294,6 @@ func main() {
 	err = db.AutoMigrate(&User{}, &S3Config{})
 	if err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
-	}
-
-	// Créer un utilisateur par défaut si aucun n'existe
-	var userCount int64
-	db.Model(&User{}).Count(&userCount)
-	if userCount == 0 {
-		defaultUser := User{
-			Username: "admin",
-			Password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // "password" hashé
-			IsAdmin:  true,
-		}
-		db.Create(&defaultUser)
-		log.Println("Default user created: admin/password")
 	}
 
 	// Initialiser les handlers S3

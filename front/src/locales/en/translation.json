@@ -74,7 +74,7 @@
         },
         "no_nodes": "No nodes returned",
         "s3_browser": "S3 Browser",
-        "s3_configs": "S3 Configurations",
+        "projects": "Projects",
         "cluster_storage_overview": "Cluster Storage Overview",
         "data_storage": "Data Storage",
         "used_space": "Used",
@@ -243,10 +243,10 @@
         "empty": "No keys",
         "no_permissions": "No permissions"
     },
-    "s3Configs": {
-        "title": "S3 Configurations",
-        "addConfig": "Add Config",
-        "editConfig": "Edit Config",
+    "projects": {
+        "title": "Projects",
+        "addConfig": "Add Project",
+        "editConfig": "Edit Project",
         "name": "Name",
         "type": "Type",
         "s3Url": "S3 URL",

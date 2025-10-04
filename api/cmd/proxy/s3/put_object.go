@@ -99,7 +99,7 @@ func HandlePutObject() http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(config)
+		creds, err := GetS3Credentials(config, keyId, token)
 		if err != nil {
 			fmt.Printf("DEBUG: Failed to get credentials: %v\n", err)
 			w.Header().Set("Content-Type", "application/json")
@@ -183,6 +183,8 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 
 		bucket := r.FormValue("bucket")
 		key := r.FormValue("key")
+		keyId := r.FormValue("keyId")
+		token := r.FormValue("token")
 		fileSizeStr := r.FormValue("fileSize")
 
 		fmt.Printf("DEBUG: Received upload request - bucket: %s, key: %s, fileSizeStr: %s\n", bucket, key, fileSizeStr)
@@ -192,6 +194,14 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 			if size, err := strconv.ParseInt(fileSizeStr, 10, 64); err == nil {
 				fileSize = size
 			}
+		}
+
+		if keyId == "" || token == "" || bucket == "" || key == "" {
+			fmt.Printf("DEBUG: Missing required fields - keyId: %s, token: %s, bucket: %s, key: %s\n", keyId, token, bucket, key)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(`{"error": "Missing required fields", "details": "keyId, token, bucket, and key are all required"}`))
+			return
 		}
 
 		file, header, err := r.FormFile("file")
@@ -210,7 +220,7 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 
 		fmt.Printf("DEBUG: File info - filename: %s, size: %d, header size: %d\n", header.Filename, fileSize, header.Size)
 
-		creds, err := GetS3Credentials(config)
+		creds, err := GetS3Credentials(config, keyId, token)
 		if err != nil {
 			fmt.Printf("DEBUG: Failed to get credentials: %v\n", err)
 			w.Header().Set("Content-Type", "application/json")

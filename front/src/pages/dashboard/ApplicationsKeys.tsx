@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -61,7 +61,7 @@ export default function ApplicationsKeys() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [toDeleteId, setToDeleteId] = useState<string | null>(null)
 
-    async function load() {
+    const load = useCallback(async () => {
         setLoading(true)
         setError(null)
         try {
@@ -77,11 +77,11 @@ export default function ApplicationsKeys() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
     useEffect(() => {
         load()
-    }, [])
+    }, [load])
 
     function openCreate() {
         setCreateForm({ name: "", expiration: "", neverExpires: false, permissions: { createBucket: false } })

@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -41,14 +43,35 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user User
-	if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
-	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		http.Error(w, "Invalid credentials", http.StatusUnauthorized)
-		return
+	// Vérifier si c'est l'utilisateur root
+	if req.Username == "root" {
+		rootPassword := os.Getenv("PASSWORD")
+		if rootPassword == "" {
+			rootPassword = "admin"
+		}
+
+		if req.Password != rootPassword {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		// Créer un utilisateur root temporaire
+		user = User{
+			Username: "root",
+			IsAdmin:  true,
+		}
+	} else {
+		// Chercher l'utilisateur dans la BDD
+		if err := db.Where("username = ?", req.Username).First(&user).Error; err != nil {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
+
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
+			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	// Générer JWT
@@ -125,7 +148,7 @@ func HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 func validateToken(r *http.Request) (uint, error) {
 	tokenString := r.Header.Get("Authorization")
 	if tokenString == "" {
-		return 0, http.ErrNoCookie
+		return 0, errors.New("authorization header missing")
 	}
 
 	// Supprimer "Bearer " si présent

@@ -36,7 +36,7 @@ func HandleDeleteObject() http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(config)
+		creds, err := GetS3Credentials(config, req.KeyId, req.Token)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
 			return
@@ -74,7 +74,7 @@ func HandleDeleteObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(config)
+		creds, err := GetS3Credentials(config, req.KeyId, req.Token)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
 			return

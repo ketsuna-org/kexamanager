@@ -88,7 +88,7 @@
         "cluster_apply_confirm_title": "Appliquer la disposition mise en attente ?",
         "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?",
         "s3_browser": "Navigateur S3",
-        "s3_configs": "Configurations S3",
+        "projects": "Projets",
         "cluster_storage_overview": "Aperçu du stockage du cluster",
         "data_storage": "Stockage des données",
         "used_space": "Utilisé",
@@ -257,10 +257,10 @@
         "empty": "Aucune clé",
         "no_permissions": "Aucune permission"
     },
-    "s3Configs": {
-        "title": "Configurations S3",
-        "addConfig": "Ajouter une config",
-        "editConfig": "Modifier la config",
+    "projects": {
+        "title": "Projets",
+        "addConfig": "Ajouter un projet",
+        "editConfig": "Modifier le projet",
         "name": "Nom",
         "type": "Type",
         "s3Url": "URL S3",

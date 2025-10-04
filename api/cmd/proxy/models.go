@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -14,17 +16,20 @@ type User struct {
 
 // S3Config représente une configuration S3 pour un utilisateur
 type S3Config struct {
-	gorm.Model
-	UserID         uint   `gorm:"not null" json:"user_id"`
-	Name           string `gorm:"not null" json:"name"` // Nom de la config (ex: "Mon Garage", "AWS S3")
-	Type           string `gorm:"not null" json:"type"` // "garage" ou "s3"
-	S3URL          string `json:"s3_url,omitempty"`     // URL S3 (pour les deux types)
-	AdminURL       string `json:"admin_url,omitempty"`  // URL Admin (seulement pour Garage)
-	AdminToken     string `gorm:"not null" json:"-"`    // Token API admin (seulement pour Garage) - Ne pas exposer en JSON
-	ClientID       string `gorm:"not null" json:"client_id"`
-	ClientSecret   string `gorm:"not null" json:"-"` // Ne pas exposer en JSON
-	Region         string `gorm:"default:'us-east-1'" json:"region"`
-	ForcePathStyle bool   `gorm:"default:true" json:"force_path_style"`
+	ID             uint `gorm:"primaryKey" json:"id"`
+	CreatedAt      time.Time
+	UpdatedAt      time.Time
+	DeletedAt      gorm.DeletedAt `gorm:"index"`
+	UserID         uint           `gorm:"not null" json:"user_id"`
+	Name           string         `gorm:"not null" json:"name"` // Nom de la config (ex: "Mon Garage", "AWS S3")
+	Type           string         `gorm:"not null" json:"type"` // "garage" ou "s3"
+	S3URL          string         `json:"s3_url,omitempty"`     // URL S3 (pour les deux types)
+	AdminURL       string         `json:"admin_url,omitempty"`  // URL Admin (seulement pour Garage)
+	AdminToken     string         `gorm:"not null" json:"-"`    // Token API admin (seulement pour Garage) - Ne pas exposer en JSON
+	ClientID       string         `gorm:"not null" json:"client_id"`
+	ClientSecret   string         `gorm:"not null" json:"-"` // Ne pas exposer en JSON
+	Region         string         `gorm:"default:'us-east-1'" json:"region"`
+	ForcePathStyle bool           `gorm:"default:true" json:"force_path_style"`
 }
 
 // S3Credentials représente les credentials S3 (pour compatibilité)

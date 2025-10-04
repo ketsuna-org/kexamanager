@@ -15,7 +15,6 @@ import {
   CopyObjectDialog,
 } from './components'
 import { GetBucketInfo } from '../../utils/apiWrapper'
-import S3ConfigSelector from '../../components/S3ConfigSelector'
 import {
   type _Object as S3Object,
 } from "@aws-sdk/client-s3"
@@ -47,11 +46,16 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: numbe
   const keyId = getStoredKeyId()
   const token = getStoredToken()
   const baseUrl = configId ? `/api/${configId}/s3` : '/api/s3'
+  const jwtToken = localStorage.getItem("kexamanager:token")
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (jwtToken) {
+    headers['Authorization'] = `Bearer ${jwtToken}`
+  }
   const response = await fetch(`${baseUrl}/${endpoint}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     body: JSON.stringify({ keyId, token, ...(body as Record<string, unknown> || {}) }),
   })
   if (!response.ok) {
@@ -67,10 +71,19 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: numbe
   return response.json()
 }
 
-export default function S3Browser() {
+interface S3BrowserProps {
+    selectedProject: { id: number; name: string } | null
+}
+
+export default function S3Browser({ selectedProject }: S3BrowserProps) {
   const { t } = useTranslation()
   const keyId = useS3KeyId()
-  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null)
+  const [selectedConfigId, setSelectedConfigId] = useState<number | null>(selectedProject?.id || null)
+
+  // Update selectedConfigId when selectedProject changes
+  useEffect(() => {
+    setSelectedConfigId(selectedProject?.id || null)
+  }, [selectedProject])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [buckets, setBuckets] = useState<{ Name?: string; CreationDate?: Date }[]>([])
@@ -265,7 +278,11 @@ export default function S3Browser() {
       formData.append('fileSize', file.size.toString())
       formData.append('file', file)
 
-      xhr.open('POST', '/api/s3/put-object')
+      const jwtToken = localStorage.getItem("kexamanager:token")
+      xhr.open('POST', `/api/${selectedConfigId}/s3/put-object`)
+      if (jwtToken) {
+        xhr.setRequestHeader('Authorization', `Bearer ${jwtToken}`)
+      }
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
           setUploadProgress(Math.round((e.loaded / e.total) * 100))
@@ -555,10 +572,9 @@ async function handleUploadDirectory(files: FileList | null) {
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <S3ConfigSelector
-          selectedConfigId={selectedConfigId}
-          onConfigChange={setSelectedConfigId}
-        />
+        <Typography variant="h6">
+          {selectedProject ? `Project: ${selectedProject.name}` : 'No project selected'}
+        </Typography>
       </Box>
       {!selectedBucket ? (
         <BucketsList

@@ -1,8 +1,7 @@
-import { useState, useEffect } from "react"
 import Login from "./pages/Login"
 import Buckets from "./pages/dashboard/Buckets"
 import S3Browser from "./pages/dashboard/S3Browser"
-import S3Configs from "./pages/dashboard/S3Configs"
+import Projects from "./pages/dashboard/Projects"
 import ApplicationsKeys from "./pages/dashboard/ApplicationsKeys"
 import AdminTokens from "./pages/dashboard/AdminTokens"
 import Nodes from "./pages/dashboard/Nodes"
@@ -18,16 +17,24 @@ import { useTranslation } from "react-i18next"
 import i18n from "./i18n"
 import { logout as authLogout, isLoggedIn } from "./auth/tokenAuth"
 import Navigation, { type NavigationProps } from "./components/Navigation"
+import { useState, useEffect } from "react"
+import { setCurrentProjectId } from "./utils/adminClient"
 
 function App() {
     // example counter removed
     const [authed, setAuthed] = useState(false)
+    const [projects, setProjects] = useState<Array<{id: number, name: string}>>([])
+    const [selectedProject, setSelectedProject] = useState<number | null>(() => {
+        const saved = localStorage.getItem("kexamanager:selectedProject")
+        const parsed = saved ? parseInt(saved) : null
+        return (parsed && !isNaN(parsed)) ? parsed : null
+    })
     const [tab, setTab] = useState<string>(() => {
         const h = window.location.hash.replace('#', '').split('?')[0]
-        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 's3configs' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
             return h
         }
-        return "buckets"
+        return "projects"
     })
     const [dark, setDark] = useState<boolean>(() => localStorage.getItem("kexamanager:dark") === "1")
 
@@ -42,6 +49,33 @@ function App() {
         localStorage.setItem("kexamanager:lang", lang)
     }, [lang])
 
+    // Load projects list
+    useEffect(() => {
+        const loadProjects = async () => {
+            try {
+                const response = await fetch('/api/s3-configs', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('kexamanager:token')}`
+                    }
+                })
+                if (response.ok) {
+                    const data = await response.json()
+                    setProjects(data.map((p: {id: number, name: string}) => ({ id: p.id, name: p.name })))
+                }
+            } catch (error) {
+                console.error('Failed to load projects:', error)
+            }
+        }
+        if (authed) {
+            loadProjects()
+        }
+    }, [authed])
+
+    const getSelectedProjectInfo = () => {
+        if (!selectedProject) return null
+        return projects.find(p => p.id === selectedProject) || null
+    }
+
     const theme = dark ? darkTheme : lightTheme
 
     useEffect(() => {
@@ -49,11 +83,28 @@ function App() {
         setAuthed(authenticated)
     }, [])
 
-    // sync hash -> tab and tab -> hash
+    // Save selected project to localStorage
+    useEffect(() => {
+        if (selectedProject !== null && selectedProject !== undefined) {
+            localStorage.setItem("kexamanager:selectedProject", selectedProject.toString())
+        } else {
+            localStorage.removeItem("kexamanager:selectedProject")
+        }
+        // Update the global current project ID for API calls
+        setCurrentProjectId(selectedProject)
+    }, [selectedProject])
+
+    // When a project is selected and we're on the projects tab, switch to s3 tab
+    useEffect(() => {
+        if (selectedProject && tab === "projects") {
+            setTab("s3")
+            window.location.hash = "#s3"
+        }
+    }, [selectedProject, tab])
     useEffect(() => {
         function onHashChange() {
             const h = window.location.hash.replace('#', '').split('?')[0]
-            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 's3configs' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
                 setTab(h)
             }
         }
@@ -83,17 +134,21 @@ function App() {
             <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
                 <CssBaseline />
 
-                <Navigation
-                    tab={tab as NavigationProps["tab"]}
-                    setTab={(v) => setTab(v)}
-                    dark={dark}
-                    setDark={(v) => { setDark(v); localStorage.setItem("kexamanager:dark", v ? "1" : "0") }}
-                    lang={lang}
-                    setLang={(l) => { setLang(l); }}
-                    mobileOpen={mobileOpen}
-                    setMobileOpen={setMobileOpen}
-                    onLogout={logout}
-                />
+                {/* Hide navigation when on projects page without selected project */}
+                {!(tab === "projects" && !selectedProject) && (
+                    <Navigation
+                        tab={tab as NavigationProps["tab"]}
+                        setTab={(v) => setTab(v)}
+                        dark={dark}
+                        setDark={(v) => { setDark(v); localStorage.setItem("kexamanager:dark", v ? "1" : "0") }}
+                        lang={lang}
+                        setLang={(l) => { setLang(l); }}
+                        mobileOpen={mobileOpen}
+                        setMobileOpen={setMobileOpen}
+                        onLogout={logout}
+                        selectedProject={getSelectedProjectInfo()}
+                    />
+                )}
 
                 <Box
                     component="main"
@@ -109,16 +164,16 @@ function App() {
                         flexDirection: "column",
                     }}
                 >
-                    {tab === "buckets" && <Buckets />}
-                    {tab === "apps" && <ApplicationsKeys />}
-                    {tab === "s3configs" && <S3Configs />}
-                    {tab === "s3" && <S3Browser />}
-                    {tab === "adminTokens" && <AdminTokens />}
-                    {tab === "nodes" && <Nodes />}
-                    {tab === "blocks" && <Blocks />}
-                    {tab === "workers" && <Workers />}
-                    {tab === "cluster" && <ClusterLayout />}
-                    {tab === "preview" && <PreviewPage />}
+                    {tab === "buckets" && <Buckets key="buckets" selectedProject={getSelectedProjectInfo()} />}
+                    {tab === "apps" && <ApplicationsKeys key="apps" />}
+                    {tab === "projects" && <Projects key="projects" selectedProject={selectedProject} onSelectProject={setSelectedProject} onProjectsChange={setProjects} />}
+                    {tab === "s3" && <S3Browser key="s3" selectedProject={getSelectedProjectInfo()} />}
+                    {tab === "adminTokens" && <AdminTokens key="adminTokens" />}
+                    {tab === "nodes" && <Nodes key="nodes" />}
+                    {tab === "blocks" && <Blocks key="blocks" />}
+                    {tab === "workers" && <Workers key="workers" />}
+                    {tab === "cluster" && <ClusterLayout key="cluster" />}
+                    {tab === "preview" && <PreviewPage key="preview" selectedProject={getSelectedProjectInfo()} />}
                 </Box>
             </Box>
         </ThemeProvider>

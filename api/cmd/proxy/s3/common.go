@@ -16,6 +16,7 @@ type S3ConfigData struct {
 	Type           string `json:"type"`
 	S3URL          string `json:"s3_url"`
 	AdminURL       string `json:"admin_url"`
+	AdminToken     string `json:"admin_token"`
 	ClientID       string `json:"client_id"`
 	ClientSecret   string `json:"client_secret"`
 	Region         string `json:"region"`
@@ -128,12 +129,16 @@ type DeleteBucketResponse struct {
 	Success bool `json:"success"`
 }
 
-// getS3Credentials creates S3 credentials from the config
-func GetS3Credentials(config S3ConfigData) (S3Credentials, error) {
+// getS3Credentials creates S3 credentials from the config, with optional override from request
+func GetS3Credentials(config S3ConfigData, requestKeyId, requestToken string) (S3Credentials, error) {
 	keyId := config.ClientID
 	secretAccessKey := config.ClientSecret
 
-	if keyId == "" || secretAccessKey == "" {
+	// For Garage configs, allow credentials to be overridden by request
+	if config.Type == "garage" && requestKeyId != "" && requestToken != "" {
+		keyId = requestKeyId
+		secretAccessKey = requestToken
+	} else if keyId == "" || secretAccessKey == "" {
 		return S3Credentials{}, fmt.Errorf("clientId and clientSecret are required in config")
 	}
 

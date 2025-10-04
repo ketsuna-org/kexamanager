@@ -35,7 +35,7 @@ func HandleListBuckets() http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(config)
+		creds, err := GetS3Credentials(config, req.KeyId, req.Token)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
 			return
@@ -75,7 +75,16 @@ func HandleListBucketsWithConfig(config S3ConfigData) http.HandlerFunc {
 			return
 		}
 
-		creds, err := GetS3Credentials(config)
+		var req struct {
+			KeyId string `json:"keyId"`
+			Token string `json:"token"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+			return
+		}
+
+		creds, err := GetS3Credentials(config, req.KeyId, req.Token)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get credentials: %v", err), http.StatusUnauthorized)
 			return

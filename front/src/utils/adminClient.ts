@@ -19,6 +19,17 @@ export interface ApiResponse<T = unknown> {
 
 const BASE_URL = "/api"
 
+// Global current project ID - updated by App component
+let currentProjectId: number | null = null
+
+export function setCurrentProjectId(projectId: number | null) {
+    currentProjectId = projectId
+}
+
+export function getCurrentProjectId(): number | null {
+    return currentProjectId
+}
+
 function getAuthToken(): string | null {
     return localStorage.getItem("kexamanager:token")
 }
@@ -88,25 +99,40 @@ export type RequestOptions = {
     query?: Record<string, string | number | boolean | undefined | null>
     headers?: HeadersInit
     timeoutMs?: number
-    projectId?: number
+    projectId?: number // Explicit project ID override
 }
+
+// Endpoints that don't require project ID
+const NON_PROJECT_ENDPOINTS = [
+    "/auth/login",
+    "/auth/create-user",
+    "/s3-configs",
+    "/s3-configs/create",
+    "/s3-configs/update",
+    "/s3-configs/delete"
+]
 
 export async function adminRequest<T = unknown>(method: string, endpoint: string, body?: unknown, opts?: RequestOptions): Promise<T> {
     const path = interpolatePath(endpoint, opts?.pathParams)
 
+    // Determine if this endpoint needs a project ID
+    const needsProjectId = !NON_PROJECT_ENDPOINTS.some(prefix => path.startsWith(prefix))
+    const projectId = opts?.projectId ?? (needsProjectId ? currentProjectId : null)
+
     let url: string
-    if (opts?.projectId) {
+    if (projectId) {
         // Determine service based on endpoint
         let service: string
         if (path.startsWith("/v2")) {
-            service = "admin"
+            service = ""  // No service prefix for admin endpoints
         } else if (path.startsWith("/s3")) {
             service = "s3"
         } else {
             // Fallback, shouldn't happen
             service = "admin"
         }
-        url = `${BASE_URL}/${opts.projectId}/${service}${path}${buildQueryString(opts?.query)}`
+        const servicePath = service ? `/${service}` : ""
+        url = `${BASE_URL}/${projectId}${servicePath}${path}${buildQueryString(opts?.query)}`
     } else {
         url = BASE_URL + path + buildQueryString(opts?.query)
     }

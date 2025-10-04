@@ -25,7 +25,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import LogoutIcon from "@mui/icons-material/Logout"
 import SettingsIcon from "@mui/icons-material/Settings"
 
-type TabKey = "buckets" | "apps" | "s3configs" | "s3" | "adminTokens" | "nodes" | "blocks" | "workers" | "cluster"
+type TabKey = "buckets" | "apps" | "projects" | "s3" | "adminTokens" | "nodes" | "blocks" | "workers" | "cluster"
 
 export interface NavigationProps {
   tab: TabKey
@@ -37,9 +37,10 @@ export interface NavigationProps {
   mobileOpen: boolean
   setMobileOpen: (v: boolean) => void
   onLogout: () => void
+  selectedProject?: { id: number; name: string } | null
 }
 
-export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, mobileOpen, setMobileOpen, onLogout }: NavigationProps) {
+export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, mobileOpen, setMobileOpen, onLogout, selectedProject }: NavigationProps) {
   const { t } = useTranslation()
 
   const MobileAppBar = (
@@ -59,7 +60,7 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
           <MenuIcon />
         </IconButton>
         <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
-          {t("dashboard.title")}
+          {selectedProject ? `${t("dashboard.title")} - ${selectedProject.name}` : t("dashboard.title")}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <FormControlLabel
@@ -86,7 +87,7 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
     >
       <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
         <Typography variant="h6" fontWeight={700}>
-          {t("dashboard.title")}
+          {selectedProject ? `${t("dashboard.title")} - ${selectedProject.name}` : t("dashboard.title")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {t("dashboard.subtitle", "Cluster Management")}
@@ -101,9 +102,9 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
           <ListItemIcon><VpnKeyIcon /></ListItemIcon>
           <ListItemText primary={t("dashboard.apps")} />
         </ListItemButton>
-        <ListItemButton selected={tab === "s3configs"} onClick={() => { setTab("s3configs"); setMobileOpen(false) }}>
+        <ListItemButton selected={tab === "projects"} onClick={() => { setTab("projects"); setMobileOpen(false) }}>
           <ListItemIcon><SettingsIcon /></ListItemIcon>
-          <ListItemText primary={t("dashboard.s3_configs", { defaultValue: "S3 Configurations" })} />
+          <ListItemText primary={t("dashboard.projects", { defaultValue: "Projects" })} />
         </ListItemButton>
         <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
           <ListItemIcon><StorageIcon /></ListItemIcon>
