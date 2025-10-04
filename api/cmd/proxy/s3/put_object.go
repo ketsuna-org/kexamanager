@@ -91,11 +91,11 @@ func HandlePutObject() http.HandlerFunc {
 
 		fmt.Printf("DEBUG: File header - Filename: %s, Size: %d, Content-Type: %s\n", header.Filename, header.Size, header.Header.Get("Content-Type"))
 
-		if keyId == "" || token == "" || bucket == "" || key == "" {
-			fmt.Printf("DEBUG: Missing required fields - keyId: %s, token: %s, bucket: %s, key: %s\n", keyId, token, bucket, key)
+		if bucket == "" || key == "" {
+			fmt.Printf("DEBUG: Missing required fields - bucket: %s, key: %s\n", bucket, key)
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(`{"error": "Missing required fields", "details": "keyId, token, bucket, and key are all required"}`))
+			w.Write([]byte(`{"error": "Missing required fields", "details": "bucket and key are required"}`))
 			return
 		}
 

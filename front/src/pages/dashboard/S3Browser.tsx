@@ -270,8 +270,10 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest()
       const formData = new FormData()
-      formData.append('keyId', getStoredKeyId() || '')
-      formData.append('token', getStoredToken() || '')
+      const storedKeyId = getStoredKeyId()
+      const storedToken = getStoredToken()
+      if (storedKeyId) formData.append('keyId', storedKeyId)
+      if (storedToken) formData.append('token', storedToken)
       formData.append('bucket', bucket)
       formData.append('key', key || file.name)
       formData.append('fileSize', file.size.toString())

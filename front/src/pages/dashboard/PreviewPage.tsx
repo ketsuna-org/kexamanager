@@ -99,8 +99,10 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
 
       const xhr = new XMLHttpRequest()
       const formData = new FormData()
-      formData.append('keyId', getStoredKeyId() || '')
-      formData.append('token', getStoredToken() || '')
+      const storedKeyId = getStoredKeyId()
+      const storedToken = getStoredToken()
+      if (storedKeyId) formData.append('keyId', storedKeyId)
+      if (storedToken) formData.append('token', storedToken)
       formData.append('bucket', bucket)
       formData.append('key', key)
       formData.append('fileSize', file.size.toString())
