@@ -1,5 +1,5 @@
 import type { components, paths } from "../types/openapi"
-import { adminGet, adminPost, adminPut, adminDelete } from "./adminClient"
+import { adminDelete, adminGet, adminPost, adminPut } from "./adminClient"
 /**
  * {
     "code": "InvalidRequest",
@@ -42,7 +42,7 @@ function CreateBucket(data: components["schemas"]["CreateBucketRequest"]): Promi
 }
 
 function DeleteBucket(params: { id: string }): Promise<void> {
-    return adminDelete<void>("/v2/DeleteBucket", { query: { id: params.id } })
+    return adminPost<void>("/v2/DeleteBucket", undefined, { query: { id: params.id } })
 }
 
 function GetBucketInfo(query: paths["/v2/GetBucketInfo"]["get"]["parameters"]["query"]): Promise<components["schemas"]["GetBucketInfoResponse"]> {
@@ -50,7 +50,7 @@ function GetBucketInfo(query: paths["/v2/GetBucketInfo"]["get"]["parameters"]["q
 }
 
 function UpdateBucket(params: { id: string }, data: components["schemas"]["UpdateBucketRequestBody"]): Promise<components["schemas"]["UpdateBucketResponse"]> {
-    return adminPut<components["schemas"]["UpdateBucketResponse"]>("/v2/UpdateBucket", data, { query: { id: params.id } })
+    return adminPost<components["schemas"]["UpdateBucketResponse"]>("/v2/UpdateBucket", data, { query: { id: params.id } })
 }
 
 // --- Keys / Tokens ---
@@ -59,7 +59,7 @@ function CreateKey(data: components["schemas"]["CreateKeyRequest"]): Promise<com
 }
 
 function DeleteKey(params: { id: string }): Promise<void> {
-    return adminDelete<void>("/v2/DeleteKey", { query: { id: params.id } })
+    return adminPost<void>("/v2/DeleteKey", { query: { id: params.id } })
 }
 
 function GetKeyInfo(query: paths["/v2/GetKeyInfo"]["get"]["parameters"]["query"]): Promise<components["schemas"]["GetKeyInfoResponse"]> {
@@ -67,7 +67,7 @@ function GetKeyInfo(query: paths["/v2/GetKeyInfo"]["get"]["parameters"]["query"]
 }
 
 function UpdateKey(params: { id: string }, data: components["schemas"]["UpdateKeyRequestBody"]): Promise<components["schemas"]["UpdateKeyResponse"]> {
-    return adminPut<components["schemas"]["UpdateKeyResponse"]>("/v2/UpdateKey", data, { query: { id: params.id } })
+    return adminPost<components["schemas"]["UpdateKeyResponse"]>("/v2/UpdateKey", data, { query: { id: params.id } })
 }
 
 function ImportKey(data: components["schemas"]["ImportKeyRequest"]): Promise<components["schemas"]["ImportKeyResponse"]> {
@@ -97,7 +97,7 @@ function GetClusterLayoutHistory(): Promise<components["schemas"]["GetClusterLay
 }
 
 function UpdateClusterLayout(data: components["schemas"]["UpdateClusterLayoutRequest"]): Promise<components["schemas"]["UpdateClusterLayoutResponse"]> {
-    return adminPut<components["schemas"]["UpdateClusterLayoutResponse"]>("/v2/UpdateClusterLayout", data)
+    return adminPost<components["schemas"]["UpdateClusterLayoutResponse"]>("/v2/UpdateClusterLayout", data)
 }
 
 function ApplyClusterLayout(data: components["schemas"]["ApplyClusterLayoutRequest"]): Promise<components["schemas"]["ApplyClusterLayoutResponse"]> {
@@ -139,11 +139,11 @@ function GetAdminTokenInfo(query: paths["/v2/GetAdminTokenInfo"]["get"]["paramet
 }
 
 function UpdateAdminToken(params: { id: string }, data: components["schemas"]["UpdateAdminTokenRequestBody"]): Promise<components["schemas"]["UpdateAdminTokenResponse"]> {
-    return adminPut<components["schemas"]["UpdateAdminTokenResponse"]>("/v2/UpdateAdminToken", data, { query: { id: params.id } })
+    return adminPost<components["schemas"]["UpdateAdminTokenResponse"]>("/v2/UpdateAdminToken", data, { query: { id: params.id } })
 }
 
 function DeleteAdminToken(params: { id: string }): Promise<void> {
-    return adminDelete<void>("/v2/DeleteAdminToken", { query: { id: params.id } })
+    return adminPost<void>("/v2/DeleteAdminToken", undefined, { query: { id: params.id } })
 }
 
 // --- Nodes, blocks, workers ---
@@ -322,7 +322,7 @@ function UpdateS3Config(id: number, data: Partial<Omit<S3Config, 'id' | 'user_id
 }
 
 function DeleteS3Config(id: number): Promise<void> {
-    return adminDelete<void>(`/s3-configs/${id}`)
+    return adminDelete<void>(`/s3-configs/${id}`, undefined)
 }
 
 export {
