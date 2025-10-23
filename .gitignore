@@ -18,12 +18,14 @@ dist-ssr
 .idea
 .DS_Store
 *.suo
+/output
+/api/proxy
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 .env
-
+kexamanager.db
 # Devenv
 .devenv*
 devenv.local.nix
@@ -33,3 +35,4 @@ devenv.local.nix
 
 # pre-commit
 .pre-commit-config.yaml
+front/vite.config.ts

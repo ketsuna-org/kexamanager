@@ -6,91 +6,91 @@
 export interface paths {
     "/check": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Static website domain name check. Checks whether a bucket is configured to serve
          *     a static website for the requested domain. This is used by reverse proxies such
          *     as Caddy or Tricot, to avoid requesting TLS certificates for domain names that
          *     do not correspond to an actual website.
          *          */
-        get: operations["CheckDomain"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["CheckDomain"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Check cluster health. The status code returned by this function indicates
          *     whether this Garage daemon can answer API requests.
          *     Garage will return `200 OK` even if some storage nodes are disconnected,
          *     as long as it is able to have a quorum of nodes for read and write operations.
          *          */
-        get: operations["Health"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["Health"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/metrics": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description Prometheus metrics endpoint */
-        get: operations["Metrics"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["Metrics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/AddBucketAlias": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Add an alias for the target bucket.  This can be either a global or a local alias, depending on which fields are specified. */
-        post: operations["AddBucketAlias"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["AddBucketAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/AllowBucketKey": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     ⚠️ **DISCLAIMER**: Garage's developers are aware that this endpoint has an unconventional semantic. Be extra careful when implementing it, its behavior is not obvious.
          *
@@ -102,222 +102,222 @@ export interface paths {
          *     If you set it to false, the key will keeps its previous read permission.
          *     If you want to disallow read for the key, check the DenyBucketKey operation.
          *          */
-        post: operations["AllowBucketKey"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["AllowBucketKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ApplyClusterLayout": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Applies to the cluster the layout changes currently registered as staged layout changes.
          *
          *     *Note: do not try to parse the `message` field of the response, it is given as an array of string specifically because its format is not stable.*
          *          */
-        post: operations["ApplyClusterLayout"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["ApplyClusterLayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/CleanupIncompleteUploads": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Removes all incomplete multipart uploads that are older than the specified number of seconds. */
-        post: operations["CleanupIncompleteUploads"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["CleanupIncompleteUploads"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ClusterLayoutSkipDeadNodes": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Force progress in layout update trackers */
-        post: operations["ClusterLayoutSkipDeadNodes"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["ClusterLayoutSkipDeadNodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ConnectClusterNodes": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Instructs this Garage node to connect to other Garage nodes at specified `<node_id>@<net_address>`. `node_id` is generated automatically on node start. */
-        post: operations["ConnectClusterNodes"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["ConnectClusterNodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/CreateAdminToken": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Creates a new admin API token */
-        post: operations["CreateAdminToken"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["CreateAdminToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/CreateBucket": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Creates a new bucket, either with a global alias, a local one, or no alias at all.
          *     Technically, you can also specify both `globalAlias` and `localAlias` and that would create two aliases.
          *          */
-        post: operations["CreateBucket"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["CreateBucket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/CreateKey": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Creates a new API access key. */
-        post: operations["CreateKey"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["CreateKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/CreateMetadataSnapshot": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Instruct one or several nodes to take a snapshot of their metadata databases.
          *          */
-        post: operations["CreateMetadataSnapshot"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["CreateMetadataSnapshot"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/DeleteAdminToken": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Delete an admin API token from the cluster, revoking all its permissions. */
-        post: operations["DeleteAdminToken"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["DeleteAdminToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/DeleteBucket": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Deletes a storage bucket. A bucket cannot be deleted if it is not empty.
          *
          *     **Warning:** this will delete all aliases associated with the bucket!
          *          */
-        post: operations["DeleteBucket"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["DeleteBucket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/DeleteKey": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Delete a key from the cluster. Its access will be removed from all the buckets. Buckets are not automatically deleted and can be dangling. You should manually delete them before.  */
-        post: operations["DeleteKey"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["DeleteKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/DenyBucketKey": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     ⚠️ **DISCLAIMER**: Garage's developers are aware that this endpoint has an unconventional semantic. Be extra careful when implementing it, its behavior is not obvious.
          *
@@ -329,98 +329,98 @@ export interface paths {
          *     If you set read to false,  the key will keep its previous permissions.
          *     If you want the key to have the reading permission, check the AllowBucketKey operation.
          *          */
-        post: operations["DenyBucketKey"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["DenyBucketKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetAdminTokenInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Return information about a specific admin API token.
          *     You can search by specifying the exact token identifier (`id`) or by specifying a pattern (`search`).
          *          */
-        get: operations["GetAdminTokenInfo"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetAdminTokenInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetBlockInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Get detailed information about a data block stored on a Garage node, including all object versions and in-progress multipart uploads that contain a reference to this block.
          *          */
-        post: operations["GetBlockInfo"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["GetBlockInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetBucketInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Given a bucket identifier (`id`) or a global alias (`alias`), get its information.
          *     It includes its aliases, its web configuration, keys that have some permissions
          *     on it, some statistics (number of objects, size), number of dangling multipart uploads,
          *     and its quotas (if any).
          *          */
-        get: operations["GetBucketInfo"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetBucketInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetClusterHealth": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description Returns the global status of the cluster, the number of connected nodes (over the number of known ones), the number of healthy storage nodes (over the declared ones), and the number of healthy partitions (over the total). */
-        get: operations["GetClusterHealth"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetClusterHealth"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetClusterLayout": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Returns the cluster's current layout, including:
          *
@@ -429,62 +429,62 @@ export interface paths {
          *
          *     *Capacity is given in bytes*
          *          */
-        get: operations["GetClusterLayout"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetClusterLayout"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetClusterLayoutHistory": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Returns the history of layouts in the cluster
          *          */
-        get: operations["GetClusterLayoutHistory"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetClusterLayoutHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetClusterStatistics": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Fetch global cluster statistics.
          *
          *     *Note: do not try to parse the `freeform` field of the response, it is given as a string specifically because its format is not stable.*
          *          */
-        get: operations["GetClusterStatistics"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetClusterStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetClusterStatus": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Returns the cluster's current status, including:
          *
@@ -495,162 +495,162 @@ export interface paths {
          *
          *     *Capacity is given in bytes*
          *          */
-        get: operations["GetClusterStatus"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetClusterStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetCurrentAdminTokenInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Return information about the calling admin API token.
          *          */
-        get: operations["GetCurrentAdminTokenInfo"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetCurrentAdminTokenInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetKeyInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Return information about a specific key like its identifiers, its permissions and buckets on which it has permissions.
          *     You can search by specifying the exact key identifier (`id`) or by specifying a pattern (`search`).
          *
          *     For confidentiality reasons, the secret key is not returned by default: you must pass the `showSecretKey` query parameter to get it.
          *          */
-        get: operations["GetKeyInfo"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetKeyInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetNodeInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Return information about the Garage daemon running on one or several nodes.
          *          */
-        get: operations["GetNodeInfo"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetNodeInfo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetNodeStatistics": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Fetch statistics for one or several Garage nodes.
          *
          *     *Note: do not try to parse the `freeform` field of the response, it is given as a string specifically because its format is not stable.*
          *          */
-        get: operations["GetNodeStatistics"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["GetNodeStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetWorkerInfo": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Get information about the specified background worker on one or several cluster nodes.
          *          */
-        post: operations["GetWorkerInfo"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["GetWorkerInfo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/GetWorkerVariable": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Fetch values of one or several worker variables, from one or several cluster nodes.
          *          */
-        post: operations["GetWorkerVariable"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["GetWorkerVariable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ImportKey": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Imports an existing API key. This feature must only be used for migrations and backup restore.
          *
          *     **Do not use it to generate custom key identifiers or you will break your Garage cluster.**
          *          */
-        post: operations["ImportKey"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["ImportKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/InspectObject": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     Returns detailed information about an object in a bucket, including its internal state in Garage.
          *
@@ -661,265 +661,265 @@ export interface paths {
          *     case where there is a currently stored version of the object, and a newer version whose
          *     upload is in progress and not yet finished.
          *          */
-        get: operations["InspectObject"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["InspectObject"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/LaunchRepairOperation": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Launch a repair operation on one or several cluster nodes.
          *          */
-        post: operations["LaunchRepairOperation"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["LaunchRepairOperation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ListAdminTokens": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description Returns all admin API tokens in the cluster. */
-        get: operations["ListAdminTokens"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["ListAdminTokens"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ListBlockErrors": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     List data blocks that are currently in an errored state on one or several Garage nodes.
          *          */
-        get: operations["ListBlockErrors"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["ListBlockErrors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ListBuckets": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description List all the buckets on the cluster with their UUID and their global and local aliases. */
-        get: operations["ListBuckets"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["ListBuckets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ListKeys": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description Returns all API access keys in the cluster. */
-        get: operations["ListKeys"]
-        put?: never
-        post?: never
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        get: operations["ListKeys"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/ListWorkers": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     List background workers currently running on one or several cluster nodes.
          *          */
-        post: operations["ListWorkers"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["ListWorkers"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/PreviewClusterLayoutChanges": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Computes a new layout taking into account the staged parameters, and returns it with detailed statistics. The new layout is not applied in the cluster.
          *
          *     *Note: do not try to parse the `message` field of the response, it is given as an array of string specifically because its format is not stable.*
          *          */
-        post: operations["PreviewClusterLayoutChanges"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["PreviewClusterLayoutChanges"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/PurgeBlocks": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Purge references to one or several missing data blocks.
          *
          *     This will remove all objects and in-progress multipart uploads that contain the specified data block(s). The objects will be permanently deleted from the buckets in which they appear. Use with caution.
          *          */
-        post: operations["PurgeBlocks"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["PurgeBlocks"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/RemoveBucketAlias": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Remove an alias for the target bucket.  This can be either a global or a local alias, depending on which fields are specified. */
-        post: operations["RemoveBucketAlias"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["RemoveBucketAlias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/RetryBlockResync": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Instruct Garage node(s) to retry the resynchronization of one or several missing data block(s).
          *          */
-        post: operations["RetryBlockResync"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["RetryBlockResync"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/RevertClusterLayout": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description Clear staged layout changes */
-        post: operations["RevertClusterLayout"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["RevertClusterLayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/SetWorkerVariable": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Set the value for a worker variable, on one or several cluster nodes.
          *          */
-        post: operations["SetWorkerVariable"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["SetWorkerVariable"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/UpdateAdminToken": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Updates information about the specified admin API token.
          *          */
-        post: operations["UpdateAdminToken"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["UpdateAdminToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/UpdateBucket": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     All fields (`websiteAccess` and `quotas`) are optional.
          *     If they are present, the corresponding modifications are applied to the bucket, otherwise nothing is changed.
@@ -933,22 +933,22 @@ export interface paths {
          *     to remove the quotas. An absent value will be considered the same as a `null`. It is not possible
          *     to change only one of the two quotas.
          *          */
-        post: operations["UpdateBucket"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["UpdateBucket"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/UpdateClusterLayout": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Send modifications to the cluster layout. These modifications will be included in the staged role changes, visible in subsequent calls of `GET /GetClusterHealth`. Once the set of staged changes is satisfactory, the user may call `POST /ApplyClusterLayout` to apply the changed changes, or `POST /RevertClusterLayout` to clear all of the staged changes in the layout.
          *
@@ -958,2375 +958,2353 @@ export interface paths {
          *
          *     Garage uses internally the International System of Units (SI), it assumes that 1kB = 1000 bytes, and displays storage as kB, MB, GB (and not KiB, MiB, GiB that assume 1KiB = 1024 bytes).
          *          */
-        post: operations["UpdateClusterLayout"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["UpdateClusterLayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v2/UpdateKey": {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        get?: never
-        put?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
         /** @description
          *     Updates information about the specified API access key.
          *
          *     *Note: the secret key is not returned in the response, `null` is sent instead.*
          *          */
-        post: operations["UpdateKey"]
-        delete?: never
-        options?: never
-        head?: never
-        patch?: never
-        trace?: never
-    }
+        post: operations["UpdateKey"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
-export type webhooks = Record<string, never>
+export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         AddBucketAliasRequest: components["schemas"]["BucketAliasEnum"] & {
-            bucketId: string
-        }
-        AddBucketAliasResponse: components["schemas"]["GetBucketInfoResponse"]
-        AllowBucketKeyRequest: components["schemas"]["BucketKeyPermChangeRequest"]
-        AllowBucketKeyResponse: components["schemas"]["GetBucketInfoResponse"]
+            bucketId: string;
+        };
+        AddBucketAliasResponse: components["schemas"]["GetBucketInfoResponse"];
+        AllowBucketKeyRequest: components["schemas"]["BucketKeyPermChangeRequest"];
+        AllowBucketKeyResponse: components["schemas"]["GetBucketInfoResponse"];
         ApiBucketKeyPerm: {
-            owner?: boolean
-            read?: boolean
-            write?: boolean
-        }
+            owner?: boolean;
+            read?: boolean;
+            write?: boolean;
+        };
         ApiBucketQuotas: {
             /** Format: int64 */
-            maxObjects?: number | null
+            maxObjects?: number | null;
             /** Format: int64 */
-            maxSize?: number | null
-        }
+            maxSize?: number | null;
+        };
         ApplyClusterLayoutRequest: {
             /**
              * Format: int64
              * @description As a safety measure, the new version number of the layout must
              *     be specified here
              */
-            version: number
-        }
+            version: number;
+        };
         ApplyClusterLayoutResponse: {
             /** @description Details about the new cluster layout */
-            layout: components["schemas"]["GetClusterLayoutResponse"]
+            layout: components["schemas"]["GetClusterLayoutResponse"];
             /** @description Plain-text information about the layout computation
              *     (do not try to parse this) */
-            message: string[]
-        }
+            message: string[];
+        };
         BlockError: {
-            blockHash: string
+            blockHash: string;
             /** Format: int64 */
-            errorCount: number
+            errorCount: number;
             /** Format: int64 */
-            lastTrySecsAgo: number
+            lastTrySecsAgo: number;
             /** Format: int64 */
-            nextTryInSecs: number
+            nextTryInSecs: number;
             /** Format: int64 */
-            refcount: number
-        }
+            refcount: number;
+        };
         BlockVersion: {
-            backlink?: null | components["schemas"]["BlockVersionBacklink"]
-            garbageCollected: boolean
-            refDeleted: boolean
-            versionDeleted: boolean
-            versionId: string
-        }
-        BlockVersionBacklink:
-            | {
-                  object: {
-                      bucketId: string
-                      key: string
-                  }
-              }
-            | {
-                  upload: {
-                      bucketId?: string | null
-                      key?: string | null
-                      uploadDeleted: boolean
-                      uploadGarbageCollected: boolean
-                      uploadId: string
-                  }
-              }
-        BucketAliasEnum:
-            | {
-                  globalAlias: string
-              }
-            | {
-                  accessKeyId: string
-                  localAlias: string
-              }
+            backlink?: null | components["schemas"]["BlockVersionBacklink"];
+            garbageCollected: boolean;
+            refDeleted: boolean;
+            versionDeleted: boolean;
+            versionId: string;
+        };
+        BlockVersionBacklink: {
+            object: {
+                bucketId: string;
+                key: string;
+            };
+        } | {
+            upload: {
+                bucketId?: string | null;
+                key?: string | null;
+                uploadDeleted: boolean;
+                uploadGarbageCollected: boolean;
+                uploadId: string;
+            };
+        };
+        BucketAliasEnum: {
+            globalAlias: string;
+        } | {
+            accessKeyId: string;
+            localAlias: string;
+        };
         BucketKeyPermChangeRequest: {
-            accessKeyId: string
-            bucketId: string
-            permissions: components["schemas"]["ApiBucketKeyPerm"]
-        }
+            accessKeyId: string;
+            bucketId: string;
+            permissions: components["schemas"]["ApiBucketKeyPerm"];
+        };
         BucketLocalAlias: {
-            accessKeyId: string
-            alias: string
-        }
+            accessKeyId: string;
+            alias: string;
+        };
         CleanupIncompleteUploadsRequest: {
-            bucketId: string
+            bucketId: string;
             /** Format: int64 */
-            olderThanSecs: number
-        }
+            olderThanSecs: number;
+        };
         CleanupIncompleteUploadsResponse: {
             /** Format: int64 */
-            uploadsDeleted: number
-        }
+            uploadsDeleted: number;
+        };
         ClusterLayoutSkipDeadNodesRequest: {
             /** @description Allow the skip even if a quorum of nodes could not be found for
              *     the data among the remaining nodes */
-            allowMissingData: boolean
+            allowMissingData: boolean;
             /**
              * Format: int64
              * @description Version number of the layout to assume is currently up-to-date.
              *     This will generally be the current layout version.
              */
-            version: number
-        }
+            version: number;
+        };
         ClusterLayoutSkipDeadNodesResponse: {
             /** @description Nodes for which the ACK update tracker has been updated to `version` */
-            ackUpdated: string[]
+            ackUpdated: string[];
             /** @description If `allow_missing_data` is set,
              *     nodes for which the SYNC update tracker has been updated to `version` */
-            syncUpdated: string[]
-        }
+            syncUpdated: string[];
+        };
         ClusterLayoutVersion: {
             /**
              * Format: int64
              * @description Number of nodes with a gateway role in this layout version
              */
-            gatewayNodes: number
+            gatewayNodes: number;
             /** @description Status of this layout version */
-            status: components["schemas"]["ClusterLayoutVersionStatus"]
+            status: components["schemas"]["ClusterLayoutVersionStatus"];
             /**
              * Format: int64
              * @description Number of nodes with an assigned storage capacity in this layout version
              */
-            storageNodes: number
+            storageNodes: number;
             /**
              * Format: int64
              * @description Version number of this layout version
              */
-            version: number
-        }
+            version: number;
+        };
         /** @enum {string} */
-        ClusterLayoutVersionStatus: "Current" | "Draining" | "Historical"
-        ConnectClusterNodesRequest: string[]
-        ConnectClusterNodesResponse: components["schemas"]["ConnectNodeResponse"][]
+        ClusterLayoutVersionStatus: "Current" | "Draining" | "Historical";
+        ConnectClusterNodesRequest: string[];
+        ConnectClusterNodesResponse: components["schemas"]["ConnectNodeResponse"][];
         ConnectNodeResponse: {
             /** @description An error message if Garage did not manage to connect to this node */
-            error?: string | null
+            error?: string | null;
             /** @description `true` if Garage managed to connect to this node */
-            success: boolean
-        }
+            success: boolean;
+        };
         CreateAdminTokenResponse: components["schemas"]["GetAdminTokenInfoResponse"] & {
             /** @description The secret bearer token. **CAUTION:** This token will be shown only
              *     ONCE, so this value MUST be remembered somewhere, or the token
              *     will be unusable. */
-            secretToken: string
-        }
+            secretToken: string;
+        };
         CreateBucketLocalAlias: {
-            accessKeyId: string
-            alias: string
-            allow?: components["schemas"]["ApiBucketKeyPerm"]
-        }
+            accessKeyId: string;
+            alias: string;
+            allow?: components["schemas"]["ApiBucketKeyPerm"];
+        };
         CreateBucketRequest: {
-            globalAlias?: string | null
-            localAlias?: null | components["schemas"]["CreateBucketLocalAlias"]
-        }
-        CreateBucketResponse: components["schemas"]["GetBucketInfoResponse"]
-        CreateKeyRequest: components["schemas"]["UpdateKeyRequestBody"]
-        CreateKeyResponse: components["schemas"]["GetKeyInfoResponse"]
-        DenyBucketKeyRequest: components["schemas"]["BucketKeyPermChangeRequest"]
-        DenyBucketKeyResponse: components["schemas"]["GetBucketInfoResponse"]
+            globalAlias?: string | null;
+            localAlias?: null | components["schemas"]["CreateBucketLocalAlias"];
+        };
+        CreateBucketResponse: components["schemas"]["GetBucketInfoResponse"];
+        CreateKeyRequest: components["schemas"]["UpdateKeyRequestBody"];
+        CreateKeyResponse: components["schemas"]["GetKeyInfoResponse"];
+        DenyBucketKeyRequest: components["schemas"]["BucketKeyPermChangeRequest"];
+        DenyBucketKeyResponse: components["schemas"]["GetBucketInfoResponse"];
         FreeSpaceResp: {
             /**
              * Format: int64
              * @description Number of bytes available
              */
-            available: number
+            available: number;
             /**
              * Format: int64
              * @description Total number of bytes
              */
-            total: number
-        }
+            total: number;
+        };
         GetAdminTokenInfoResponse: {
             /**
              * Format: date-time
              * @description Creation date
              */
-            created?: string | null
+            created?: string | null;
             /**
              * Format: date-time
              * @description Expiration time and date, formatted according to RFC 3339
              */
-            expiration?: string | null
+            expiration?: string | null;
             /** @description Whether this admin token is expired already */
-            expired: boolean
+            expired: boolean;
             /** @description Identifier of the admin token (which is also a prefix of the full bearer token) */
-            id?: string | null
+            id?: string | null;
             /** @description Name of the admin API token */
-            name: string
+            name: string;
             /** @description Scope of the admin API token, a list of admin endpoint names (such as
              *     `GetClusterStatus`, etc), or the special value `*` to allow all
              *     admin endpoints */
-            scope: string[]
-        }
+            scope: string[];
+        };
         GetBucketInfoKey: {
-            accessKeyId: string
-            bucketLocalAliases: string[]
-            name: string
-            permissions: components["schemas"]["ApiBucketKeyPerm"]
-        }
+            accessKeyId: string;
+            bucketLocalAliases: string[];
+            name: string;
+            permissions: components["schemas"]["ApiBucketKeyPerm"];
+        };
         GetBucketInfoResponse: {
             /**
              * Format: int64
              * @description Total number of bytes used by objects in this bucket
              */
-            bytes: number
+            bytes: number;
             /**
              * Format: date-time
              * @description Bucket creation date
              */
-            created: string
+            created: string;
             /** @description List of global aliases for this bucket */
-            globalAliases: string[]
+            globalAliases: string[];
             /** @description Identifier of the bucket */
-            id: string
+            id: string;
             /** @description List of access keys that have permissions granted on this bucket */
-            keys: components["schemas"]["GetBucketInfoKey"][]
+            keys: components["schemas"]["GetBucketInfoKey"][];
             /**
              * Format: int64
              * @description Number of objects in this bucket
              */
-            objects: number
+            objects: number;
             /** @description Quotas that apply to this bucket */
-            quotas: components["schemas"]["ApiBucketQuotas"]
+            quotas: components["schemas"]["ApiBucketQuotas"];
             /**
              * Format: int64
              * @description Total number of bytes used by unfinished multipart uploads in this bucket
              */
-            unfinishedMultipartUploadBytes: number
+            unfinishedMultipartUploadBytes: number;
             /**
              * Format: int64
              * @description Number of parts in unfinished multipart uploads in this bucket
              */
-            unfinishedMultipartUploadParts: number
+            unfinishedMultipartUploadParts: number;
             /**
              * Format: int64
              * @description Number of unfinished multipart uploads in this bucket
              */
-            unfinishedMultipartUploads: number
+            unfinishedMultipartUploads: number;
             /**
              * Format: int64
              * @description Number of unfinished uploads in this bucket
              */
-            unfinishedUploads: number
+            unfinishedUploads: number;
             /** @description Whether website acces is enabled for this bucket */
-            websiteAccess: boolean
-            websiteConfig?: null | components["schemas"]["GetBucketInfoWebsiteResponse"]
-        }
+            websiteAccess: boolean;
+            websiteConfig?: null | components["schemas"]["GetBucketInfoWebsiteResponse"];
+        };
         GetBucketInfoWebsiteResponse: {
-            errorDocument?: string | null
-            indexDocument: string
-        }
+            errorDocument?: string | null;
+            indexDocument: string;
+        };
         GetClusterHealthResponse: {
             /** @description the nubmer of nodes this Garage node currently has an open connection to */
-            connectedNodes: number
+            connectedNodes: number;
             /** @description the number of nodes this Garage node has had a TCP connection to since the daemon started */
-            knownNodes: number
+            knownNodes: number;
             /** @description the total number of partitions of the data (currently always 256) */
-            partitions: number
+            partitions: number;
             /** @description the number of partitions for which we are connected to all storage nodes responsible of storing it */
-            partitionsAllOk: number
+            partitionsAllOk: number;
             /** @description the number of partitions for which a quorum of write nodes is available */
-            partitionsQuorum: number
+            partitionsQuorum: number;
             /** @description One of `healthy`, `degraded` or `unavailable`:
              *     - `healthy`: Garage node is connected to all storage nodes
              *     - `degraded`: Garage node is not connected to all storage nodes, but a quorum of write nodes is available for all partitions
              *     - `unavailable`: a quorum of write nodes is not available for some partitions */
-            status: string
+            status: string;
             /** @description the number of storage nodes currently registered in the cluster layout */
-            storageNodes: number
+            storageNodes: number;
             /** @description the number of storage nodes to which a connection is currently open */
-            storageNodesOk: number
-        }
+            storageNodesUp: number;
+        };
         GetClusterLayoutHistoryResponse: {
             /**
              * Format: int64
              * @description The current version number of the cluster layout
              */
-            currentVersion: number
+            currentVersion: number;
             /**
              * Format: int64
              * @description All nodes in the cluster are aware of layout versions up to
              *     this version number (at least)
              */
-            minAck: number
+            minAck: number;
             /** @description Detailed update trackers for nodes (see
              *     `https://garagehq.deuxfleurs.fr/blog/2023-12-preserving-read-after-write-consistency/`) */
             updateTrackers?: {
-                [key: string]: components["schemas"]["NodeUpdateTrackers"]
-            } | null
+                [key: string]: components["schemas"]["NodeUpdateTrackers"];
+            } | null;
             /** @description Layout version history */
-            versions: components["schemas"]["ClusterLayoutVersion"][]
-        }
+            versions: components["schemas"]["ClusterLayoutVersion"][];
+        };
         GetClusterLayoutResponse: {
             /** @description Layout parameters used when the current layout was computed */
-            parameters: components["schemas"]["LayoutParameters"]
+            parameters: components["schemas"]["LayoutParameters"];
             /**
              * Format: int64
              * @description The size, in bytes, of one Garage partition (= a shard)
              */
-            partitionSize: number
+            partitionSize: number;
             /** @description List of nodes that currently have a role in the cluster layout */
-            roles: components["schemas"]["LayoutNodeRole"][]
-            stagedParameters?: null | components["schemas"]["LayoutParameters"]
+            roles: components["schemas"]["LayoutNodeRole"][];
+            stagedParameters?: null | components["schemas"]["LayoutParameters"];
             /** @description List of nodes that will have a new role or whose role will be
              *     removed in the next version of the cluster layout */
-            stagedRoleChanges: components["schemas"]["NodeRoleChange"][]
+            stagedRoleChanges: components["schemas"]["NodeRoleChange"][];
             /**
              * Format: int64
              * @description The current version number of the cluster layout
              */
-            version: number
-        }
+            version: number;
+        };
         GetClusterStatisticsResponse: {
-            freeform: string
-        }
+            freeform: string;
+        };
         GetClusterStatusResponse: {
             /**
              * Format: int64
              * @description Current version number of the cluster layout
              */
-            layoutVersion: number
+            layoutVersion: number;
             /** @description List of nodes that are either currently connected, part of the
              *     current cluster layout, or part of an older cluster layout that
              *     is still active in the cluster (being drained). */
-            nodes: components["schemas"]["NodeResp"][]
-        }
-        GetCurrentAdminTokenInfoResponse: components["schemas"]["GetAdminTokenInfoResponse"]
+            nodes: components["schemas"]["NodeResp"][];
+        };
+        GetCurrentAdminTokenInfoResponse: components["schemas"]["GetAdminTokenInfoResponse"];
         GetKeyInfoResponse: {
-            accessKeyId: string
-            buckets: components["schemas"]["KeyInfoBucketResponse"][]
+            accessKeyId: string;
+            buckets: components["schemas"]["KeyInfoBucketResponse"][];
             /** Format: date-time */
-            created?: string | null
+            created?: string | null;
             /** Format: date-time */
-            expiration?: string | null
-            expired: boolean
-            name: string
-            permissions: components["schemas"]["KeyPerm"]
-            secretAccessKey?: string | null
-        }
+            expiration?: string | null;
+            expired: boolean;
+            name: string;
+            permissions: components["schemas"]["KeyPerm"];
+            secretAccessKey?: string | null;
+        };
         ImportKeyRequest: {
-            accessKeyId: string
-            name?: string | null
-            secretAccessKey: string
-        }
-        ImportKeyResponse: components["schemas"]["GetKeyInfoResponse"]
+            accessKeyId: string;
+            name?: string | null;
+            secretAccessKey: string;
+        };
+        ImportKeyResponse: components["schemas"]["GetKeyInfoResponse"];
         InspectObjectBlock: {
             /** @description Hash (blake2 sum) of the block's data */
-            hash: string
+            hash: string;
             /**
              * Format: int64
              * @description Offset of this block within the part
              */
-            offset: number
+            offset: number;
             /**
              * Format: int64
              * @description Part number of the part containing this block, for multipart uploads
              */
-            partNumber: number
+            partNumber: number;
             /**
              * Format: int64
              * @description Length of the blocks's data
              */
-            size: number
-        }
+            size: number;
+        };
         InspectObjectResponse: {
             /** @description ID of the bucket containing the inspected object */
-            bucketId: string
+            bucketId: string;
             /** @description Key of the inspected object */
-            key: string
+            key: string;
             /** @description List of versions currently stored for this object */
-            versions: components["schemas"]["InspectObjectVersion"][]
-        }
+            versions: components["schemas"]["InspectObjectVersion"][];
+        };
         InspectObjectVersion: {
             /** @description Whether this is an aborted upload */
-            aborted: boolean
+            aborted: boolean;
             /** @description List of data blocks for this object version */
-            blocks?: components["schemas"]["InspectObjectBlock"][]
+            blocks?: components["schemas"]["InspectObjectBlock"][];
             /** @description Whether this version is a delete marker (a tombstone indicating that a previous version of
              *     the object has been deleted) */
-            deleteMarker: boolean
+            deleteMarker: boolean;
             /** @description Whether this object version was created with SSE-C encryption */
-            encrypted: boolean
+            encrypted: boolean;
             /** @description Etag of this object version */
-            etag?: string | null
+            etag?: string | null;
             /** @description Metadata (HTTP headers) associated with this object version */
-            headers?: [string, string][]
+            headers?: [
+                string,
+                string
+            ][];
             /** @description Whether the object's data is stored inline (for small objects) */
-            inline: boolean
+            inline: boolean;
             /**
              * Format: int64
              * @description Size of the object, in bytes
              */
-            size?: number | null
+            size?: number | null;
             /**
              * Format: date-time
              * @description Creation timestamp of this object version
              */
-            timestamp: string
+            timestamp: string;
             /** @description Whether this object version is still uploading */
-            uploading: boolean
+            uploading: boolean;
             /** @description Version ID */
-            uuid: string
-        }
+            uuid: string;
+        };
         KeyInfoBucketResponse: {
-            globalAliases: string[]
-            id: string
-            localAliases: string[]
-            permissions: components["schemas"]["ApiBucketKeyPerm"]
-        }
+            globalAliases: string[];
+            id: string;
+            localAliases: string[];
+            permissions: components["schemas"]["ApiBucketKeyPerm"];
+        };
         KeyPerm: {
-            createBucket?: boolean
-        }
+            createBucket?: boolean;
+        };
         LayoutNodeRole: {
             /**
              * Format: int64
              * @description Capacity (in bytes) assigned by the cluster administrator,
              *     absent for gateway nodes
              */
-            capacity?: number | null
+            capacity?: number | null;
             /** @description Identifier of the node */
-            id: string
+            id: string;
             /**
              * Format: int64
              * @description Number of partitions stored on this node
              *     (a result of the layout computation)
              */
-            storedPartitions?: number | null
+            storedPartitions?: number | null;
             /** @description List of tags assigned by the cluster administrator */
-            tags: string[]
+            tags: string[];
             /**
              * Format: int64
              * @description Capacity (in bytes) that is actually usable on this node in the current
              *     layout, which is equal to `stored_partitions` × `partition_size`
              */
-            usableCapacity?: number | null
+            usableCapacity?: number | null;
             /** @description Zone name assigned by the cluster administrator */
-            zone: string
-        }
+            zone: string;
+        };
         LayoutParameters: {
             /** @description Minimum number of zones in which a data partition must be replicated */
-            zoneRedundancy: components["schemas"]["ZoneRedundancy"]
-        }
-        ListAdminTokensResponse: components["schemas"]["GetAdminTokenInfoResponse"][]
-        ListBucketsResponse: components["schemas"]["ListBucketsResponseItem"][]
+            zoneRedundancy: components["schemas"]["ZoneRedundancy"];
+        };
+        ListAdminTokensResponse: components["schemas"]["GetAdminTokenInfoResponse"][];
+        ListBucketsResponse: components["schemas"]["ListBucketsResponseItem"][];
         ListBucketsResponseItem: {
             /** Format: date-time */
-            created: string
-            globalAliases: string[]
-            id: string
-            localAliases: components["schemas"]["BucketLocalAlias"][]
-        }
-        ListKeysResponse: components["schemas"]["ListKeysResponseItem"][]
+            created: string;
+            globalAliases: string[];
+            id: string;
+            localAliases: components["schemas"]["BucketLocalAlias"][];
+        };
+        ListKeysResponse: components["schemas"]["ListKeysResponseItem"][];
         ListKeysResponseItem: {
             /** Format: date-time */
-            created?: string | null
+            created?: string | null;
             /** Format: date-time */
-            expiration?: string | null
-            expired: boolean
-            id: string
-            name: string
-        }
+            expiration?: string | null;
+            expired: boolean;
+            id: string;
+            name: string;
+        };
         /** @default null */
-        LocalCreateMetadataSnapshotResponse: unknown
+        LocalCreateMetadataSnapshotResponse: unknown;
         LocalGetBlockInfoRequest: {
-            blockHash: string
-        }
+            blockHash: string;
+        };
         LocalGetBlockInfoResponse: {
-            blockHash: string
+            blockHash: string;
             /** Format: int64 */
-            refcount: number
-            versions: components["schemas"]["BlockVersion"][]
-        }
+            refcount: number;
+            versions: components["schemas"]["BlockVersion"][];
+        };
         LocalGetNodeInfoResponse: {
-            dbEngine: string
-            garageFeatures?: string[] | null
-            garageVersion: string
-            nodeId: string
-            rustVersion: string
-        }
+            dbEngine: string;
+            garageFeatures?: string[] | null;
+            garageVersion: string;
+            nodeId: string;
+            rustVersion: string;
+        };
         LocalGetNodeStatisticsResponse: {
-            freeform: string
-        }
+            freeform: string;
+        };
         LocalGetWorkerInfoRequest: {
             /** Format: int64 */
-            id: number
-        }
-        LocalGetWorkerInfoResponse: components["schemas"]["WorkerInfoResp"]
+            id: number;
+        };
+        LocalGetWorkerInfoResponse: components["schemas"]["WorkerInfoResp"];
         LocalGetWorkerVariableRequest: {
-            variable?: string | null
-        }
+            variable?: string | null;
+        };
         LocalGetWorkerVariableResponse: {
-            [key: string]: string
-        }
+            [key: string]: string;
+        };
         LocalLaunchRepairOperationRequest: {
-            repairType: components["schemas"]["RepairType"]
-        }
+            repairType: components["schemas"]["RepairType"];
+        };
         /** @default null */
-        LocalLaunchRepairOperationResponse: unknown
-        LocalListBlockErrorsResponse: components["schemas"]["BlockError"][]
+        LocalLaunchRepairOperationResponse: unknown;
+        LocalListBlockErrorsResponse: components["schemas"]["BlockError"][];
         LocalListWorkersRequest: {
-            busyOnly?: boolean
-            errorOnly?: boolean
-        }
-        LocalListWorkersResponse: components["schemas"]["WorkerInfoResp"][]
-        LocalPurgeBlocksRequest: string[]
+            busyOnly?: boolean;
+            errorOnly?: boolean;
+        };
+        LocalListWorkersResponse: components["schemas"]["WorkerInfoResp"][];
+        LocalPurgeBlocksRequest: string[];
         LocalPurgeBlocksResponse: {
             /** Format: int64 */
-            blockRefsPurged: number
+            blockRefsPurged: number;
             /** Format: int64 */
-            blocksPurged: number
+            blocksPurged: number;
             /** Format: int64 */
-            objectsDeleted: number
+            objectsDeleted: number;
             /** Format: int64 */
-            uploadsDeleted: number
+            uploadsDeleted: number;
             /** Format: int64 */
-            versionsDeleted: number
-        }
-        LocalRetryBlockResyncRequest:
-            | {
-                  all: boolean
-              }
-            | {
-                  blockHashes: string[]
-              }
+            versionsDeleted: number;
+        };
+        LocalRetryBlockResyncRequest: {
+            all: boolean;
+        } | {
+            blockHashes: string[];
+        };
         LocalRetryBlockResyncResponse: {
             /** Format: int64 */
-            count: number
-        }
+            count: number;
+        };
         LocalSetWorkerVariableRequest: {
-            value: string
-            variable: string
-        }
+            value: string;
+            variable: string;
+        };
         LocalSetWorkerVariableResponse: {
-            value: string
-            variable: string
-        }
+            value: string;
+            variable: string;
+        };
         MultiResponse_LocalCreateMetadataSnapshotResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
-                [key: string]: unknown
-            }
-        }
+                [key: string]: unknown;
+            };
+        };
         MultiResponse_LocalGetBlockInfoResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
-                    blockHash: string
+                    blockHash: string;
                     /** Format: int64 */
-                    refcount: number
-                    versions: components["schemas"]["BlockVersion"][]
-                }
-            }
-        }
+                    refcount: number;
+                    versions: components["schemas"]["BlockVersion"][];
+                };
+            };
+        };
         MultiResponse_LocalGetNodeInfoResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
-                    dbEngine: string
-                    garageFeatures?: string[] | null
-                    garageVersion: string
-                    nodeId: string
-                    rustVersion: string
-                }
-            }
-        }
+                    dbEngine: string;
+                    garageFeatures?: string[] | null;
+                    garageVersion: string;
+                    nodeId: string;
+                    rustVersion: string;
+                };
+            };
+        };
         MultiResponse_LocalGetNodeStatisticsResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
-                    freeform: string
-                }
-            }
-        }
+                    freeform: string;
+                };
+            };
+        };
         MultiResponse_LocalGetWorkerInfoResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
-                [key: string]: components["schemas"]["WorkerInfoResp"]
-            }
-        }
+                [key: string]: components["schemas"]["WorkerInfoResp"];
+            };
+        };
         MultiResponse_LocalGetWorkerVariableResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
-                    [key: string]: string
-                }
-            }
-        }
+                    [key: string]: string;
+                };
+            };
+        };
         MultiResponse_LocalLaunchRepairOperationResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
-                [key: string]: unknown
-            }
-        }
+                [key: string]: unknown;
+            };
+        };
         MultiResponse_LocalListBlockErrorsResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
-                [key: string]: components["schemas"]["BlockError"][]
-            }
-        }
+                [key: string]: components["schemas"]["BlockError"][];
+            };
+        };
         MultiResponse_LocalListWorkersResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
-                [key: string]: components["schemas"]["WorkerInfoResp"][]
-            }
-        }
+                [key: string]: components["schemas"]["WorkerInfoResp"][];
+            };
+        };
         MultiResponse_LocalPurgeBlocksResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
                     /** Format: int64 */
-                    blockRefsPurged: number
+                    blockRefsPurged: number;
                     /** Format: int64 */
-                    blocksPurged: number
+                    blocksPurged: number;
                     /** Format: int64 */
-                    objectsDeleted: number
+                    objectsDeleted: number;
                     /** Format: int64 */
-                    uploadsDeleted: number
+                    uploadsDeleted: number;
                     /** Format: int64 */
-                    versionsDeleted: number
-                }
-            }
-        }
+                    versionsDeleted: number;
+                };
+            };
+        };
         MultiResponse_LocalRetryBlockResyncResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
                     /** Format: int64 */
-                    count: number
-                }
-            }
-        }
+                    count: number;
+                };
+            };
+        };
         MultiResponse_LocalSetWorkerVariableResponse: {
             /** @description Map of node id to error message, for nodes that were unable to complete the API
              *     call */
             error: {
-                [key: string]: string
-            }
+                [key: string]: string;
+            };
             /** @description Map of node id to response returned by this node, for nodes that were able to
              *     successfully complete the API call */
             success: {
                 [key: string]: {
-                    value: string
-                    variable: string
-                }
-            }
-        }
+                    value: string;
+                    variable: string;
+                };
+            };
+        };
         NodeAssignedRole: {
             /**
              * Format: int64
              * @description Capacity (in bytes) assigned by the cluster administrator,
              *     absent for gateway nodes
              */
-            capacity?: number | null
+            capacity?: number | null;
             /** @description List of tags assigned by the cluster administrator */
-            tags: string[]
+            tags: string[];
             /** @description Zone name assigned by the cluster administrator */
-            zone: string
-        }
+            zone: string;
+        };
         NodeResp: {
             /** @description Socket address used by other nodes to connect to this node for RPC */
-            addr?: string | null
-            dataPartition?: null | components["schemas"]["FreeSpaceResp"]
+            addr?: string | null;
+            dataPartition?: null | components["schemas"]["FreeSpaceResp"];
             /** @description Whether this node is part of an older layout version and is draining data. */
-            draining: boolean
+            draining: boolean;
             /** @description Garage version */
-            garageVersion?: string | null
+            garageVersion?: string | null;
             /** @description Hostname of the node */
-            hostname?: string | null
+            hostname?: string | null;
             /** @description Full-length node identifier */
-            id: string
+            id: string;
             /** @description Whether this node is connected in the cluster */
-            isUp: boolean
+            isUp: boolean;
             /**
              * Format: int64
              * @description For disconnected nodes, the number of seconds since last contact,
              *     or `null` if no contact was established since Garage restarted.
              */
-            lastSeenSecsAgo?: number | null
-            metadataPartition?: null | components["schemas"]["FreeSpaceResp"]
-            role?: null | components["schemas"]["NodeAssignedRole"]
-        }
+            lastSeenSecsAgo?: number | null;
+            metadataPartition?: null | components["schemas"]["FreeSpaceResp"];
+            role?: null | components["schemas"]["NodeAssignedRole"];
+        };
         NodeRoleChange: components["schemas"]["NodeRoleChangeEnum"] & {
             /** @description ID of the node for which this change applies */
-            id: string
-        }
-        NodeRoleChangeEnum:
-            | {
-                  /** @description Set `remove` to `true` to remove the node from the layout */
-                  remove: boolean
-              }
-            | components["schemas"]["NodeAssignedRole"]
+            id: string;
+        };
+        NodeRoleChangeEnum: {
+            /** @description Set `remove` to `true` to remove the node from the layout */
+            remove: boolean;
+        } | components["schemas"]["NodeAssignedRole"];
         NodeUpdateTrackers: {
             /** Format: int64 */
-            ack: number
+            ack: number;
             /** Format: int64 */
-            sync: number
+            sync: number;
             /** Format: int64 */
-            syncAck: number
-        }
-        PreviewClusterLayoutChangesResponse:
-            | {
-                  /** @description Error message indicating that the layout could not be computed
-                   *     with the provided configuration */
-                  error: string
-              }
-            | {
-                  /** @description Plain-text information about the layout computation
-                   *     (do not try to parse this) */
-                  message: string[]
-                  /** @description Details about the new cluster layout */
-                  newLayout: components["schemas"]["GetClusterLayoutResponse"]
-              }
+            syncAck: number;
+        };
+        PreviewClusterLayoutChangesResponse: {
+            /** @description Error message indicating that the layout could not be computed
+             *     with the provided configuration */
+            error: string;
+        } | {
+            /** @description Plain-text information about the layout computation
+             *     (do not try to parse this) */
+            message: string[];
+            /** @description Details about the new cluster layout */
+            newLayout: components["schemas"]["GetClusterLayoutResponse"];
+        };
         RemoveBucketAliasRequest: components["schemas"]["BucketAliasEnum"] & {
-            bucketId: string
-        }
-        RemoveBucketAliasResponse: components["schemas"]["GetBucketInfoResponse"]
-        RepairType:
-            | "tables"
-            | "blocks"
-            | "versions"
-            | "multipartUploads"
-            | "blockRefs"
-            | "blockRc"
-            | "rebalance"
-            | {
-                  scrub: components["schemas"]["ScrubCommand"]
-              }
-            | "aliases"
-        RevertClusterLayoutResponse: components["schemas"]["GetClusterLayoutResponse"]
+            bucketId: string;
+        };
+        RemoveBucketAliasResponse: components["schemas"]["GetBucketInfoResponse"];
+        RepairType: "tables" | "blocks" | "versions" | "multipartUploads" | "blockRefs" | "blockRc" | "rebalance" | {
+            scrub: components["schemas"]["ScrubCommand"];
+        } | "aliases" | "clearResyncQueue";
+        RevertClusterLayoutResponse: components["schemas"]["GetClusterLayoutResponse"];
         /** @enum {string} */
-        ScrubCommand: "start" | "pause" | "resume" | "cancel"
+        ScrubCommand: "start" | "pause" | "resume" | "cancel";
         UpdateAdminTokenRequestBody: {
             /**
              * Format: date-time
              * @description Expiration time and date, formatted according to RFC 3339
              */
-            expiration?: string | null
+            expiration?: string | null;
             /** @description Name of the admin API token */
-            name?: string | null
+            name?: string | null;
             /** @description Set the admin token to never expire */
-            neverExpires?: boolean
+            neverExpires?: boolean;
             /** @description Scope of the admin API token, a list of admin endpoint names (such as
              *     `GetClusterStatus`, etc), or the special value `*` to allow all
              *     admin endpoints. **WARNING:** Granting a scope of `CreateAdminToken` or
              *     `UpdateAdminToken` trivially allows for privilege escalation, and is thus
              *     functionnally equivalent to granting a scope of `*`. */
-            scope?: string[] | null
-        }
-        UpdateAdminTokenResponse: components["schemas"]["GetAdminTokenInfoResponse"]
+            scope?: string[] | null;
+        };
+        UpdateAdminTokenResponse: components["schemas"]["GetAdminTokenInfoResponse"];
         UpdateBucketRequestBody: {
-            quotas?: null | components["schemas"]["ApiBucketQuotas"]
-            websiteAccess?: null | components["schemas"]["UpdateBucketWebsiteAccess"]
-        }
-        UpdateBucketResponse: components["schemas"]["GetBucketInfoResponse"]
+            quotas?: null | components["schemas"]["ApiBucketQuotas"];
+            websiteAccess?: null | components["schemas"]["UpdateBucketWebsiteAccess"];
+        };
+        UpdateBucketResponse: components["schemas"]["GetBucketInfoResponse"];
         UpdateBucketWebsiteAccess: {
-            enabled: boolean
-            errorDocument?: string | null
-            indexDocument?: string | null
-        }
+            enabled: boolean;
+            errorDocument?: string | null;
+            indexDocument?: string | null;
+        };
         UpdateClusterLayoutRequest: {
-            parameters?: null | components["schemas"]["LayoutParameters"]
+            parameters?: null | components["schemas"]["LayoutParameters"];
             /** @description New node roles to assign or remove in the cluster layout */
-            roles?: components["schemas"]["NodeRoleChange"][]
-        }
-        UpdateClusterLayoutResponse: components["schemas"]["GetClusterLayoutResponse"]
+            roles?: components["schemas"]["NodeRoleChange"][];
+        };
+        UpdateClusterLayoutResponse: components["schemas"]["GetClusterLayoutResponse"];
         UpdateKeyRequestBody: {
-            allow?: null | components["schemas"]["KeyPerm"]
-            deny?: null | components["schemas"]["KeyPerm"]
+            allow?: null | components["schemas"]["KeyPerm"];
+            deny?: null | components["schemas"]["KeyPerm"];
             /**
              * Format: date-time
              * @description Expiration time and date, formatted according to RFC 3339
              */
-            expiration?: string | null
+            expiration?: string | null;
             /** @description Name of the API key */
-            name?: string | null
+            name?: string | null;
             /** @description Set the access key to never expire */
-            neverExpires?: boolean
-        }
-        UpdateKeyResponse: components["schemas"]["GetKeyInfoResponse"]
+            neverExpires?: boolean;
+        };
+        UpdateKeyResponse: components["schemas"]["GetKeyInfoResponse"];
         WorkerInfoResp: {
             /** Format: int64 */
-            consecutiveErrors: number
+            consecutiveErrors: number;
             /** Format: int64 */
-            errors: number
-            freeform: string[]
+            errors: number;
+            freeform: string[];
             /** Format: int64 */
-            id: number
-            lastError?: null | components["schemas"]["WorkerLastError"]
-            name: string
+            id: number;
+            lastError?: null | components["schemas"]["WorkerLastError"];
+            name: string;
             /** Format: int64 */
-            persistentErrors?: number | null
-            progress?: string | null
+            persistentErrors?: number | null;
+            progress?: string | null;
             /** Format: int64 */
-            queueLength?: number | null
-            state: components["schemas"]["WorkerStateResp"]
+            queueLength?: number | null;
+            state: components["schemas"]["WorkerStateResp"];
             /** Format: int32 */
-            tranquility?: number | null
-        }
+            tranquility?: number | null;
+        };
         WorkerLastError: {
-            message: string
+            message: string;
             /** Format: int64 */
-            secsAgo: number
-        }
-        WorkerStateResp:
-            | "busy"
-            | {
-                  throttled: {
-                      /** Format: float */
-                      durationSecs: number
-                  }
-              }
-            | "idle"
-            | "done"
-        ZoneRedundancy:
-            | {
-                  /** @description Partitions must be replicated in at least this number of
-                   *     distinct zones. */
-                  atLeast: number
-              }
-            | "maximum"
-    }
-    responses: never
-    parameters: never
-    requestBodies: never
-    headers: never
-    pathItems: never
+            secsAgo: number;
+        };
+        WorkerStateResp: "busy" | {
+            throttled: {
+                /** Format: float */
+                durationSecs: number;
+            };
+        } | "idle" | "done";
+        ZoneRedundancy: {
+            /** @description Partitions must be replicated in at least this number of
+             *     distinct zones. */
+            atLeast: number;
+        } | "maximum";
+    };
+    responses: never;
+    parameters: never;
+    requestBodies: never;
+    headers: never;
+    pathItems: never;
 }
-export type $defs = Record<string, never>
+export type $defs = Record<string, never>;
 export interface operations {
     CheckDomain: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description The domain name to check for */
-                domain: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                domain: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description The domain name redirects to a static website bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description No static website bucket exists for this domain */
             400: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Health: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Garage is able to answer requests */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description This Garage daemon is not able to handle requests */
             503: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     Metrics: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Garage daemon metrics exported in Prometheus format */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AddBucketAlias: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AddBucketAliasRequest"]
-            }
-        }
+                "application/json": components["schemas"]["AddBucketAliasRequest"];
+            };
+        };
         responses: {
             /** @description Returns exhaustive information about the bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["AddBucketAliasResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["AddBucketAliasResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     AllowBucketKey: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AllowBucketKeyRequest"]
-            }
-        }
+                "application/json": components["schemas"]["AllowBucketKeyRequest"];
+            };
+        };
         responses: {
             /** @description Returns exhaustive information about the bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["AllowBucketKeyResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["AllowBucketKeyResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ApplyClusterLayout: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ApplyClusterLayoutRequest"]
-            }
-        }
+                "application/json": components["schemas"]["ApplyClusterLayoutRequest"];
+            };
+        };
         responses: {
             /** @description The updated cluster layout has been applied in the cluster */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ApplyClusterLayoutResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ApplyClusterLayoutResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CleanupIncompleteUploads: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CleanupIncompleteUploadsRequest"]
-            }
-        }
+                "application/json": components["schemas"]["CleanupIncompleteUploadsRequest"];
+            };
+        };
         responses: {
             /** @description The bucket was cleaned up successfully */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["CleanupIncompleteUploadsResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["CleanupIncompleteUploadsResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ClusterLayoutSkipDeadNodes: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ClusterLayoutSkipDeadNodesRequest"]
-            }
-        }
+                "application/json": components["schemas"]["ClusterLayoutSkipDeadNodesRequest"];
+            };
+        };
         responses: {
             /** @description Request has been taken into account */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ClusterLayoutSkipDeadNodesResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ClusterLayoutSkipDeadNodesResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ConnectClusterNodes: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ConnectClusterNodesRequest"]
-            }
-        }
+                "application/json": components["schemas"]["ConnectClusterNodesRequest"];
+            };
+        };
         responses: {
             /** @description The request has been handled correctly but it does not mean that all connection requests succeeded; some might have fail, you need to check the body! */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ConnectClusterNodesResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ConnectClusterNodesResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateAdminToken: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateAdminTokenRequestBody"]
-            }
-        }
+                "application/json": components["schemas"]["UpdateAdminTokenRequestBody"];
+            };
+        };
         responses: {
             /** @description Admin token has been created */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["CreateAdminTokenResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["CreateAdminTokenResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateBucket: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateBucketRequest"]
-            }
-        }
+                "application/json": components["schemas"]["CreateBucketRequest"];
+            };
+        };
         responses: {
             /** @description Returns exhaustive information about the bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["CreateBucketResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["CreateBucketResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateKey: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateKeyRequest"]
-            }
-        }
+                "application/json": components["schemas"]["CreateKeyRequest"];
+            };
+        };
         responses: {
             /** @description Access key has been created */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["CreateKeyResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["CreateKeyResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     CreateMetadataSnapshot: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalCreateMetadataSnapshotResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalCreateMetadataSnapshotResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     DeleteAdminToken: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Admin API token ID */
-                id: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Admin token has been deleted */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     DeleteBucket: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description ID of the bucket to delete */
-                id: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Bucket has been deleted */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Bucket is not empty */
             400: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Bucket not found */
             404: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     DeleteKey: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Access key ID */
-                id: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Access key has been deleted */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     DenyBucketKey: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["DenyBucketKeyRequest"]
-            }
-        }
+                "application/json": components["schemas"]["DenyBucketKeyRequest"];
+            };
+        };
         responses: {
             /** @description Returns exhaustive information about the bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["DenyBucketKeyResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["DenyBucketKeyResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetAdminTokenInfo: {
         parameters: {
             query?: {
                 /** @description Admin API token ID */
-                id?: string
+                id?: string;
                 /** @description Partial token ID or name to search for */
-                search?: string
-            }
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Information about the admin token */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetAdminTokenInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetAdminTokenInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetBlockInfo: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalGetBlockInfoRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalGetBlockInfoRequest"];
+            };
+        };
         responses: {
             /** @description Detailed block information */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalGetBlockInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalGetBlockInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetBucketInfo: {
         parameters: {
             query?: {
                 /** @description Exact bucket ID to look up */
-                id?: string
+                id?: string;
                 /** @description Global alias of bucket to look up */
-                globalAlias?: string
+                globalAlias?: string;
                 /** @description Partial ID or alias to search for */
-                search?: string
-            }
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Returns exhaustive information about the bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetBucketInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetBucketInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetClusterHealth: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Cluster health report */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetClusterHealthResponse"]
-                }
-            }
-        }
-    }
+                    "application/json": components["schemas"]["GetClusterHealthResponse"];
+                };
+            };
+        };
+    };
     GetClusterLayout: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Current cluster layout */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetClusterLayoutResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetClusterLayoutResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetClusterLayoutHistory: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Cluster layout history */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetClusterLayoutHistoryResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetClusterLayoutHistoryResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetClusterStatistics: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Global cluster statistics */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetClusterStatisticsResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetClusterStatisticsResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetClusterStatus: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Cluster status report */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetClusterStatusResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetClusterStatusResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetCurrentAdminTokenInfo: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Information about the admin token */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetCurrentAdminTokenInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetCurrentAdminTokenInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetKeyInfo: {
         parameters: {
             query?: {
                 /** @description Access key ID */
-                id?: string
+                id?: string;
                 /** @description Partial key ID or name to search for */
-                search?: string
+                search?: string;
                 /** @description Whether to return the secret access key */
-                showSecretKey?: boolean
-            }
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+                showSecretKey?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Information about the access key */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["GetKeyInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["GetKeyInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetNodeInfo: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalGetNodeInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalGetNodeInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetNodeStatistics: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalGetNodeStatisticsResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalGetNodeStatisticsResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetWorkerInfo: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalGetWorkerInfoRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalGetWorkerInfoRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalGetWorkerInfoResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalGetWorkerInfoResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetWorkerVariable: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalGetWorkerVariableRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalGetWorkerVariableRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalGetWorkerVariableResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalGetWorkerVariableResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ImportKey: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ImportKeyRequest"]
-            }
-        }
+                "application/json": components["schemas"]["ImportKeyRequest"];
+            };
+        };
         responses: {
             /** @description Access key has been imported */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ImportKeyResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ImportKeyResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     InspectObject: {
         parameters: {
             query: {
-                bucketId: string
-                key: string
-            }
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+                bucketId: string;
+                key: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Returns exhaustive information about the object */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["InspectObjectResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["InspectObjectResponse"];
+                };
+            };
             /** @description Object not found */
             404: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     LaunchRepairOperation: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalLaunchRepairOperationRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalLaunchRepairOperationRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalLaunchRepairOperationResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalLaunchRepairOperationResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListAdminTokens: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Returns info about all admin API tokens */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ListAdminTokensResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ListAdminTokensResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListBlockErrors: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
-        requestBody?: never
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalListBlockErrorsResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalListBlockErrorsResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListBuckets: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Returns the UUID of all the buckets and all their aliases */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ListBucketsResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ListBucketsResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListKeys: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Returns the key identifier (aka `AWS_ACCESS_KEY_ID`) and its associated, human friendly, name if any (otherwise return an empty string) */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["ListKeysResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["ListKeysResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     ListWorkers: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalListWorkersRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalListWorkersRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalListWorkersResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalListWorkersResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PreviewClusterLayoutChanges: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Information about the new layout */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["PreviewClusterLayoutChangesResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["PreviewClusterLayoutChangesResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     PurgeBlocks: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalPurgeBlocksRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalPurgeBlocksRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalPurgeBlocksResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalPurgeBlocksResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     RemoveBucketAlias: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RemoveBucketAliasRequest"]
-            }
-        }
+                "application/json": components["schemas"]["RemoveBucketAliasRequest"];
+            };
+        };
         responses: {
             /** @description Returns exhaustive information about the bucket */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["RemoveBucketAliasResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["RemoveBucketAliasResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     RetryBlockResync: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalRetryBlockResyncRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalRetryBlockResyncRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalRetryBlockResyncResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalRetryBlockResyncResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     RevertClusterLayout: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
-        requestBody?: never
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description All pending changes to the cluster layout have been erased */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["RevertClusterLayoutResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["RevertClusterLayoutResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     SetWorkerVariable: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Node ID to query, or `*` for all nodes, or `self` for the node responding to the request */
-                node: string
-            }
-            cookie?: never
-        }
+                node: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LocalSetWorkerVariableRequest"]
-            }
-        }
+                "application/json": components["schemas"]["LocalSetWorkerVariableRequest"];
+            };
+        };
         responses: {
             /** @description Responses from individual cluster nodes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["MultiResponse_LocalSetWorkerVariableResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["MultiResponse_LocalSetWorkerVariableResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     UpdateAdminToken: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Admin API token ID */
-                id: string
-            }
-            cookie?: never
-        }
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateAdminTokenRequestBody"]
-            }
-        }
+                "application/json": components["schemas"]["UpdateAdminTokenRequestBody"];
+            };
+        };
         responses: {
             /** @description Admin token has been updated */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["UpdateAdminTokenResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["UpdateAdminTokenResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     UpdateBucket: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description ID of the bucket to update */
-                id: string
-            }
-            cookie?: never
-        }
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateBucketRequestBody"]
-            }
-        }
+                "application/json": components["schemas"]["UpdateBucketRequestBody"];
+            };
+        };
         responses: {
             /** @description Bucket has been updated */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["UpdateBucketResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["UpdateBucketResponse"];
+                };
+            };
             /** @description Bucket not found */
             404: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     UpdateClusterLayout: {
         parameters: {
-            query?: never
-            header?: never
-            path?: never
-            cookie?: never
-        }
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         /** @description
          *     To add a new node to the layout or to change the configuration of an existing node, simply set the values you want (`zone`, `capacity`, and `tags`).
          *     To remove a node, simply pass the `remove: true` field.
@@ -3336,60 +3314,60 @@ export interface operations {
          *              */
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateClusterLayoutRequest"]
-            }
-        }
+                "application/json": components["schemas"]["UpdateClusterLayoutRequest"];
+            };
+        };
         responses: {
             /** @description Proposed changes have been added to the list of pending changes */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["UpdateClusterLayoutResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["UpdateClusterLayoutResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     UpdateKey: {
         parameters: {
-            query?: never
-            header?: never
-            path: {
+            query: {
                 /** @description Access key ID */
-                id: string
-            }
-            cookie?: never
-        }
+                id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateKeyRequestBody"]
-            }
-        }
+                "application/json": components["schemas"]["UpdateKeyRequestBody"];
+            };
+        };
         responses: {
             /** @description Access key has been updated */
             200: {
                 headers: {
-                    [name: string]: unknown
-                }
+                    [name: string]: unknown;
+                };
                 content: {
-                    "application/json": components["schemas"]["UpdateKeyResponse"]
-                }
-            }
+                    "application/json": components["schemas"]["UpdateKeyResponse"];
+                };
+            };
             /** @description Internal server error */
             500: {
                 headers: {
-                    [name: string]: unknown
-                }
-                content?: never
-            }
-        }
-    }
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
 }

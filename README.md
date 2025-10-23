@@ -2,7 +2,7 @@
 
 # Kexamanager
 
-React + TypeScript app (Vite) with a Go reverse proxy to route API calls to Garage (Admin API and public S3 API).
+React + TypeScript app (Vite) with a Go reverse proxy for API routing and S3 operations.
 
 The frontend uses Vite for development. To mimic Vite's `server.proxy` behavior without running Vite (e.g., local production preview or integration), a Go proxy is provided mirroring `front/vite.config.ts` rules.
 
@@ -14,44 +14,52 @@ Repository layout:
 
 ### Prerequisites
 - Node.js 18+ (recommended) and `npm` or `bun`
-- Go 1.22+ (or compatible with the repo’s `go.mod`)
+- Go 1.22+ (or compatible with the repo's `go.mod`)
 
-### Environment variables (Garage)
-Used by Vite (dev) and by the Go proxy to reach Garage:
-- `VITE_API_ADMIN_URL` — target for `"/api/admin"` (Garage Admin API)
-- `VITE_API_PUBLIC_URL` — target for `"/api/public"` (Garage public S3 API)
+### Environment variables
+Used by the application:
 
-Examples (adjust to your Garage deployment base paths):
-```
-VITE_API_ADMIN_URL=https://localhost:9000/admin     # Garage Admin API
-VITE_API_PUBLIC_URL=https://localhost:9000/public   # Garage S3 API (public)
-```
+**Required:**
+- `PORT` — Port for the application server (default: 7400)
+- `PASSWORD` — Admin password for the application
 
-Note: the Go proxy disables TLS verification (equivalent to Vite `secure: false`). For development only.
+**Optional:**
+- `MAX_UPLOAD_MEMORY` — Maximum memory for file uploads in bytes (default: 268435456 = 256MB)
 
 ### Development (Frontend via Vite)
 ```bash
 cd front
-export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Garage Admin API
-export VITE_API_PUBLIC_URL="https://localhost:9000/public" # Garage S3 API
+export PASSWORD="your-admin-password"
 npm install
 npm run dev
 ```
-This serves the app at `http://localhost:5173` (default Vite port). Requests to `"/api/admin"` and `"/api/public"` are proxied by Vite.
+This serves the app at `http://localhost:5173` (default Vite port).
 
 ### Run the Go proxy (alternative or preview)
-The proxy mirrors `vite.config.ts` rules and listens on `:8080` by default.
+The proxy listens on `:8080` by default.
 ```bash
-export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Garage Admin API
-export VITE_API_PUBLIC_URL="https://localhost:9000/public" # Garage S3 API
+export PASSWORD="your-admin-password"
 go run ./api/cmd/proxy
 ```
 Options:
 - `PORT` or `-port` to change the listening port (e.g. `-port 3000`).
 
 Endpoints:
-- `GET /healthz` — health check
-- Reverse proxy: `"/api/admin"` and `"/api/public"`
+- `GET /health` — health check
+- Reverse proxy: `"/api/admin"`
+- S3 operations: `"/api/s3/*"` (bucket and object management)
+
+#### S3 API Endpoints
+The proxy provides direct S3 operations through secure endpoints:
+- `POST /api/s3/list-buckets` — List all S3 buckets
+- `POST /api/s3/create-bucket` — Create a new S3 bucket
+- `POST /api/s3/delete-bucket` — Delete an S3 bucket
+- `POST /api/s3/list-objects` — List objects in a bucket
+- `POST /api/s3/get-object` — Get presigned URL for downloading/viewing an object
+- `POST /api/s3/put-object` — Upload an object directly through the proxy (32MB limit)
+- `POST /api/s3/delete-object` — Delete an object from a bucket
+
+All S3 endpoints require authentication via `keyId` and `token` in the request body.
 
 ### Production build (frontend)
 ```bash
@@ -68,12 +76,12 @@ Artifacts are generated in `front/dist`. Serve this directory with your web serv
 # Pull the latest multi-arch image (supports ARM64/AMD64)
 docker pull ghcr.io/ketsuna-org/kexamanager:latest
 
-# Run with your Garage configuration
+# Run with your configuration
 docker run -d \
   --name kexamanager \
   -p 7400:7400 \
-  -e VITE_API_ADMIN_URL="https://your-garage.example.com/admin" \
-  -e VITE_API_PUBLIC_URL="https://your-garage.example.com/public" \
+  -e PORT=7400 \
+  -e PASSWORD="your-admin-password" \
   ghcr.io/ketsuna-org/kexamanager:latest
 ```
 
@@ -85,9 +93,11 @@ services:
     image: ghcr.io/ketsuna-org/kexamanager:latest
     ports:
       - "7400:7400"
+    volumes:
+      - ./data:/app/data
     environment:
-      - VITE_API_ADMIN_URL=https://your-garage.example.com/admin
-      - VITE_API_PUBLIC_URL=https://your-garage.example.com/public
+      - PORT=7400
+      - PASSWORD=your-admin-password
     restart: unless-stopped
 ```
 
@@ -107,9 +117,9 @@ docker-compose up -d
 Access the application at `http://localhost:7400` after startup.
 
 ### Troubleshooting
-- Ensure `VITE_API_ADMIN_URL` and/or `VITE_API_PUBLIC_URL` point to valid `http/https` endpoints.
-- For self-signed certificates, the Go proxy already skips TLS verification (dev only).
+- Ensure all **required** environment variables are set: `PORT` and `PASSWORD`.
 - Provide an auth token in localStorage under the key `"kexamanager:token"` if your API requires it (see `front/src/utils/adminClient.ts`).
+- **New:** S3 operations (upload, download, preview) are now handled through the Go proxy at `/api/s3/*` endpoints, providing enhanced security.
 
 ### Useful scripts (frontend)
 From `front/`:
@@ -123,7 +133,7 @@ From `front/`:
 ## Français
 
 ### Présentation
-Application React + TypeScript (Vite) avec un proxy Go pour router les appels API vers Garage (Admin API et API S3 publique).
+Application React + TypeScript (Vite) avec un proxy Go pour router les appels API et les opérations S3.
 
 Le frontend utilise Vite en développement. Pour reproduire le comportement de `server.proxy` de Vite sans lancer Vite (ex: prévisualisation locale ou intégration), un proxy Go est fourni et reflète les règles de `front/vite.config.ts`.
 
@@ -131,42 +141,50 @@ Le frontend utilise Vite en développement. Pour reproduire le comportement de `
 - Node.js 18+ (recommandé) et `npm` ou `bun`
 - Go 1.22+ (ou compatible avec le `go.mod` du repo)
 
-### Variables d’environnement (Garage)
-Utilisées par Vite (dev) et par le proxy Go pour joindre Garage:
-- `VITE_API_ADMIN_URL` — cible des appels `"/api/admin"` (Garage Admin API)
-- `VITE_API_PUBLIC_URL` — cible des appels `"/api/public"` (Garage API S3 publique)
+### Variables d'environnement
+Utilisées par l'application:
 
-Exemples (adaptez selon les chemins de base de votre déploiement Garage):
-```
-VITE_API_ADMIN_URL=https://localhost:9000/admin     # Admin API Garage
-VITE_API_PUBLIC_URL=https://localhost:9000/public   # API S3 Garage (publique)
-```
+**Obligatoires:**
+- `PORT` — Port du serveur d'application (par défaut: 7400)
+- `PASSWORD` — Mot de passe administrateur pour l'application
 
-Note : le proxy Go ignore la vérification TLS (équivalent `secure: false` dans Vite). À utiliser uniquement en développement.
+**Optionnelles:**
+- `MAX_UPLOAD_MEMORY` — Mémoire maximale pour les téléchargements en octets (par défaut: 268435456 = 256MB)
 
 ### Démarrage (Frontend via Vite)
 ```bash
 cd front
-export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Admin API Garage
-export VITE_API_PUBLIC_URL="https://localhost:9000/public" # API S3 Garage
+export PASSWORD="votre-mot-de-passe-admin"
 npm install
 npm run dev
 ```
-L’application est servie sur `http://localhost:5173` (port par défaut de Vite). Les requêtes `"/api/admin"` et `"/api/public"` sont proxifiées par Vite.
+L'application est servie sur `http://localhost:5173` (port par défaut de Vite).
 
 ### Lancer le proxy Go (alternative/prévisualisation)
-Le proxy reflète les règles de `vite.config.ts` et écoute par défaut sur `:8080`.
+Le proxy écoute par défaut sur `:8080`.
 ```bash
-export VITE_API_ADMIN_URL="https://localhost:9000/admin"   # Admin API Garage
-export VITE_API_PUBLIC_URL="https://localhost:9000/public" # API S3 Garage
+export PASSWORD="votre-mot-de-passe-admin"
 go run ./api/cmd/proxy
 ```
 Options :
-- `PORT` ou `-port` pour changer le port d’écoute (ex: `-port 3000`).
+- `PORT` ou `-port` pour changer le port d'écoute (ex: `-port 3000`).
 
 Points exposés :
-- `GET /healthz` — vérification rapide
-- Reverse proxy : `"/api/admin"` et `"/api/public"`
+- `GET /health` — vérification rapide
+- Reverse proxy : `"/api/admin"`
+- Opérations S3 : `"/api/s3/*"` (gestion des buckets et objets)
+
+#### Points de terminaison API S3
+Le proxy fournit des opérations S3 directes via des endpoints sécurisés :
+- `POST /api/s3/list-buckets` — Lister tous les buckets S3
+- `POST /api/s3/create-bucket` — Créer un nouveau bucket S3
+- `POST /api/s3/delete-bucket` — Supprimer un bucket S3
+- `POST /api/s3/list-objects` — Lister les objets dans un bucket
+- `POST /api/s3/get-object` — Obtenir une URL présignée pour télécharger/visualiser un objet
+- `POST /api/s3/put-object` — Télécharger un objet directement via le proxy (limite 32 Mo)
+- `POST /api/s3/delete-object` — Supprimer un objet d'un bucket
+
+Tous les endpoints S3 nécessitent une authentification via `keyId` et `token` dans le corps de la requête.
 
 ### Build de production (frontend)
 ```bash
@@ -183,12 +201,12 @@ Le build est produit dans `front/dist`. Servez ce répertoire avec votre serveur
 # Télécharger l'image multi-arch (supporte ARM64/AMD64)
 docker pull ghcr.io/ketsuna-org/kexamanager:latest
 
-# Lancer avec votre configuration Garage
+# Lancer avec votre configuration
 docker run -d \
   --name kexamanager \
   -p 7400:7400 \
-  -e VITE_API_ADMIN_URL="https://votre-garage.exemple.com/admin" \
-  -e VITE_API_PUBLIC_URL="https://votre-garage.exemple.com/public" \
+  -e PORT=7400 \
+  -e PASSWORD="votre-mot-de-passe-admin" \
   ghcr.io/ketsuna-org/kexamanager:latest
 ```
 
@@ -200,9 +218,11 @@ services:
     image: ghcr.io/ketsuna-org/kexamanager:latest
     ports:
       - "7400:7400"
+    volumes:
+      - ./data:/app/data
     environment:
-      - VITE_API_ADMIN_URL=https://votre-garage.exemple.com/admin
-      - VITE_API_PUBLIC_URL=https://votre-garage.exemple.com/public
+      - PORT=7400
+      - PASSWORD=votre-mot-de-passe-admin
     restart: unless-stopped
 ```
 
@@ -222,9 +242,9 @@ docker-compose up -d
 Accédez à l'application sur `http://localhost:7400` après le démarrage.
 
 ### Dépannage
-- Vérifiez que `VITE_API_ADMIN_URL` et/ou `VITE_API_PUBLIC_URL` pointent vers des endpoints valides (`http/https`).
-- En cas de certificats auto-signés, le proxy Go ignore déjà la vérification TLS (dev uniquement).
-- Fournissez un token d’authentification dans le localStorage sous la clé `"kexamanager:token"` si nécessaire (cf. `front/src/utils/adminClient.ts`).
+- Vérifiez que toutes les variables d'environnement **obligatoires** sont définies : `PORT` et `PASSWORD`.
+- Fournissez un token d'authentification dans le localStorage sous la clé `"kexamanager:token"` si nécessaire (cf. `front/src/utils/adminClient.ts`).
+- **Nouveau :** Les opérations S3 (upload, téléchargement, aperçu) sont maintenant gérées via le proxy Go aux endpoints `/api/s3/*`, garantissant une sécurité renforcée.
 
 ### Scripts utiles (frontend)
 Depuis `front/` :
@@ -232,4 +252,3 @@ Depuis `front/` :
 - `npm run build` — build de production
 - `npm run preview` — prévisualisation du build
 - `npm run lint` — lint
-

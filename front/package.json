@@ -6,20 +6,24 @@
     "scripts": {
         "dev": "vite",
         "build": "tsc -b && vite build",
+        "generate:openapi": "npx --yes openapi-typescript https://garagehq.deuxfleurs.fr/api/garage-admin-v2.json -o src/types/openapi.ts && npx --yes prettier --write src/types/openapi.ts",
         "lint": "eslint .",
         "preview": "vite preview",
         "format": "prettier --write ."
     },
     "dependencies": {
+        "@aws-sdk/client-s3": "^3.891.0",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
+        "@monaco-editor/react": "^4.7.0",
         "@mui/icons-material": "^7.3.2",
         "@mui/material": "^7.3.2",
         "i18next": "^25.5.2",
         "prettier": "^3.6.2",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
-        "react-i18next": "^15.7.3"
+        "react-i18next": "^15.7.3",
+        "recharts": "^3.2.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.33.0",

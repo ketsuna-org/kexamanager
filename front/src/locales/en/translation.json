@@ -19,6 +19,8 @@
     },
     "dashboard": {
         "title": "Dashboard",
+        "subtitle": "Cluster Management",
+        "select_project": "Select Project",
         "buckets": "Buckets",
         "buckets_desc": "Buckets content and management",
         "buckets_add": "Add bucket",
@@ -71,7 +73,22 @@
             "stats": "Stats (freeform)",
             "error": "Error"
         },
-        "no_nodes": "No nodes returned"
+        "no_nodes": "No nodes returned",
+        "s3_browser": "S3 Browser",
+        "projects": "Projects",
+        "cluster_storage_overview": "Cluster Storage Overview",
+        "data_storage": "Data Storage",
+        "used_space": "Used",
+        "available_space": "Available",
+        "storage_breakdown": "Storage Breakdown",
+        "used": "Used",
+        "available": "Available",
+        "total_usage": "Total Usage",
+        "total_data_capacity": "Total Data Capacity",
+        "used_data": "Used Data",
+        "no_current_layout": "No current layout available",
+        "node_up": "up",
+        "node_down": "down"
     },
     "blocks": {
         "col": {
@@ -119,6 +136,7 @@
     },
     "common": {
         "cancel": "Cancel",
+        "confirm": "Confirm",
         "add": "Add",
         "loading": "Loading...",
         "fromconfig": "From config",
@@ -133,6 +151,9 @@
         "save": "Save",
         "copy": "Copy",
         "copied": "Copied!"
+    },
+    "settings": {
+        "darkMode": "Dark"
     },
     "buckets": {
         "col": {
@@ -222,5 +243,19 @@
         },
         "empty": "No keys",
         "no_permissions": "No permissions"
+    },
+    "projects": {
+        "title": "Projects",
+        "addConfig": "Add Project",
+        "editConfig": "Edit Project",
+        "name": "Name",
+        "type": "Type",
+        "s3Url": "S3 URL",
+        "adminUrl": "Admin URL",
+        "adminToken": "Admin Token",
+        "clientId": "Client ID",
+        "clientSecret": "Client Secret",
+        "region": "Region",
+        "forcePathStyle": "Force Path Style"
     }
 }

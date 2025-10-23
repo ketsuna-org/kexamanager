@@ -1,53 +1,51 @@
-import { useState, useEffect } from "react"
 import Login from "./pages/Login"
 import Buckets from "./pages/dashboard/Buckets"
+import S3Browser from "./pages/dashboard/S3Browser"
+import Projects from "./pages/dashboard/Projects"
 import ApplicationsKeys from "./pages/dashboard/ApplicationsKeys"
 import AdminTokens from "./pages/dashboard/AdminTokens"
 import Nodes from "./pages/dashboard/Nodes"
 import Blocks from "./pages/dashboard/Blocks"
 import Workers from "./pages/dashboard/Workers"
-import Health from "./pages/dashboard/Health"
 import ClusterLayout from "./pages/dashboard/ClusterLayout"
+import PreviewPage from "./pages/dashboard/PreviewPage"
 import { ThemeProvider } from "@mui/material/styles"
 import { lightTheme, darkTheme } from "./theme"
-import Switch from "@mui/material/Switch"
-import FormControlLabel from "@mui/material/FormControlLabel"
 import Box from "@mui/material/Box"
-import Typography from "@mui/material/Typography"
-import Drawer from "@mui/material/Drawer"
-import List from "@mui/material/List"
-import ListItemButton from "@mui/material/ListItemButton"
-import ListItemIcon from "@mui/material/ListItemIcon"
-import ListItemText from "@mui/material/ListItemText"
 import CssBaseline from "@mui/material/CssBaseline"
-import AppBar from "@mui/material/AppBar"
-import Toolbar from "@mui/material/Toolbar"
-import IconButton from "@mui/material/IconButton"
-import MenuIcon from "@mui/icons-material/Menu"
-import StorageIcon from "@mui/icons-material/Storage"
-import LanguageIcon from "@mui/icons-material/Language"
-import VpnKeyIcon from "@mui/icons-material/VpnKey"
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings"
-import DevicesIcon from "@mui/icons-material/Devices"
-import AppsIcon from "@mui/icons-material/Apps"
-import BuildIcon from "@mui/icons-material/Build"
-import HealthAndSafetyIcon from "@mui/icons-material/HealthAndSafety"
-import AccountTreeIcon from "@mui/icons-material/AccountTree"
-import LogoutIcon from "@mui/icons-material/Logout"
 import { useTranslation } from "react-i18next"
 import i18n from "./i18n"
-import Select from "@mui/material/Select"
-import MenuItem from "@mui/material/MenuItem"
-import Divider from "@mui/material/Divider"
 import { logout as authLogout, isLoggedIn } from "./auth/tokenAuth"
+import Navigation, { type NavigationProps } from "./components/Navigation"
+import { useState, useEffect, useCallback } from "react"
+import { setCurrentProjectId } from "./utils/adminClient"
+
+interface S3Config {
+    id: number
+    name: string
+    admin_url?: string
+    type?: string
+}
 
 function App() {
     // example counter removed
     const [authed, setAuthed] = useState(false)
-    const [tab, setTab] = useState<string>("buckets")
+    const [projects, setProjects] = useState<S3Config[]>([])
+    const [selectedProject, setSelectedProject] = useState<number | null>(() => {
+        const saved = localStorage.getItem("kexamanager:selectedProject")
+        const parsed = saved ? parseInt(saved) : null
+        return (parsed && !isNaN(parsed)) ? parsed : null
+    })
+    const [tab, setTab] = useState<string>(() => {
+        const h = window.location.hash.replace('#', '').split('?')[0]
+        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+            return h
+        }
+        return "projects"
+    })
     const [dark, setDark] = useState<boolean>(() => localStorage.getItem("kexamanager:dark") === "1")
 
-    const { t } = useTranslation()
+    useTranslation()
     const [lang, setLang] = useState<string>(() => localStorage.getItem("kexamanager:lang") || "fr")
     // responsive helpers not required here
     const [mobileOpen, setMobileOpen] = useState(false)
@@ -58,12 +56,85 @@ function App() {
         localStorage.setItem("kexamanager:lang", lang)
     }, [lang])
 
+    // Load projects list
+    useEffect(() => {
+        const loadProjects = async () => {
+            try {
+                const response = await fetch('/api/s3-configs', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('kexamanager:token')}`
+                    }
+                })
+                if (response.ok) {
+                    const data: S3Config[] = await response.json()
+                    setProjects(data)
+                }
+            } catch (error) {
+                console.error('Failed to load projects:', error)
+            }
+        }
+        if (authed) {
+            loadProjects()
+        }
+    }, [authed])
+
+    const getSelectedProjectInfo = useCallback(() => {
+        if (!selectedProject) return null
+        return projects.find(p => p.id === selectedProject) || null
+    }, [selectedProject, projects])
+
     const theme = dark ? darkTheme : lightTheme
 
     useEffect(() => {
         const authenticated = isLoggedIn()
         setAuthed(authenticated)
     }, [])
+
+    // Save selected project to localStorage
+    useEffect(() => {
+        if (selectedProject !== null && selectedProject !== undefined) {
+            localStorage.setItem("kexamanager:selectedProject", selectedProject.toString())
+        } else {
+            localStorage.removeItem("kexamanager:selectedProject")
+        }
+        // Update the global current project ID for API calls
+        setCurrentProjectId(selectedProject)
+    }, [selectedProject])
+
+    // When no project is selected, redirect to projects page
+    useEffect(() => {
+        if (selectedProject === null && tab !== "projects") {
+            setTab("projects")
+            window.location.hash = "#projects"
+        }
+    }, [selectedProject, tab])
+
+    // When project is selected and has no admin API, redirect to s3 page if not on s3 or projects
+    useEffect(() => {
+        const selected = getSelectedProjectInfo()
+        if (selected && !selected.admin_url && tab !== "s3" && tab !== "projects") {
+            setTab("s3")
+            window.location.hash = "#s3"
+        }
+    }, [selectedProject, tab, getSelectedProjectInfo])
+
+    // Removed automatic redirection to S3 tab - users should be able to access projects management anytime
+    useEffect(() => {
+        function onHashChange() {
+            const h = window.location.hash.replace('#', '').split('?')[0]
+            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+                setTab(h)
+            }
+        }
+        window.addEventListener('hashchange', onHashChange)
+        return () => window.removeEventListener('hashchange', onHashChange)
+    }, [])
+
+    useEffect(() => {
+        if (window.location.hash !== `#${tab}`) {
+            window.location.hash = `#${tab}`
+        }
+    }, [tab])
 
     function onAuth() {
         setAuthed(true)
@@ -81,306 +152,23 @@ function App() {
             <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
                 <CssBaseline />
 
-                {/* AppBar for mobile to show hamburger */}
-                <AppBar
-                    position="fixed"
-                    sx={{
-                        display: { md: "none" },
-                        zIndex: (theme) => theme.zIndex.drawer + 1,
-                        background: theme.palette.background.paper,
-                        color: theme.palette.text.primary,
-                        boxShadow: "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
-                        height: 56,
-                    }}
-                >
-                    <Toolbar>
-                        <IconButton edge="start" color="inherit" aria-label="menu" onClick={() => setMobileOpen(true)}>
-                            <MenuIcon />
-                        </IconButton>
-                        <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
-                            {t("dashboard.title")}
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        size="small"
-                                        checked={dark}
-                                        onChange={(e) => {
-                                            setDark(e.target.checked)
-                                            localStorage.setItem("kexamanager:dark", e.target.checked ? "1" : "0")
-                                        }}
-                                    />
-                                }
-                                label=""
-                            />
-                            <Select value={lang} size="small" onChange={(e) => setLang(String(e.target.value))} sx={{ minWidth: 80 }}>
-                                <MenuItem value="fr">FR</MenuItem>
-                                <MenuItem value="en">EN</MenuItem>
-                            </Select>
-                        </Box>
-                    </Toolbar>
-                </AppBar>
-
-                {/* Temporary Drawer for mobile */}
-                <Drawer
-                    variant="temporary"
-                    open={mobileOpen}
-                    onClose={() => setMobileOpen(false)}
-                    ModalProps={{ keepMounted: true }}
-                    PaperProps={{
-                        sx: {
-                            width: 280,
-                            bgcolor: "background.paper",
-                            color: "text.primary",
-                        },
-                    }}
-                    sx={{ display: { xs: "block", md: "none" } }}
-                >
-                    <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
-                        <Typography variant="h6" fontWeight={700}>
-                            {t("dashboard.title")}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                            {t("dashboard.subtitle", "Cluster Management")}
-                        </Typography>
-                    </Box>
-                    <List sx={{ px: 2, py: 1 }}>
-                        <ListItemButton
-                            selected={tab === "buckets"}
-                            onClick={() => {
-                                setTab("buckets")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <StorageIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.buckets")} />
-                        </ListItemButton>
-                        <ListItemButton
-                            selected={tab === "websites"}
-                            onClick={() => {
-                                setTab("websites")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <LanguageIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.websites")} />
-                        </ListItemButton>
-                        <ListItemButton
-                            selected={tab === "apps"}
-                            onClick={() => {
-                                setTab("apps")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <VpnKeyIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.apps")} />
-                        </ListItemButton>
-                        <Divider sx={{ my: 1 }} />
-                        <ListItemButton
-                            selected={tab === "adminTokens"}
-                            onClick={() => {
-                                setTab("adminTokens")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <AdminPanelSettingsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.adminTokens")} />
-                        </ListItemButton>
-                        <ListItemButton
-                            selected={tab === "nodes"}
-                            onClick={() => {
-                                setTab("nodes")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <DevicesIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.nodes")} />
-                        </ListItemButton>
-                        <ListItemButton
-                            selected={tab === "blocks"}
-                            onClick={() => {
-                                setTab("blocks")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <AppsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.blocks")} />
-                        </ListItemButton>
-                        <ListItemButton
-                            selected={tab === "workers"}
-                            onClick={() => {
-                                setTab("workers")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <BuildIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.workers")} />
-                        </ListItemButton>
-                        <ListItemButton
-                            selected={tab === "health"}
-                            onClick={() => {
-                                setTab("health")
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <HealthAndSafetyIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.health")} />
-                        </ListItemButton>
-                        <Divider sx={{ my: 1 }} />
-                        <ListItemButton
-                            onClick={() => {
-                                logout()
-                                setMobileOpen(false)
-                            }}
-                        >
-                            <ListItemIcon>
-                                <LogoutIcon />
-                            </ListItemIcon>
-                            <ListItemText
-                                primary={t("dashboard.logout", {
-                                    defaultValue: "Se déconnecter",
-                                })}
-                            />
-                        </ListItemButton>
-                    </List>
-                </Drawer>
-
-                {/* Permanent Drawer for md+ */}
-                <Drawer
-                    variant="permanent"
-                    open
-                    PaperProps={{
-                        sx: {
-                            width: 280,
-                            bgcolor: "background.paper",
-                            color: "text.primary",
-                            position: "relative",
-                            height: "100vh",
-                            borderRight: "1px solid",
-                            borderColor: "divider",
-                        },
-                    }}
-                    sx={{ 
-                        display: { xs: "none", md: "block" },
-                        "& .MuiDrawer-paper": {
-                            width: 280,
-                            position: "relative",
-                            height: "100vh",
-                        }
-                    }}
-                >
-                    <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
-                        <Typography variant="h5" fontWeight={700}>
-                            {t("dashboard.title")}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                            {t("dashboard.subtitle", "Cluster Management")}
-                        </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 2 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        size="small"
-                                        checked={dark}
-                                        onChange={(e) => {
-                                            setDark(e.target.checked)
-                                            localStorage.setItem("kexamanager:dark", e.target.checked ? "1" : "0")
-                                        }}
-                                    />
-                                }
-                                label={t("settings.darkMode", "Dark")}
-                            />
-                            <Select value={lang} size="small" onChange={(e) => setLang(String(e.target.value))}>
-                                <MenuItem value="fr">Français</MenuItem>
-                                <MenuItem value="en">English</MenuItem>
-                            </Select>
-                        </Box>
-                    </Box>
-
-                    <List sx={{ px: 2, py: 1, flex: 1 }}>
-                        <ListItemButton selected={tab === "buckets"} onClick={() => setTab("buckets")}>
-                            <ListItemIcon>
-                                <StorageIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.buckets")} />
-                        </ListItemButton>
-                        <ListItemButton selected={tab === "apps"} onClick={() => setTab("apps")}>
-                            <ListItemIcon>
-                                <VpnKeyIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.apps")} />
-                        </ListItemButton>
-                        <Divider sx={{ my: 1 }} />
-                        <ListItemButton selected={tab === "adminTokens"} onClick={() => setTab("adminTokens")}>
-                            <ListItemIcon>
-                                <AdminPanelSettingsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.adminTokens")} />
-                        </ListItemButton>
-                        <ListItemButton selected={tab === "nodes"} onClick={() => setTab("nodes")}>
-                            <ListItemIcon>
-                                <DevicesIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.nodes")} />
-                        </ListItemButton>
-                        <ListItemButton selected={tab === "blocks"} onClick={() => setTab("blocks")}>
-                            <ListItemIcon>
-                                <AppsIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.blocks")} />
-                        </ListItemButton>
-                        <ListItemButton selected={tab === "workers"} onClick={() => setTab("workers")}>
-                            <ListItemIcon>
-                                <BuildIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.workers")} />
-                        </ListItemButton>
-                        <ListItemButton selected={tab === "health"} onClick={() => setTab("health")}>
-                            <ListItemIcon>
-                                <HealthAndSafetyIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.health")} />
-                        </ListItemButton>
-                        <ListItemButton selected={tab === "cluster"} onClick={() => setTab("cluster")}>
-                            <ListItemIcon>
-                                <AccountTreeIcon />
-                            </ListItemIcon>
-                            <ListItemText primary={t("dashboard.cluster")} />
-                        </ListItemButton>
-                        <Divider sx={{ my: 1 }} />
-                        <ListItemButton
-                            onClick={() => {
-                                logout()
-                            }}
-                        >
-                            <ListItemIcon>
-                                <LogoutIcon />
-                            </ListItemIcon>
-                            <ListItemText
-                                primary={t("dashboard.logout", {
-                                    defaultValue: "Se déconnecter",
-                                })}
-                            />
-                        </ListItemButton>
-                    </List>
-                </Drawer>
+                {/* Hide navigation when on projects page without selected project */}
+                {!(tab === "projects" && !selectedProject) && (
+                    <Navigation
+                        tab={tab as NavigationProps["tab"]}
+                        setTab={(v) => setTab(v)}
+                        dark={dark}
+                        setDark={(v) => { setDark(v); localStorage.setItem("kexamanager:dark", v ? "1" : "0") }}
+                        lang={lang}
+                        setLang={(l) => { setLang(l); }}
+                        mobileOpen={mobileOpen}
+                        setMobileOpen={setMobileOpen}
+                        onLogout={logout}
+                        selectedProject={getSelectedProjectInfo()}
+                        projects={projects}
+                        onSelectProject={setSelectedProject}
+                    />
+                )}
 
                 <Box
                     component="main"
@@ -396,14 +184,16 @@ function App() {
                         flexDirection: "column",
                     }}
                 >
-                    {tab === "buckets" && <Buckets />}
-                    {tab === "apps" && <ApplicationsKeys />}
-                    {tab === "adminTokens" && <AdminTokens />}
-                    {tab === "nodes" && <Nodes />}
-                    {tab === "blocks" && <Blocks />}
-                    {tab === "workers" && <Workers />}
-                    {tab === "health" && <Health />}
-                    {tab === "cluster" && <ClusterLayout />}
+                    {tab === "buckets" && <Buckets key="buckets" selectedProject={getSelectedProjectInfo()} />}
+                    {tab === "apps" && <ApplicationsKeys key="apps" />}
+                    {tab === "projects" && <Projects key="projects" selectedProject={selectedProject} onSelectProject={setSelectedProject} onProjectsChange={setProjects} />}
+                    {tab === "s3" && <S3Browser key="s3" selectedProject={getSelectedProjectInfo()} />}
+                    {tab === "adminTokens" && <AdminTokens key="adminTokens" />}
+                    {tab === "nodes" && <Nodes key="nodes" />}
+                    {tab === "blocks" && <Blocks key="blocks" />}
+                    {tab === "workers" && <Workers key="workers" />}
+                    {tab === "cluster" && <ClusterLayout key="cluster" />}
+                    {tab === "preview" && <PreviewPage key="preview" selectedProject={getSelectedProjectInfo()} />}
                 </Box>
             </Box>
         </ThemeProvider>

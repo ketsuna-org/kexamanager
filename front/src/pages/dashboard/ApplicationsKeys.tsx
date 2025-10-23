@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -61,7 +61,7 @@ export default function ApplicationsKeys() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [toDeleteId, setToDeleteId] = useState<string | null>(null)
 
-    async function load() {
+    const load = useCallback(async () => {
         setLoading(true)
         setError(null)
         try {
@@ -77,11 +77,11 @@ export default function ApplicationsKeys() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
     useEffect(() => {
         load()
-    }, [])
+    }, [load])
 
     function openCreate() {
         setCreateForm({ name: "", expiration: "", neverExpires: false, permissions: { createBucket: false } })
@@ -181,6 +181,21 @@ export default function ApplicationsKeys() {
         }
     }
 
+    async function impersonateKeyById(id: string, useSessionStorage = true) {
+        try {
+            const res = await GetKeyInfo({ id, showSecretKey: true })
+            if (!res?.secretAccessKey) throw new Error('Secret not available for this key')
+            // Store both key ID and secret access key for backend authentication
+            const storage = useSessionStorage ? sessionStorage : localStorage
+            storage.setItem('kexamanager:s3:keyId', res.accessKeyId)
+            storage.setItem('kexamanager:s3:secretAccessKey', res.secretAccessKey)
+            window.location.hash = '#s3'
+        } catch (e) {
+            console.error('Impersonate by id error', e)
+            setError(e instanceof Error ? e.message : String(e))
+        }
+    }
+
     function closeDetails() {
         setDetailOpen(false)
         setSelectedKey(null)
@@ -218,6 +233,20 @@ export default function ApplicationsKeys() {
             setError(String(e))
         } finally {
             setSavingDetails(false)
+        }
+    }
+
+    async function impersonateSelectedKey(useSessionStorage = true) {
+        if (!selectedKey || !selectedKey.secretAccessKey) return
+
+        try {
+            // Store both key ID and secret access key for backend authentication
+            const storage = useSessionStorage ? sessionStorage : localStorage
+            storage.setItem('kexamanager:s3:keyId', selectedKey.accessKeyId)
+            storage.setItem('kexamanager:s3:secretAccessKey', selectedKey.secretAccessKey)
+            window.location.hash = '#s3'
+        } catch (e) {
+            console.error('Impersonate error:', e)
         }
     }
 
@@ -291,6 +320,9 @@ export default function ApplicationsKeys() {
                                         <Stack direction="row" spacing={1} alignItems="center">
                                             <Button size="small" onClick={() => openDetails(k.id)}>
                                                 {t("common.details")}
+                                            </Button>
+                                            <Button size="small" variant="outlined" onClick={() => impersonateKeyById(k.id)}>
+                                                Impersonate
                                             </Button>
                                             <IconButton size="small" aria-label="delete" onClick={() => confirmDelete(k.id)}>
                                                 <span style={{ color: "error.main" }}>{t("common.delete")}</span>
@@ -424,6 +456,14 @@ export default function ApplicationsKeys() {
                                                         </Button>
                                                     </Box>
                                                 )}
+                                                <Box sx={{ mt: 2 }}>
+                                                    <Button variant="contained" size="small" onClick={() => impersonateSelectedKey(true)} sx={{ mr: 1 }}>
+                                                        Impersonate key (session)
+                                                    </Button>
+                                                    <Button size="small" onClick={() => impersonateSelectedKey(false)}>
+                                                        Impersonate key (local)
+                                                    </Button>
+                                                </Box>
                                             </Box>
                                         ) : (
                                             <Typography variant="body2" color="text.secondary">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
@@ -22,6 +22,8 @@ import Stack from "@mui/material/Stack"
 import CircularProgress from "@mui/material/CircularProgress"
 import Autocomplete from "@mui/material/Autocomplete"
 import Chip from "@mui/material/Chip"
+import Select from "@mui/material/Select"
+import MenuItem from "@mui/material/MenuItem"
 import { useTheme } from "@mui/material/styles"
 import useMediaQuery from "@mui/material/useMediaQuery"
 import { ListBuckets, CreateBucket, DeleteBucket, GetBucketInfo, AddBucketAlias, RemoveBucketAlias, UpdateBucket, ListKeys, AllowBucketKey, DenyBucketKey } from "../../utils/apiWrapper"
@@ -29,8 +31,25 @@ import type { components } from "../../types/openapi"
 
 type Bucket = components["schemas"]["ListBucketsResponseItem"]
 
-export default function Buckets() {
+const sizeUnits = [
+  { label: 'Octet', value: 'B', multiplier: 1 },
+  { label: 'Ko', value: 'KB', multiplier: 1024 },
+  { label: 'Mo', value: 'MB', multiplier: 1024 ** 2 },
+  { label: 'Go', value: 'GB', multiplier: 1024 ** 3 },
+]
+
+interface BucketsProps {
+    selectedProject: { id: number; name: string } | null
+}
+
+export default function Buckets({ selectedProject }: BucketsProps) {
     const { t } = useTranslation()
+    const [selectedConfigId, setSelectedConfigId] = useState<number | null>(selectedProject?.id || null)
+
+    // Update selectedConfigId when selectedProject changes
+    useEffect(() => {
+        setSelectedConfigId(selectedProject?.id || null)
+    }, [selectedProject])
     const [buckets, setBuckets] = useState<Bucket[]>([])
     const [open, setOpen] = useState(false)
     const [loading, setLoading] = useState(true)
@@ -47,7 +66,8 @@ export default function Buckets() {
         websiteEnabled: boolean
         websiteIndex: string
         websiteError: string
-    }>({ quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "" })
+        quotasMaxSizeUnit: string
+    }>({ quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "", quotasMaxSizeUnit: "MB" })
     const [allKeys, setAllKeys] = useState<components["schemas"]["ListKeysResponseItem"][]>([])
     const [selectedKeyIds, setSelectedKeyIds] = useState<string[]>([])
     const [aliasInput, setAliasInput] = useState("")
@@ -62,6 +82,7 @@ export default function Buckets() {
         websiteEnabled: boolean
         websiteIndex: string
         websiteError: string
+        quotasMaxSizeUnit: string
     }>({
         globalAlias: "",
         localAlias: "",
@@ -71,14 +92,27 @@ export default function Buckets() {
         websiteEnabled: false,
         websiteIndex: "",
         websiteError: "",
+        quotasMaxSizeUnit: "MB",
     })
 
     // theme / media query to make details dialog full screen on small devices
     const theme = useTheme()
     const isSmall = useMediaQuery(theme.breakpoints.down("sm"))
 
+    function getBestUnit(bytes: number): { value: string, display: number } {
+        if (bytes === 0) return { value: 'MB', display: 0 }
+        const units = ['B', 'KB', 'MB', 'GB']
+        const multipliers = [1, 1024, 1024 ** 2, 1024 ** 3]
+        for (let i = units.length - 1; i >= 0; i--) {
+            if (bytes >= multipliers[i]) {
+                return { value: units[i], display: Math.round((bytes / multipliers[i]) * 100) / 100 } // round to 2 decimals
+            }
+        }
+        return { value: 'B', display: bytes }
+    }
+
     function openModal() {
-        setForm({ globalAlias: "", localAlias: "", localAccessKeyId: "", quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "" })
+        setForm({ globalAlias: "", localAlias: "", localAccessKeyId: "", quotasMaxSize: "", quotasMaxObjects: "", websiteEnabled: false, websiteIndex: "", websiteError: "", quotasMaxSizeUnit: "MB" })
         setOpen(true)
     }
     function closeModal() {
@@ -98,7 +132,9 @@ export default function Buckets() {
 
             const updateBody: components["schemas"]["UpdateBucketRequestBody"] = {}
             const quotas: components["schemas"]["ApiBucketQuotas"] = {}
-            if (form.quotasMaxSize) quotas.maxSize = Number(form.quotasMaxSize)
+            const unitMultiplier = sizeUnits.find(u => u.value === form.quotasMaxSizeUnit)?.multiplier || 1
+            const maxSizeBytes = Number(form.quotasMaxSize) * unitMultiplier
+            if (maxSizeBytes > 0) quotas.maxSize = maxSizeBytes
             if (form.quotasMaxObjects) quotas.maxObjects = Number(form.quotasMaxObjects)
             if (quotas.maxSize !== undefined || quotas.maxObjects !== undefined) updateBody.quotas = quotas
             if (form.websiteEnabled) updateBody.websiteAccess = { enabled: true, indexDocument: form.websiteIndex || undefined, errorDocument: form.websiteError || undefined }
@@ -116,10 +152,11 @@ export default function Buckets() {
         }
     }
 
-    async function fetchBuckets() {
+    const fetchBuckets = useCallback(async () => {
+        if (!selectedConfigId) return
         setLoading(true)
         try {
-            const res = await ListBuckets()
+            const res = await ListBuckets(selectedConfigId)
             if (Array.isArray(res)) setBuckets(res as Bucket[])
             else setBuckets([])
         } catch {
@@ -127,7 +164,7 @@ export default function Buckets() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [selectedConfigId])
 
     async function fetchKeysList() {
         try {
@@ -143,7 +180,7 @@ export default function Buckets() {
 
     useEffect(() => {
         fetchBuckets()
-    }, [])
+    }, [fetchBuckets])
 
     function confirmDelete(id: string) {
         setToDeleteId(id)
@@ -169,8 +206,11 @@ export default function Buckets() {
             setSelectedBucket(res)
             // populate details form from response
             setEditing(false)
+            const maxSize = res?.quotas?.maxSize || 0
+            const { value: unit, display: size } = getBestUnit(maxSize)
             setDetailsForm({
-                quotasMaxSize: res?.quotas?.maxSize !== undefined ? String(res.quotas.maxSize) : "",
+                quotasMaxSize: size.toString(),
+                quotasMaxSizeUnit: unit,
                 quotasMaxObjects: res?.quotas?.maxObjects !== undefined ? String(res.quotas.maxObjects) : "",
                 websiteEnabled: !!res?.websiteAccess,
                 websiteIndex: res?.websiteConfig?.indexDocument || "",
@@ -191,7 +231,9 @@ export default function Buckets() {
         try {
             const updateBody: components["schemas"]["UpdateBucketRequestBody"] = {}
             const quotas: components["schemas"]["ApiBucketQuotas"] = {}
-            if (detailsForm.quotasMaxSize) quotas.maxSize = Number(detailsForm.quotasMaxSize)
+            const unitMultiplier = sizeUnits.find(u => u.value === detailsForm.quotasMaxSizeUnit)?.multiplier || 1
+            const maxSizeBytes = Number(detailsForm.quotasMaxSize) * unitMultiplier
+            if (maxSizeBytes > 0) quotas.maxSize = maxSizeBytes
             if (detailsForm.quotasMaxObjects) quotas.maxObjects = Number(detailsForm.quotasMaxObjects)
             if (quotas.maxSize !== undefined || quotas.maxObjects !== undefined) updateBody.quotas = quotas
 
@@ -260,13 +302,13 @@ export default function Buckets() {
 
     return (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-            <Box sx={{ 
-                display: "flex", 
+            <Box sx={{
+                display: "flex",
                 flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between", 
+                justifyContent: "space-between",
                 alignItems: { xs: "stretch", sm: "center" },
                 gap: 2,
-                mb: 2 
+                mb: 2
             }}>
                 <Stack sx={{ flex: 1 }}>
                     <Typography variant="h6">{t("dashboard.buckets")}</Typography>
@@ -274,13 +316,19 @@ export default function Buckets() {
                         {t("dashboard.buckets_desc")}
                     </Typography>
                 </Stack>
-                <Button 
-                    variant="contained" 
+                <Button
+                    variant="contained"
                     onClick={openModal}
                     sx={{ whiteSpace: "nowrap" }}
                 >
                     {t("dashboard.buckets_add")}
                 </Button>
+            </Box>
+
+            <Box sx={{ mb: 2 }}>
+                <Typography variant="h6">
+                    {selectedProject ? `Project: ${selectedProject.name}` : 'No project selected'}
+                </Typography>
             </Box>
 
             <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>
@@ -313,7 +361,7 @@ export default function Buckets() {
                                 <TableRow key={b.id} hover>
                                     <TableCell>
                                         <Tooltip title={b.id}>
-                                            <Box sx={{ 
+                                            <Box sx={{
                                                 maxWidth: { xs: 120, sm: 200 },
                                                 overflow: "hidden",
                                                 textOverflow: "ellipsis",
@@ -324,7 +372,7 @@ export default function Buckets() {
                                             </Box>
                                         </Tooltip>
                                     </TableCell>
-                                    <TableCell sx={{ 
+                                    <TableCell sx={{
                                         maxWidth: { xs: 100, sm: 150 },
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
@@ -334,7 +382,7 @@ export default function Buckets() {
                                             <span>{[...(b.globalAliases ?? []), ...(b.localAliases?.map((a) => a.alias) ?? [])].join(", ") || "-"}</span>
                                         </Tooltip>
                                     </TableCell>
-                                    <TableCell sx={{ 
+                                    <TableCell sx={{
                                         fontSize: { xs: "0.75rem", sm: "0.875rem" },
                                         whiteSpace: "nowrap"
                                     }}>
@@ -345,8 +393,8 @@ export default function Buckets() {
                                             <Button size="small" onClick={() => openDetails(b.id)}>
                                                 {t("common.details")}
                                             </Button>
-                                            <Button 
-                                                size="small" 
+                                            <Button
+                                                size="small"
                                                 color="error"
                                                 onClick={() => confirmDelete(b.id)}
                                             >
@@ -400,6 +448,13 @@ export default function Buckets() {
                                 value={form.quotasMaxSize}
                                 onChange={(e) => setForm((f) => ({ ...f, quotasMaxSize: e.target.value }))}
                             />
+                            <Select
+                                size="small"
+                                value={form.quotasMaxSizeUnit}
+                                onChange={(e) => setForm((f) => ({ ...f, quotasMaxSizeUnit: e.target.value }))}
+                            >
+                                {sizeUnits.map(u => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+                            </Select>
                             <TextField
                                 margin="dense"
                                 label={t("buckets.form.quotas.maxObjects")}
@@ -525,7 +580,11 @@ export default function Buckets() {
                                     value={allKeys.filter((k) => selectedKeyIds.includes(k.id))}
                                     onChange={(_, value) => setSelectedKeyIds(value.map((v) => v.id))}
                                     renderTags={(value: components["schemas"]["ListKeysResponseItem"][], getTagProps) =>
-                                        value.map((option, index) => <Chip variant="outlined" label={`${option.id}`} {...getTagProps({ index })} />)
+                                        value.map((option, index) => {
+                                            const tagProps = getTagProps({ index }) as { key: string | number } & Record<string, unknown>
+                                            const { key, ...rest } = tagProps
+                                            return <Chip key={String(key)} variant="outlined" label={`${option.id}`} {...rest} />
+                                        })
                                     }
                                     renderInput={(params) => <TextField {...params} size="small" label={t("buckets.details.assign_keys")} />}
                                 />
@@ -543,6 +602,14 @@ export default function Buckets() {
                                     onChange={(e) => setDetailsForm((f) => ({ ...f, quotasMaxSize: e.target.value }))}
                                     disabled={!editing}
                                 />
+                                <Select
+                                    size="small"
+                                    value={detailsForm.quotasMaxSizeUnit}
+                                    onChange={(e) => setDetailsForm((f) => ({ ...f, quotasMaxSizeUnit: e.target.value }))}
+                                    disabled={!editing}
+                                >
+                                    {sizeUnits.map(u => <MenuItem key={u.value} value={u.value}>{u.label}</MenuItem>)}
+                                </Select>
                                 <TextField
                                     size="small"
                                     label={t("buckets.form.quotas.maxObjects")}
@@ -617,8 +684,11 @@ export default function Buckets() {
                             <Button
                                 onClick={() => {
                                     /* cancel edits: reset form */ if (selectedBucket) {
+                                        const maxSize = selectedBucket.quotas?.maxSize || 0
+                                        const { value: unit, display: size } = getBestUnit(maxSize)
                                         setDetailsForm({
-                                            quotasMaxSize: selectedBucket.quotas?.maxSize !== undefined ? String(selectedBucket.quotas.maxSize) : "",
+                                            quotasMaxSize: size.toString(),
+                                            quotasMaxSizeUnit: unit,
                                             quotasMaxObjects: selectedBucket.quotas?.maxObjects !== undefined ? String(selectedBucket.quotas.maxObjects) : "",
                                             websiteEnabled: !!selectedBucket.websiteAccess,
                                             websiteIndex: selectedBucket.websiteConfig?.indexDocument || "",

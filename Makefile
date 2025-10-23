@@ -30,7 +30,7 @@ help:
 	@echo "  make run-container-env -> build and run container with .env file"
 	@echo ""
 	@echo "Required environment variables for containers:"
-	@echo "  VITE_API_ADMIN_URL, VITE_API_PUBLIC_URL, PORT"
+	@echo "  PASSWORD, PORT"
 
 build: build-front build-proxy
 

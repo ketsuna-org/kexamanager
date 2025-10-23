@@ -1,4 +1,4 @@
-import { useEffect, useState, Fragment } from "react"
+import { useEffect, useState, Fragment, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { ListWorkers } from "../../utils/apiWrapper"
 import Table from "@mui/material/Table"
@@ -40,7 +40,7 @@ export default function Workers() {
     const [detailItem, setDetailItem] = useState<unknown | null>(null)
     const [expanded, setExpanded] = useState<Record<string, boolean>>({})
 
-    async function load() {
+    const load = useCallback(async () => {
         setLoading(true)
         setError(null)
         try {
@@ -64,11 +64,11 @@ export default function Workers() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [])
 
     useEffect(() => {
         load()
-    }, [])
+    }, [load])
     function openDetails(i: unknown) {
         setDetailItem(i)
         setDetailOpen(true)

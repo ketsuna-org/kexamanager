@@ -1,24 +1,18 @@
-import { defineConfig, loadEnv } from "vite"
+import { defineConfig } from "vite"
 import react from "@vitejs/plugin-react"
 import path from "path"
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd())
+export default defineConfig(() => {
     return {
-        plugins: [react()],
+        plugins: [
+            react(),
+        ],
         server: {
             proxy: {
-                "/api/admin": {
-                    target: env.VITE_API_ADMIN_URL,
+                "/api": {
+                    target: "http://localhost:8080",
                     changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api\/admin/, ""),
-                    secure: false, // Ignore la vérification du certificat
-                },
-                "/api/public": {
-                    target: env.VITE_API_PUBLIC_URL,
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api\/public/, ""),
-                    secure: false, // Ignore la vérification du certificat
+                    secure: false,
                 },
             },
         },
@@ -31,7 +25,6 @@ export default defineConfig(({ mode }) => {
             // --emptyOutDir on the CLI).
             emptyOutDir: true,
             // Output the built assets into the top-level output/public folder so
-            // everything built for deployment is centralized in `output/`.
             // This resolves to <repo-root>/output/public when run from `front/`.
             outDir: path.resolve(process.cwd(), "../output/public"),
         rollupOptions: {
