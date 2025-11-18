@@ -344,10 +344,9 @@ func main() {
 		log.Fatalf("failed to connect database: %v", err)
 	}
 
-	// Migrer les schémas
-	err = db.AutoMigrate(&User{}, &S3Config{})
-	if err != nil {
-		log.Fatalf("failed to migrate database: %v", err)
+	// Exécuter les migrations
+	if err := RunMigrations(db); err != nil {
+		log.Fatalf("failed to run migrations: %v", err)
 	}
 
 	// Initialiser l'utilisateur root
