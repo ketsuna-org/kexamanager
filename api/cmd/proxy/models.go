@@ -10,8 +10,8 @@ import (
 type User struct {
 	gorm.Model
 	Username string `gorm:"uniqueIndex;not null" json:"username"`
-	Password string `gorm:"not null" json:"-"` // Ne pas exposer en JSON
-	IsAdmin  bool   `gorm:"default:false" json:"is_admin"`
+	Password string `gorm:"not null" json:"-"`          // Ne pas exposer en JSON
+	Role     string `gorm:"default:'user'" json:"role"` // "admin" ou "user"
 }
 
 // S3Config représente une configuration S3 pour un utilisateur

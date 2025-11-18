@@ -90,6 +90,7 @@
         "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?",
         "s3_browser": "Navigateur S3",
         "projects": "Projets",
+        "manager": "Manager",
         "cluster_storage_overview": "Aperçu du stockage du cluster",
         "data_storage": "Stockage des données",
         "used_space": "Utilisé",
@@ -271,5 +272,23 @@
         "clientSecret": "Secret Client",
         "region": "Région",
         "forcePathStyle": "Forcer le style chemin"
+    },
+    "userManager": {
+        "title": "Gestion des utilisateurs",
+        "addUser": "Nouvel utilisateur",
+        "editUser": "Modifier l'utilisateur",
+        "username": "Nom d'utilisateur",
+        "password": "Mot de passe",
+        "newPassword": "Nouveau mot de passe (optionnel)",
+        "passwordHelp": "Laissez vide pour conserver le mot de passe actuel",
+        "role": "Rôle",
+        "roleUser": "Utilisateur",
+        "roleAdmin": "Administrateur",
+        "createdAt": "Créé le",
+        "actions": "Actions",
+        "errorUsername": "Le nom d'utilisateur est requis",
+        "errorPassword": "Le mot de passe est requis pour les nouveaux utilisateurs",
+        "errorDeleteRoot": "Impossible de supprimer l'utilisateur root",
+        "confirmDelete": "Supprimer l'utilisateur \"{{username}}\" ?"
     }
 }

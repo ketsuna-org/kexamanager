@@ -28,7 +28,7 @@ import type { ApiError } from "../../utils/adminClient"
 interface ProjectsProps {
     selectedProject: number | null
     onSelectProject: (projectId: number | null) => void
-    onProjectsChange: (projects: Array<{id: number, name: string}>) => void
+    onProjectsChange: (projects: Array<{id: number, name: string, admin_url?: string, type?: string}>) => void
 }
 
 interface S3Config {
@@ -69,7 +69,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
             setLoading(true)
             const response = await adminGet<S3Config[]>("/s3-configs")
             setConfigs(response)
-            onProjectsChange(response.map(c => ({ id: c.id, name: c.name })))
+            onProjectsChange(response.map(c => ({ id: c.id, name: c.name, admin_url: c.admin_url, type: c.type })))
         } catch (err) {
             const apiError = err as ApiError
             setError(apiError.message || "Failed to load configs")

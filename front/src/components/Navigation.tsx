@@ -24,8 +24,9 @@ import BuildIcon from "@mui/icons-material/Build"
 import AccountTreeIcon from "@mui/icons-material/AccountTree"
 import LogoutIcon from "@mui/icons-material/Logout"
 import SettingsIcon from "@mui/icons-material/Settings"
+import PeopleIcon from "@mui/icons-material/People"
 
-type TabKey = "buckets" | "apps" | "projects" | "s3" | "adminTokens" | "nodes" | "blocks" | "workers" | "cluster"
+type TabKey = "buckets" | "apps" | "projects" | "s3" | "adminTokens" | "nodes" | "blocks" | "workers" | "cluster" | "manager"
 
 export interface NavigationProps {
   tab: TabKey
@@ -38,7 +39,7 @@ export interface NavigationProps {
   setMobileOpen: (v: boolean) => void
   onLogout: () => void
   selectedProject?: { id: number; name: string; admin_url?: string; type?: string } | null
-  projects: Array<{ id: number; name: string }>
+  projects: Array<{ id: number; name: string; admin_url?: string; type?: string }>
   onSelectProject: (projectId: number | null) => void
 }
 
@@ -62,7 +63,7 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
           <MenuIcon />
         </IconButton>
         <Typography variant="h6" sx={{ flex: 1, fontWeight: 600 }}>
-          {selectedProject ? `${t("dashboard.title")} - ${selectedProject.name}` : t("dashboard.title")}
+          {selectedProject ? `${selectedProject.name} (${selectedProject.type === 'garage' ? 'Garage' : 'S3'})` : t("dashboard.title")}
         </Typography>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Select
@@ -105,63 +106,66 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
     >
       <Box sx={{ p: 3, borderBottom: "1px solid", borderColor: "divider" }}>
         <Typography variant="h6" fontWeight={700}>
-          {selectedProject ? `${t("dashboard.title")} - ${selectedProject.name}` : t("dashboard.title")}
+          {selectedProject ? `${selectedProject.name} (${selectedProject.type === 'garage' ? 'Garage' : 'S3'})` : t("dashboard.title")}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           {t("dashboard.subtitle", "Cluster Management")}
         </Typography>
       </Box>
       <List sx={{ px: 2, py: 1 }}>
-        {selectedProject && !selectedProject.admin_url ? (
+        <ListItemButton selected={tab === "projects"} onClick={() => { setTab("projects"); setMobileOpen(false) }}>
+          <ListItemIcon><SettingsIcon /></ListItemIcon>
+          <ListItemText primary={t("dashboard.projects", { defaultValue: "Projects" })} />
+        </ListItemButton>
+        <ListItemButton selected={tab === "manager"} onClick={() => { setTab("manager"); setMobileOpen(false) }}>
+          <ListItemIcon><PeopleIcon /></ListItemIcon>
+          <ListItemText primary={t("dashboard.manager", { defaultValue: "Manager" })} />
+        </ListItemButton>
+        {selectedProject && (
           <>
-            <ListItemButton selected={tab === "projects"} onClick={() => { setTab("projects"); setMobileOpen(false) }}>
-              <ListItemIcon><SettingsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.projects", { defaultValue: "Projects" })} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
-              <ListItemIcon><StorageIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.s3_browser")} />
-            </ListItemButton>
-          </>
-        ) : (
-          <>
-            <ListItemButton selected={tab === "buckets"} onClick={() => { setTab("buckets"); setMobileOpen(false) }}>
-              <ListItemIcon><StorageIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.buckets")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "apps"} onClick={() => { setTab("apps"); setMobileOpen(false) }}>
-              <ListItemIcon><VpnKeyIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.apps")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "projects"} onClick={() => { setTab("projects"); setMobileOpen(false) }}>
-              <ListItemIcon><SettingsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.projects", { defaultValue: "Projects" })} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
-              <ListItemIcon><StorageIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.s3_browser")} />
-            </ListItemButton>
             <Divider sx={{ my: 1 }} />
-            <ListItemButton selected={tab === "adminTokens"} onClick={() => { setTab("adminTokens"); setMobileOpen(false) }}>
-              <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.adminTokens")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "nodes"} onClick={() => { setTab("nodes"); setMobileOpen(false) }}>
-              <ListItemIcon><DevicesIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.nodes")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "blocks"} onClick={() => { setTab("blocks"); setMobileOpen(false) }}>
-              <ListItemIcon><AppsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.blocks")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "workers"} onClick={() => { setTab("workers"); setMobileOpen(false) }}>
-              <ListItemIcon><BuildIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.workers")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "cluster"} onClick={() => { setTab("cluster"); setMobileOpen(false) }}>
-              <ListItemIcon><AccountTreeIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.cluster")} />
-            </ListItemButton>
+            {selectedProject.admin_url ? (
+              <>
+                <ListItemButton selected={tab === "buckets"} onClick={() => { setTab("buckets"); setMobileOpen(false) }}>
+                  <ListItemIcon><StorageIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.buckets")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "apps"} onClick={() => { setTab("apps"); setMobileOpen(false) }}>
+                  <ListItemIcon><VpnKeyIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.apps")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
+                  <ListItemIcon><StorageIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.s3_browser")} />
+                </ListItemButton>
+                <Divider sx={{ my: 1 }} />
+                <ListItemButton selected={tab === "adminTokens"} onClick={() => { setTab("adminTokens"); setMobileOpen(false) }}>
+                  <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.adminTokens")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "nodes"} onClick={() => { setTab("nodes"); setMobileOpen(false) }}>
+                  <ListItemIcon><DevicesIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.nodes")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "blocks"} onClick={() => { setTab("blocks"); setMobileOpen(false) }}>
+                  <ListItemIcon><AppsIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.blocks")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "workers"} onClick={() => { setTab("workers"); setMobileOpen(false) }}>
+                  <ListItemIcon><BuildIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.workers")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "cluster"} onClick={() => { setTab("cluster"); setMobileOpen(false) }}>
+                  <ListItemIcon><AccountTreeIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.cluster")} />
+                </ListItemButton>
+              </>
+            ) : (
+              <ListItemButton selected={tab === "s3"} onClick={() => { setTab("s3"); setMobileOpen(false) }}>
+                <ListItemIcon><StorageIcon /></ListItemIcon>
+                <ListItemText primary={t("dashboard.s3_browser")} />
+              </ListItemButton>
+            )}
           </>
         )}
         <Divider sx={{ my: 1 }} />
@@ -224,52 +228,59 @@ export default function Navigation({ tab, setTab, dark, setDark, lang, setLang, 
       </Box>
 
       <List sx={{ px: 2, py: 1, flex: 1 }}>
-        {selectedProject && !selectedProject.admin_url ? (
+        <ListItemButton selected={tab === "projects"} onClick={() => setTab("projects")}>
+          <ListItemIcon><SettingsIcon /></ListItemIcon>
+          <ListItemText primary={t("dashboard.projects", { defaultValue: "Projects" })} />
+        </ListItemButton>
+        <ListItemButton selected={tab === "manager"} onClick={() => setTab("manager")}>
+          <ListItemIcon><PeopleIcon /></ListItemIcon>
+          <ListItemText primary={t("dashboard.manager", { defaultValue: "Manager" })} />
+        </ListItemButton>
+        {selectedProject && (
           <>
-            <ListItemButton selected={tab === "projects"} onClick={() => setTab("projects")}>
-              <ListItemIcon><SettingsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.projects", { defaultValue: "Projects" })} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "s3"} onClick={() => setTab("s3")}>
-              <ListItemIcon><StorageIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.s3_browser")} />
-            </ListItemButton>
-          </>
-        ) : (
-          <>
-            <ListItemButton selected={tab === "buckets"} onClick={() => setTab("buckets")}>
-              <ListItemIcon><StorageIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.buckets")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "apps"} onClick={() => setTab("apps")}>
-              <ListItemIcon><VpnKeyIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.apps")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "s3"} onClick={() => setTab("s3")}>
-              <ListItemIcon><StorageIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.s3_browser")} />
-            </ListItemButton>
             <Divider sx={{ my: 1 }} />
-            <ListItemButton selected={tab === "adminTokens"} onClick={() => setTab("adminTokens")}>
-              <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.adminTokens")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "nodes"} onClick={() => setTab("nodes")}>
-              <ListItemIcon><DevicesIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.nodes")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "blocks"} onClick={() => setTab("blocks")}>
-              <ListItemIcon><AppsIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.blocks")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "workers"} onClick={() => setTab("workers")}>
-              <ListItemIcon><BuildIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.workers")} />
-            </ListItemButton>
-            <ListItemButton selected={tab === "cluster"} onClick={() => setTab("cluster")}>
-              <ListItemIcon><AccountTreeIcon /></ListItemIcon>
-              <ListItemText primary={t("dashboard.cluster")} />
-            </ListItemButton>
+            {selectedProject.admin_url ? (
+              <>
+                <ListItemButton selected={tab === "buckets"} onClick={() => setTab("buckets")}>
+                  <ListItemIcon><StorageIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.buckets")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "apps"} onClick={() => setTab("apps")}>
+                  <ListItemIcon><VpnKeyIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.apps")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "s3"} onClick={() => setTab("s3")}>
+                  <ListItemIcon><StorageIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.s3_browser")} />
+                </ListItemButton>
+                <Divider sx={{ my: 1 }} />
+                <ListItemButton selected={tab === "adminTokens"} onClick={() => setTab("adminTokens")}>
+                  <ListItemIcon><AdminPanelSettingsIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.adminTokens")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "nodes"} onClick={() => setTab("nodes")}>
+                  <ListItemIcon><DevicesIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.nodes")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "blocks"} onClick={() => setTab("blocks")}>
+                  <ListItemIcon><AppsIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.blocks")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "workers"} onClick={() => setTab("workers")}>
+                  <ListItemIcon><BuildIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.workers")} />
+                </ListItemButton>
+                <ListItemButton selected={tab === "cluster"} onClick={() => setTab("cluster")}>
+                  <ListItemIcon><AccountTreeIcon /></ListItemIcon>
+                  <ListItemText primary={t("dashboard.cluster")} />
+                </ListItemButton>
+              </>
+            ) : (
+              <ListItemButton selected={tab === "s3"} onClick={() => setTab("s3")}>
+                <ListItemIcon><StorageIcon /></ListItemIcon>
+                <ListItemText primary={t("dashboard.s3_browser")} />
+              </ListItemButton>
+            )}
           </>
         )}
         <Divider sx={{ my: 1 }} />

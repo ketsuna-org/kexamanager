@@ -9,6 +9,7 @@ import Blocks from "./pages/dashboard/Blocks"
 import Workers from "./pages/dashboard/Workers"
 import ClusterLayout from "./pages/dashboard/ClusterLayout"
 import PreviewPage from "./pages/dashboard/PreviewPage"
+import UserManager from "./pages/dashboard/UserManager"
 import { ThemeProvider } from "@mui/material/styles"
 import { lightTheme, darkTheme } from "./theme"
 import Box from "@mui/material/Box"
@@ -38,7 +39,7 @@ function App() {
     })
     const [tab, setTab] = useState<string>(() => {
         const h = window.location.hash.replace('#', '').split('?')[0]
-        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+        if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview' || h === 'manager') {
             return h
         }
         return "projects"
@@ -122,7 +123,7 @@ function App() {
     useEffect(() => {
         function onHashChange() {
             const h = window.location.hash.replace('#', '').split('?')[0]
-            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview') {
+            if (h === 's3' || h === 'buckets' || h === 'apps' || h === 'projects' || h === 'adminTokens' || h === 'nodes' || h === 'blocks' || h === 'workers' || h === 'cluster' || h === 'preview' || h === 'manager') {
                 setTab(h)
             }
         }
@@ -152,23 +153,21 @@ function App() {
             <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
                 <CssBaseline />
 
-                {/* Hide navigation when on projects page without selected project */}
-                {!(tab === "projects" && !selectedProject) && (
-                    <Navigation
-                        tab={tab as NavigationProps["tab"]}
-                        setTab={(v) => setTab(v)}
-                        dark={dark}
-                        setDark={(v) => { setDark(v); localStorage.setItem("kexamanager:dark", v ? "1" : "0") }}
-                        lang={lang}
-                        setLang={(l) => { setLang(l); }}
-                        mobileOpen={mobileOpen}
-                        setMobileOpen={setMobileOpen}
-                        onLogout={logout}
-                        selectedProject={getSelectedProjectInfo()}
-                        projects={projects}
-                        onSelectProject={setSelectedProject}
-                    />
-                )}
+                {/* Always show navigation */}
+                <Navigation
+                    tab={tab as NavigationProps["tab"]}
+                    setTab={(v) => setTab(v)}
+                    dark={dark}
+                    setDark={(v) => { setDark(v); localStorage.setItem("kexamanager:dark", v ? "1" : "0") }}
+                    lang={lang}
+                    setLang={(l) => { setLang(l); }}
+                    mobileOpen={mobileOpen}
+                    setMobileOpen={setMobileOpen}
+                    onLogout={logout}
+                    selectedProject={getSelectedProjectInfo()}
+                    projects={projects}
+                    onSelectProject={setSelectedProject}
+                />
 
                 <Box
                     component="main"
@@ -187,6 +186,7 @@ function App() {
                     {tab === "buckets" && <Buckets key="buckets" selectedProject={getSelectedProjectInfo()} />}
                     {tab === "apps" && <ApplicationsKeys key="apps" />}
                     {tab === "projects" && <Projects key="projects" selectedProject={selectedProject} onSelectProject={setSelectedProject} onProjectsChange={setProjects} />}
+                    {tab === "manager" && <UserManager key="manager" />}
                     {tab === "s3" && <S3Browser key="s3" selectedProject={getSelectedProjectInfo()} />}
                     {tab === "adminTokens" && <AdminTokens key="adminTokens" />}
                     {tab === "nodes" && <Nodes key="nodes" />}

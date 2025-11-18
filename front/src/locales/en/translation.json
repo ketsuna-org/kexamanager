@@ -76,6 +76,7 @@
         "no_nodes": "No nodes returned",
         "s3_browser": "S3 Browser",
         "projects": "Projects",
+        "manager": "Manager",
         "cluster_storage_overview": "Cluster Storage Overview",
         "data_storage": "Data Storage",
         "used_space": "Used",
@@ -257,5 +258,23 @@
         "clientSecret": "Client Secret",
         "region": "Region",
         "forcePathStyle": "Force Path Style"
+    },
+    "userManager": {
+        "title": "User Management",
+        "addUser": "New User",
+        "editUser": "Edit User",
+        "username": "Username",
+        "password": "Password",
+        "newPassword": "New password (optional)",
+        "passwordHelp": "Leave blank to keep current password",
+        "role": "Role",
+        "roleUser": "User",
+        "roleAdmin": "Administrator",
+        "createdAt": "Created At",
+        "actions": "Actions",
+        "errorUsername": "Username is required",
+        "errorPassword": "Password is required for new users",
+        "errorDeleteRoot": "Cannot delete root user",
+        "confirmDelete": "Delete user \"{{username}}\"?"
     }
 }

@@ -17,7 +17,19 @@ export interface ApiResponse<T = unknown> {
     error?: string
 }
 
-const BASE_URL = "/api"
+const BASE_URL = (() => {
+    // Si on est sur une route avec un chemin (ex: /kexamanager), utiliser ce chemin + /api
+    // Sinon, juste /api
+    const path = window.location.pathname
+    // Si le chemin se termine par /, on l'enlève
+    const cleanPath = path.endsWith('/') ? path.slice(0, -1) : path
+    // Si le chemin est vide ou juste /, retourner /api
+    if (!cleanPath || cleanPath === '') {
+        return '/api'
+    }
+    // Sinon, ajouter /api au chemin
+    return `${cleanPath}/api`
+})()
 
 // Global current project ID - updated by App component
 let currentProjectId: number | null = null
@@ -83,6 +95,15 @@ async function parseResponse<T>(response: Response): Promise<T> {
         }
 
         const err: ApiError = { message: errorMessage, status: response.status }
+
+        // Si le token est expiré (401), déconnecter l'utilisateur
+        if (response.status === 401) {
+            clearAuthToken()
+            localStorage.removeItem("kexamanager:user")
+            // Rediriger vers la page de login
+            window.location.reload()
+        }
+
         throw err
     }
 
@@ -106,6 +127,7 @@ export type RequestOptions = {
 const NON_PROJECT_ENDPOINTS = [
     "/auth/login",
     "/auth/create-user",
+    "/auth/users",
     "/s3-configs",
     "/s3-configs/create",
     "/s3-configs/update",

@@ -11,14 +11,14 @@ export interface LoginResponse {
     user: {
         id: number
         username: string
-        is_admin: boolean
+        role: string
     }
 }
 
 export interface User {
     id: number
     username: string
-    is_admin: boolean
+    role: string
 }
 
 /**

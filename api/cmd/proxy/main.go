@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/tls"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -10,11 +11,13 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/ketsuna-org/kexamanager/cmd/proxy/s3"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -153,7 +156,7 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 	// For example: /api/123/v2/CreateBucket or /api/123/s3/list-buckets
 	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
 	if len(pathParts) < 2 {
-		http.NotFound(w, r)
+		jsonError(w, "Invalid path", http.StatusNotFound)
 		return
 	}
 
@@ -162,21 +165,21 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 
 	projectID, err := strconv.Atoi(projectIDStr)
 	if err != nil {
-		http.Error(w, "Invalid project ID", http.StatusBadRequest)
+		jsonError(w, "Invalid project ID", http.StatusBadRequest)
 		return
 	}
 
 	// Validate token and get user ID
 	userID, err := validateToken(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		jsonError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	// Get the S3 config for this project
 	config, err := getS3Config(uint(projectID), userID)
 	if err != nil {
-		http.Error(w, "Project not found", http.StatusNotFound)
+		jsonError(w, "Project not found", http.StatusNotFound)
 		return
 	}
 
@@ -191,7 +194,7 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 		service = "admin"
 		remainingPath = "/" + strings.Join(pathParts[1:], "/")
 	} else {
-		http.NotFound(w, r)
+		jsonError(w, "Invalid service", http.StatusNotFound)
 		return
 	}
 
@@ -201,26 +204,26 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 	case "s3":
 		handleS3Request(w, r, config, remainingPath)
 	default:
-		http.NotFound(w, r)
+		jsonError(w, "Invalid service", http.StatusNotFound)
 	}
 }
 
 func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, remainingPath string) {
 	if config.AdminURL == "" {
-		http.Error(w, "Admin URL not configured for this project", http.StatusBadRequest)
+		jsonError(w, "Admin URL not configured for this project", http.StatusBadRequest)
 		return
 	}
 
 	adminURL, err := url.Parse(config.AdminURL)
 	if err != nil {
-		http.Error(w, "Invalid admin URL", http.StatusInternalServerError)
+		jsonError(w, "Invalid admin URL", http.StatusInternalServerError)
 		return
 	}
 
 	// Extract project ID from the path to create stripPrefix
 	pathParts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/"), "/")
 	if len(pathParts) == 0 || pathParts[0] == "" {
-		http.Error(w, "Project ID missing in path", http.StatusBadRequest)
+		jsonError(w, "Project ID missing in path", http.StatusBadRequest)
 		return
 	}
 
@@ -271,6 +274,57 @@ func mustParse(raw string, name string) *url.URL {
 	return u
 }
 
+func init() {
+	// Créer le répertoire data s'il n'existe pas
+	dataDir := "./data"
+	if err := os.MkdirAll(dataDir, 0755); err != nil {
+		log.Fatalf("failed to create data directory: %v", err)
+	}
+}
+
+// initRootUser initialise ou met à jour l'utilisateur root depuis les variables d'environnement
+func initRootUser() {
+	rootUsername := "root"
+
+	rootPassword := strings.TrimSpace(os.Getenv("PASSWORD"))
+	if rootPassword == "" {
+		rootPassword = "admin"
+	}
+
+	// Hasher le mot de passe
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(rootPassword), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("failed to hash root password: %v", err)
+	}
+
+	var rootUser User
+	result := db.Where("username = ?", rootUsername).First(&rootUser)
+
+	if result.Error != nil {
+		// L'utilisateur root n'existe pas, le créer
+		rootUser = User{
+			Username: rootUsername,
+			Password: string(hashedPassword),
+			Role:     "admin",
+		}
+		if err := db.Create(&rootUser).Error; err != nil {
+			log.Fatalf("failed to create root user: %v", err)
+		}
+		log.Printf("Root user '%s' created successfully", rootUsername)
+	} else {
+		// L'utilisateur root existe, vérifier si le mot de passe a changé
+		if err := bcrypt.CompareHashAndPassword([]byte(rootUser.Password), []byte(rootPassword)); err != nil {
+			// Le mot de passe a changé, le mettre à jour
+			rootUser.Password = string(hashedPassword)
+			rootUser.Role = "admin" // S'assurer que le rôle est admin
+			if err := db.Save(&rootUser).Error; err != nil {
+				log.Fatalf("failed to update root user password: %v", err)
+			}
+			log.Printf("Root user '%s' password updated", rootUsername)
+		}
+	}
+}
+
 func main() {
 
 	// Récupérer les valeurs des variables d'environnement
@@ -296,6 +350,9 @@ func main() {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
 
+	// Initialiser l'utilisateur root
+	initRootUser()
+
 	// Initialiser les handlers S3
 	s3.InitHandlers(validateToken, getS3Config)
 
@@ -307,22 +364,40 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// Dynamic admin proxy based on project ID
-	mux.HandleFunc("/api/", handleProjectRoutes)
-
-	// Auth endpoints (not project-specific)
+	// Auth endpoints (not project-specific) - MUST be registered before /api/
 	mux.HandleFunc("/api/auth/login", HandleLogin)
 	mux.HandleFunc("/api/auth/create-user", HandleCreateUser)
+	mux.HandleFunc("/api/auth/users/", func(w http.ResponseWriter, r *http.Request) {
+		// Check if it's exactly /api/auth/users or /api/auth/users/ (list all users)
+		if r.URL.Path == "/api/auth/users" || r.URL.Path == "/api/auth/users/" {
+			if r.Method == http.MethodGet {
+				HandleListUsers(w, r)
+			} else {
+				jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+			return
+		}
+
+		// Otherwise it's /api/auth/users/{id}
+		switch r.Method {
+		case http.MethodPut:
+			HandleUpdateUser(w, r)
+		case http.MethodDelete:
+			HandleDeleteUser(w, r)
+		default:
+			jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 	mux.HandleFunc("/api/s3-configs", HandleGetS3Configs)
 	mux.HandleFunc("/api/s3-configs/create", HandleCreateS3Config)
 	mux.HandleFunc("/api/s3-configs/update", HandleUpdateS3Config)
 	mux.HandleFunc("/api/s3-configs/delete", HandleDeleteS3Config)
 
-	// Basic health endpoint for convenience
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte("ok"))
-	})
+	// Dynamic admin proxy based on project ID - registered last as catch-all
+	mux.HandleFunc("/api/", handleProjectRoutes)
+
+	// Health endpoint with system metrics
+	mux.HandleFunc("/health", HandleHealth)
 
 	// Serve static files built by the frontend (if present).
 	// Use the provided -static-dir flag (defaults to ./public). The Dockerfile
@@ -408,4 +483,72 @@ func clientIP(r *http.Request) string {
 		return host[:i]
 	}
 	return host
+}
+
+// HealthResponse représente la réponse du endpoint /health
+type HealthResponse struct {
+	Status    string   `json:"status"`
+	Timestamp string   `json:"timestamp"`
+	Memory    Memory   `json:"memory"`
+	CPU       CPU      `json:"cpu"`
+	Database  Database `json:"database"`
+}
+
+type Memory struct {
+	Alloc      uint64  `json:"alloc_bytes"`       // Mémoire allouée actuellement
+	TotalAlloc uint64  `json:"total_alloc_bytes"` // Total alloué depuis le démarrage
+	Sys        uint64  `json:"sys_bytes"`         // Mémoire obtenue du système
+	NumGC      uint32  `json:"num_gc"`            // Nombre de GC exécutés
+	AllocMB    float64 `json:"alloc_mb"`          // Mémoire allouée en MB
+	SysMB      float64 `json:"sys_mb"`            // Mémoire système en MB
+}
+
+type CPU struct {
+	NumCPU       int `json:"num_cpu"`       // Nombre de CPUs
+	NumGoroutine int `json:"num_goroutine"` // Nombre de goroutines
+}
+
+type Database struct {
+	Path      string  `json:"path"`
+	SizeBytes int64   `json:"size_bytes"`
+	SizeMB    float64 `json:"size_mb"`
+}
+
+// HandleHealth gère le endpoint /health avec les métriques système
+func HandleHealth(w http.ResponseWriter, r *http.Request) {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	// Obtenir la taille de la base de données
+	dbPath := "./data/kexamanager.db"
+	dbSize := int64(0)
+	if fileInfo, err := os.Stat(dbPath); err == nil {
+		dbSize = fileInfo.Size()
+	}
+
+	response := HealthResponse{
+		Status:    "ok",
+		Timestamp: time.Now().Format(time.RFC3339),
+		Memory: Memory{
+			Alloc:      m.Alloc,
+			TotalAlloc: m.TotalAlloc,
+			Sys:        m.Sys,
+			NumGC:      m.NumGC,
+			AllocMB:    float64(m.Alloc) / 1024 / 1024,
+			SysMB:      float64(m.Sys) / 1024 / 1024,
+		},
+		CPU: CPU{
+			NumCPU:       runtime.NumCPU(),
+			NumGoroutine: runtime.NumGoroutine(),
+		},
+		Database: Database{
+			Path:      dbPath,
+			SizeBytes: dbSize,
+			SizeMB:    float64(dbSize) / 1024 / 1024,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
 }

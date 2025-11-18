@@ -23,19 +23,19 @@ type CreateS3ConfigRequest struct {
 // HandleGetS3Configs retourne les configs S3 de l'utilisateur
 func HandleGetS3Configs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	userID, err := validateToken(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		jsonError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	var configs []S3Config
 	if err := db.Where("user_id = ?", userID).Find(&configs).Error; err != nil {
-		http.Error(w, "Failed to fetch configs", http.StatusInternalServerError)
+		jsonError(w, "Failed to fetch configs", http.StatusInternalServerError)
 		return
 	}
 
@@ -46,46 +46,88 @@ func HandleGetS3Configs(w http.ResponseWriter, r *http.Request) {
 // HandleCreateS3Config crée une nouvelle config S3
 func HandleCreateS3Config(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	userID, err := validateToken(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		jsonError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	var req CreateS3ConfigRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		jsonError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	if req.Type != "garage" && req.Type != "s3" {
-		http.Error(w, "Type must be 'garage' or 's3'", http.StatusBadRequest)
+		jsonError(w, "Type must be 'garage' or 's3'", http.StatusBadRequest)
 		return
 	}
 
 	// For garage type, admin URL is optional but if provided, token is required
 	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
-		http.Error(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
+		jsonError(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
 		return
 	}
 
 	// For S3 type, admin URL should not be provided
 	if req.Type == "s3" && req.AdminURL != "" {
-		http.Error(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
+		jsonError(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
 		return
 	}
 
 	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
 	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
 	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
-		http.Error(w, "Client ID and Client Secret are required", http.StatusBadRequest)
+		jsonError(w, "Client ID and Client Secret are required", http.StatusBadRequest)
 		return
 	}
 
+	// Vérifier si une config avec ce nom existe déjà pour cet utilisateur (même soft-deleted)
+	var existingConfig S3Config
+	err = db.Unscoped().Where("user_id = ? AND name = ?", userID, req.Name).First(&existingConfig).Error
+
+	if err == nil {
+		// Une config existe déjà
+		if existingConfig.DeletedAt.Valid {
+			// La config était supprimée, on la réactive avec les nouvelles données
+			existingConfig.DeletedAt = gorm.DeletedAt{}
+			existingConfig.Type = req.Type
+			existingConfig.S3URL = req.S3URL
+			existingConfig.AdminURL = req.AdminURL
+			existingConfig.AdminToken = req.AdminToken
+			existingConfig.ClientID = req.ClientID
+			existingConfig.ClientSecret = req.ClientSecret
+			existingConfig.Region = req.Region
+			existingConfig.ForcePathStyle = req.ForcePathStyle
+
+			if existingConfig.Region == "" {
+				if existingConfig.Type == "garage" {
+					existingConfig.Region = "garage"
+				} else {
+					existingConfig.Region = "us-east-1"
+				}
+			}
+
+			if err := db.Unscoped().Save(&existingConfig).Error; err != nil {
+				jsonError(w, "Failed to reactivate config", http.StatusInternalServerError)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(existingConfig)
+			return
+		} else {
+			// La config existe et n'est pas supprimée
+			jsonError(w, "A configuration with this name already exists", http.StatusConflict)
+			return
+		}
+	}
+
+	// La config n'existe pas, on la crée
 	config := S3Config{
 		UserID:         userID,
 		Name:           req.Name,
@@ -108,7 +150,7 @@ func HandleCreateS3Config(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := db.Create(&config).Error; err != nil {
-		http.Error(w, "Failed to create config", http.StatusInternalServerError)
+		jsonError(w, "Failed to create config", http.StatusInternalServerError)
 		return
 	}
 
@@ -119,55 +161,55 @@ func HandleCreateS3Config(w http.ResponseWriter, r *http.Request) {
 // HandleUpdateS3Config met à jour une config S3
 func HandleUpdateS3Config(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPut {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	userID, err := validateToken(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		jsonError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		jsonError(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
 	var req CreateS3ConfigRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		jsonError(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
 
 	var config S3Config
 	if err := db.Where("id = ? AND user_id = ?", id, userID).First(&config).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			http.Error(w, "Config not found", http.StatusNotFound)
+			jsonError(w, "Config not found", http.StatusNotFound)
 		} else {
-			http.Error(w, "Database error", http.StatusInternalServerError)
+			jsonError(w, "Database error", http.StatusInternalServerError)
 		}
 		return
 	}
 
 	// For garage type, admin URL is optional but if provided, token is required
 	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
-		http.Error(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
+		jsonError(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
 		return
 	}
 
 	// For S3 type, admin URL should not be provided
 	if req.Type == "s3" && req.AdminURL != "" {
-		http.Error(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
+		jsonError(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
 		return
 	}
 
 	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
 	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
 	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
-		http.Error(w, "Client ID and Client Secret are required", http.StatusBadRequest)
+		jsonError(w, "Client ID and Client Secret are required", http.StatusBadRequest)
 		return
 	}
 
@@ -182,7 +224,7 @@ func HandleUpdateS3Config(w http.ResponseWriter, r *http.Request) {
 	config.ForcePathStyle = req.ForcePathStyle
 
 	if err := db.Save(&config).Error; err != nil {
-		http.Error(w, "Failed to update config", http.StatusInternalServerError)
+		jsonError(w, "Failed to update config", http.StatusInternalServerError)
 		return
 	}
 
@@ -193,25 +235,27 @@ func HandleUpdateS3Config(w http.ResponseWriter, r *http.Request) {
 // HandleDeleteS3Config supprime une config S3
 func HandleDeleteS3Config(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		jsonError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	userID, err := validateToken(r)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusUnauthorized)
+		jsonError(w, err.Error(), http.StatusUnauthorized)
 		return
 	}
 
 	idStr := r.URL.Query().Get("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		jsonError(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
 
-	if err := db.Where("id = ? AND user_id = ?", id, userID).Delete(&S3Config{}).Error; err != nil {
-		http.Error(w, "Failed to delete config", http.StatusInternalServerError)
+	// Utiliser Unscoped().Delete() pour vraiment supprimer la config (hard delete)
+	// Sans ça, GORM fait un soft delete et les contraintes peuvent poser problème
+	if err := db.Unscoped().Where("id = ? AND user_id = ?", id, userID).Delete(&S3Config{}).Error; err != nil {
+		jsonError(w, "Failed to delete config", http.StatusInternalServerError)
 		return
 	}
 
