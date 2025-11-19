@@ -440,9 +440,9 @@ func main() {
 	srv := &http.Server{
 		Addr:              addr,
 		Handler:           loggingMiddleware(mux),
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second,
+		ReadHeaderTimeout: 30 * time.Second,
+		ReadTimeout:       30 * time.Minute, // Augmenté pour permettre l'upload de gros fichiers
+		WriteTimeout:      30 * time.Minute, // Augmenté pour permettre le téléchargement de gros fichiers
 		IdleTimeout:       120 * time.Second,
 	}
 

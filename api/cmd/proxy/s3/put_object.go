@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/minio/minio-go/v7"
 )
@@ -19,10 +18,6 @@ func HandlePutObject() http.HandlerFunc {
 			w.Write([]byte(`{"error": "Method not allowed", "details": "Only POST method is allowed"}`))
 			return
 		}
-
-		// Set read timeout for large file uploads (30 minutes)
-		rc := http.NewResponseController(w)
-		rc.SetReadDeadline(time.Now().Add(30 * time.Minute))
 
 		// Parse multipart form
 		err := r.ParseMultipartForm(32 << 20) // 32MB max memory
@@ -171,10 +166,6 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 			w.Write([]byte(`{"error": "Method not allowed", "details": "Only POST method is allowed"}`))
 			return
 		}
-
-		// Set read timeout for large file uploads (30 minutes)
-		rc := http.NewResponseController(w)
-		rc.SetReadDeadline(time.Now().Add(30 * time.Minute))
 
 		// Parse multipart form
 		err := r.ParseMultipartForm(32 << 20) // 32MB max memory
