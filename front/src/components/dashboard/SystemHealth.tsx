@@ -1,5 +1,5 @@
 import { Box, Card, Typography } from "@mui/material"
-import React, { useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 
 // Remove hardcoded services array
 
