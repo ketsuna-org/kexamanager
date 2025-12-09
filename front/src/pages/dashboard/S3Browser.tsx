@@ -10,6 +10,15 @@ import DialogActions from "@mui/material/DialogActions"
 import Button from "@mui/material/Button"
 import { GetBucketInfo } from "../../utils/apiWrapper"
 import { BucketsList, ObjectsList, CreateBucketDialog, CopyObjectDialog } from "./components"
+import ConfirmDialog from "../../components/ConfirmDialog"
+import PreviewDialog from "./components/PreviewDialog"
+
+interface ConfirmState {
+  title: string
+  message: string
+  confirmColor?: "primary" | "secondary" | "error" | "info" | "success" | "warning"
+  onConfirm: () => void
+}
 
 interface S3Object {
   Key: string
@@ -20,19 +29,19 @@ interface S3Object {
 
 function getStoredKeyId(): string | null {
   try {
-     const keyId = sessionStorage.getItem("kexamanager:s3:keyId") || localStorage.getItem("kexamanager:s3:keyId")
-     return keyId
+    const keyId = sessionStorage.getItem("kexamanager:s3:keyId") || localStorage.getItem("kexamanager:s3:keyId")
+    return keyId
   } catch {
-     return null
+    return null
   }
 }
 
 function getStoredToken(): string | null {
   try {
-     const token = sessionStorage.getItem("kexamanager:s3:secretAccessKey") || localStorage.getItem("kexamanager:s3:secretAccessKey")
-     return token
+    const token = sessionStorage.getItem("kexamanager:s3:secretAccessKey") || localStorage.getItem("kexamanager:s3:secretAccessKey")
+    return token
   } catch {
-     return null
+    return null
   }
 }
 
@@ -71,7 +80,7 @@ async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: numbe
 }
 
 interface S3BrowserProps {
-    selectedProject: { id: number; name: string; admin_url?: string; type?: string } | null
+  selectedProject: { id: number; name: string; admin_url?: string; type?: string } | null
 }
 
 export default function S3Browser({ selectedProject }: S3BrowserProps) {
@@ -100,8 +109,10 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
   const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedObjectKeys, setSelectedObjectKeys] = useState<Set<string>>(new Set())
   const [copyDialog, setCopyDialog] = useState<{ open: boolean; sourceKey?: string; destKey?: string }>({ open: false })
+  const [previewDialog, setPreviewDialog] = useState<{ open: boolean; key?: string; url?: string; mime?: string }>({ open: false })
   const [bucketRegion, setBucketRegion] = useState<string | null>(null)
   const [quotaAlert, setQuotaAlert] = useState<{ open: boolean; message: string; onConfirm: () => void } | null>(null)
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null)
 
   const refreshBuckets = useCallback(async () => {
     setLoading(true)
@@ -135,7 +146,16 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     }
   }
 
-  async function deleteBucket(name: string) {
+  function confirmDeleteBucket(name: string) {
+    setConfirmState({
+      title: t("s3browser.delete_bucket_title", "Delete Bucket"),
+      message: t("s3browser.delete_bucket_confirm", `Are you sure you want to delete bucket "${name}"? This action cannot be undone.`),
+      confirmColor: "error",
+      onConfirm: () => performDeleteBucket(name)
+    })
+  }
+
+  async function performDeleteBucket(name: string) {
     setLoading(true)
     setError(null)
     try {
@@ -143,9 +163,11 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
         bucket: name
       }, selectedConfigId || undefined)
       if (selectedBucket === name) setSelectedBucket(null)
+      setConfirmState(null)
       await refreshBuckets()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      setConfirmState(null) // Close dialog even on error so user can see toast/error chip
     } finally {
       setLoading(false)
     }
@@ -158,7 +180,7 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     try {
       const res = await s3ApiRequest<{ objects: { key: string; size: number; lastModified: string; etag: string }[]; continuationToken?: string; isTruncated: boolean; totalSize: number }>('list-objects', {
         bucket,
-        prefix: opts?.prefix || prefix || undefined
+        prefix: opts?.prefix !== undefined ? opts.prefix : (prefix || undefined)
       }, selectedConfigId || undefined)
       console.log('List objects response:', res)
       const items = res.objects ? res.objects.map(obj => ({
@@ -215,7 +237,16 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     await listObjects(name)
   }
 
-  async function handleDeleteObject(bucket: string, key: string) {
+  function confirmDeleteObject(bucket: string, key: string) {
+    setConfirmState({
+      title: t("s3browser.delete_object_title", "Delete Object"),
+      message: t("s3browser.delete_object_confirm", `Are you sure you want to delete "${key}"?`),
+      confirmColor: "error",
+      onConfirm: () => performDeleteObject(bucket, key)
+    })
+  }
+
+  async function performDeleteObject(bucket: string, key: string) {
     setLoading(true)
     try {
       await s3ApiRequest<{ success: boolean }>('delete-object', {
@@ -223,14 +254,25 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
         key
       }, selectedConfigId || undefined)
       await listObjects(bucket)
+      setConfirmState(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      setConfirmState(null)
     } finally {
       setLoading(false)
     }
   }
 
-  async function handleDeleteDirectory(dirPrefix: string) {
+  function confirmDeleteDirectory(dirPrefix: string) {
+    setConfirmState({
+      title: t("s3browser.delete_folder_title", "Delete Folder"),
+      message: t("s3browser.delete_folder_confirm", `Are you sure you want to delete folder "${dirPrefix}" and all its contents?`),
+      confirmColor: "error",
+      onConfirm: () => performDeleteDirectory(dirPrefix)
+    })
+  }
+
+  async function performDeleteDirectory(dirPrefix: string) {
     if (!selectedBucket) return
     setLoading(true)
     setError(null)
@@ -255,6 +297,7 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
+      setConfirmState(null)
     }
   }
 
@@ -378,7 +421,17 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     await listObjects(bucket)
   }
 
-  async function handleDeleteSelected(bucket: string) {
+  function confirmDeleteSelected(bucket: string) {
+    if (selectedObjectKeys.size === 0) return
+    setConfirmState({
+      title: t("s3browser.delete_selected_title", "Delete Selected"),
+      message: t("s3browser.delete_selected_confirm", `Are you sure you want to delete ${selectedObjectKeys.size} items?`),
+      confirmColor: "error",
+      onConfirm: () => performDeleteSelected(bucket)
+    })
+  }
+
+  async function performDeleteSelected(bucket: string) {
     if (selectedObjectKeys.size === 0) return
     setLoading(true)
     try {
@@ -389,8 +442,10 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
         }, selectedConfigId || undefined)
       }
       await listObjects(bucket)
+      setConfirmState(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      setConfirmState(null)
     } finally {
       setLoading(false)
     }
@@ -510,19 +565,13 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
           mime = `video/${extension}`
         }
       }
-      // Store preview params in sessionStorage and navigate to preview route
-      try {
-        // lazy import to avoid circular deps in some setups
-        const { setPreviewSession } = await import('../../utils/previewSession')
-        setPreviewSession({ key, url: res.presignedUrl, mime, bucket })
-      } catch {
-        // fallback: include params in hash if sessionStorage not available
-        window.location.hash = `preview?key=${encodeURIComponent(key)}&url=${encodeURIComponent(res.presignedUrl)}&mime=${encodeURIComponent(mime)}&bucket=${encodeURIComponent(bucket)}`
-        setLoading(false)
-        return
-      }
 
-      window.location.hash = 'preview'
+      setPreviewDialog({
+        open: true,
+        key,
+        url: res.presignedUrl,
+        mime
+      })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -550,7 +599,7 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
 
 
 
-async function handleUploadDirectory(files: FileList | null) {
+  async function handleUploadDirectory(files: FileList | null) {
     if (!files || !files.length || !selectedBucket) return
     setError(null)
 
@@ -593,7 +642,7 @@ async function handleUploadDirectory(files: FileList | null) {
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
         <Typography variant="h6">
-          {selectedProject ? `Project: ${selectedProject.name}` : 'No project selected'}
+          {selectedProject ? `Project: ${selectedProject.name}` : t('s3browser.cluster_storage', 'Cluster Storage')}
         </Typography>
       </Box>
       {!selectedBucket ? (
@@ -602,7 +651,7 @@ async function handleUploadDirectory(files: FileList | null) {
           loading={loading}
           onRefresh={refreshBuckets}
           onOpenBucket={handleOpenBucket}
-          onDeleteBucket={deleteBucket}
+          onDeleteBucket={confirmDeleteBucket}
           onCreateOpen={() => setCreateOpen(true)}
         />
       ) : (
@@ -617,10 +666,10 @@ async function handleUploadDirectory(files: FileList | null) {
           onBackToBuckets={() => { setSelectedBucket(null); setPrefix(""); }}
           onRefresh={() => listObjects(selectedBucket)}
           onUpload={(files) => handleUpload(selectedBucket, files)}
-          onDeleteSelected={() => handleDeleteSelected(selectedBucket)}
+          onDeleteSelected={() => confirmDeleteSelected(selectedBucket)}
           onPreview={(key) => handlePreview(selectedBucket, key)}
           onDownload={(key) => handleDownload(selectedBucket, key)}
-          onDeleteObject={(key) => handleDeleteObject(selectedBucket, key)}
+          onDeleteObject={(key) => confirmDeleteObject(selectedBucket, key)}
           onLoadMore={() => listObjects(selectedBucket, { loadMore: true })}
           selectedObjectKeys={selectedObjectKeys}
           onToggleSelect={(key) => {
@@ -639,7 +688,7 @@ async function handleUploadDirectory(files: FileList | null) {
           uploadProgress={uploadProgress}
           continuationToken={continuationToken}
           onUploadDirectory={handleUploadDirectory}
-          onDeleteDirectory={handleDeleteDirectory}
+          onDeleteDirectory={confirmDeleteDirectory}
           onCreateDirectory={handleCreateDirectory}
         />
       )}      {error && (
@@ -662,7 +711,7 @@ async function handleUploadDirectory(files: FileList | null) {
         sourceKey={copyDialog.sourceKey || ""}
         destKey={copyDialog.destKey || ""}
         onDestKeyChange={(value) => setCopyDialog((c) => ({ ...c, destKey: value }))}
-        onCopy={() => {}}
+        onCopy={() => { }}
       />
 
       <Dialog
@@ -680,6 +729,23 @@ async function handleUploadDirectory(files: FileList | null) {
           </Button>
         </DialogActions>
       </Dialog>
+      <ConfirmDialog
+        open={!!confirmState}
+        title={confirmState?.title || ""}
+        message={confirmState?.message || ""}
+        confirmColor={confirmState?.confirmColor}
+        loading={loading}
+        onConfirm={confirmState?.onConfirm || (() => { })}
+        onClose={() => setConfirmState(null)}
+      />
+
+      <PreviewDialog
+        open={previewDialog.open}
+        onClose={() => setPreviewDialog({ open: false })}
+        key={previewDialog.key || ""}
+        url={previewDialog.url}
+        mime={previewDialog.mime}
+      />
     </Box>
   )
 }

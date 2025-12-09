@@ -19,8 +19,9 @@ import {
     CircularProgress,
     Switch,
     FormControlLabel,
+    IconButton,
 } from "@mui/material"
-import { Add, Edit, Delete } from "@mui/icons-material"
+import { Add, Delete } from "@mui/icons-material"
 import { useTranslation } from "react-i18next"
 import { adminGet, adminPost, adminPut, adminDelete } from "../../utils/adminClient"
 import type { ApiError } from "../../utils/adminClient"
@@ -28,17 +29,19 @@ import type { ApiError } from "../../utils/adminClient"
 interface ProjectsProps {
     selectedProject: number | null
     onSelectProject: (projectId: number | null) => void
-    onProjectsChange: (projects: Array<{id: number, name: string, admin_url?: string, type?: string}>) => void
+    onProjectsChange: (projects: Array<{ id: number, name: string, admin_url?: string, type?: string }>) => void
 }
 
 interface S3Config {
     id: number
+    CreatedAt: string
+    UpdatedAt: string
+    DeletedAt: string | null
     user_id: number
     name: string
     type: "garage" | "s3"
     s3_url: string
     admin_url?: string
-    admin_token?: string
     client_id: string
     region: string
     force_path_style: boolean
@@ -68,22 +71,25 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
         try {
             setLoading(true)
             const response = await adminGet<S3Config[]>("/s3-configs")
-            setConfigs(response)
-            onProjectsChange(response.map(c => ({ id: c.id, name: c.name, admin_url: c.admin_url, type: c.type })))
+            const data = Array.isArray(response) ? response : []
+            setConfigs(data)
+            // Update parent component with simplified config list
+            onProjectsChange(data.map(c => ({ id: c.id, name: c.name, admin_url: c.admin_url, type: c.type })))
         } catch (err) {
             const apiError = err as ApiError
             setError(apiError.message || "Failed to load configs")
+            setConfigs([])
         } finally {
             setLoading(false)
         }
     }, [onProjectsChange])
 
-    // Only load configs if we don't have them yet
+    // Load configs on component mount only
     useEffect(() => {
-        if (configs.length === 0) {
-            loadConfigs()
-        }
-    }, [loadConfigs, configs.length])
+        loadConfigs()
+        // Use empty dependency to load only once
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     const handleOpenDialog = (config?: S3Config) => {
         setError("")  // Clear any previous errors
@@ -94,7 +100,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                 type: config.type,
                 s3_url: config.s3_url,
                 admin_url: config.admin_url || "",
-                admin_token: config.admin_token || "",
+                admin_token: "",
                 client_id: config.client_id,
                 client_secret: "",
                 region: config.region,
@@ -177,10 +183,10 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
     }
 
     // If a project is selected, show project workspace
-    if (selectedProject) {
+    if (selectedProject && configs && configs.length > 0) {
         const project = configs.find(c => c.id === selectedProject)
         return (
-            <Box>
+            <Box sx={{ p: 3 }}>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                     <Box>
                         <Button
@@ -204,11 +210,9 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
 
     // Show projects list
     return (
-        <Box>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h4" component="h1">
-                    {t("projects.title", "Projects")}
-                </Typography>
+        <Box sx={{ p: 3 }}>
+            <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="h4" fontWeight={700}>Projects</Typography>
                 <Button
                     variant="contained"
                     startIcon={<Add />}
@@ -224,55 +228,71 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                 </Alert>
             )}
 
-            <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(300px, 1fr))" gap={2}>
-                {configs.map((config) => (
-                    <Card key={config.id} sx={{ height: "fit-content" }}>
-                        <CardContent>
-                            <Typography key={`name-${config.id}`} variant="h6" gutterBottom>
-                                {config.name}
-                            </Typography>
-                            <Typography key={`type-${config.id}`} variant="body2" color="text.secondary">
-                                Type: {config.type.toUpperCase()}
-                            </Typography>
-                            <Typography key={`url-${config.id}`} variant="body2" color="text.secondary">
-                                URL: {config.s3_url}
-                            </Typography>
-                            {config.admin_url && (
-                                <Typography key={`admin-${config.id}`} variant="body2" color="text.secondary">
-                                    Admin: {config.admin_url}
+            <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(350px, 1fr))" gap={3}>
+                {configs && configs.map((config) => (
+                    <Card key={config.id} sx={{
+                        height: "100%",
+                        display: "flex",
+                        flexDirection: "column",
+                        transition: "transform 0.2s, border-color 0.2s",
+                        "&:hover": {
+                            borderColor: "primary.main",
+                            transform: "translateY(-2px)"
+                        }
+                    }}>
+                        <CardContent sx={{ flex: 1 }}>
+                            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "start", mb: 2 }}>
+                                <Typography variant="h6" fontWeight={600}>
+                                    {config.name}
                                 </Typography>
-                            )}
-                            <Typography key={`region-${config.id}`} variant="body2" color="text.secondary">
-                                Region: {config.region}
-                            </Typography>
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Box sx={{
+                                        px: 1, py: 0.5,
+                                        borderRadius: 1,
+                                        bgcolor: "rgba(255,255,255,0.05)",
+                                        fontSize: "0.75rem",
+                                        fontWeight: 600,
+                                        textTransform: "uppercase",
+                                        letterSpacing: "0.05em",
+                                        color: "text.secondary"
+                                    }}>
+                                        {config.type}
+                                    </Box>
+                                    <IconButton size="small" onClick={() => handleDelete(config)} sx={{ color: "text.secondary", ml: 1, mt: -0.5 }}>
+                                        <Delete fontSize="small" />
+                                    </IconButton>
+                                </Box>
+                            </Box>
+
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>URL:</Typography>
+                                    <Typography variant="body2" sx={{ fontFamily: "monospace", bgcolor: "rgba(0,0,0,0.2)", px: 0.5, borderRadius: 0.5 }}>
+                                        {config.s3_url}
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>Region:</Typography>
+                                    <Typography variant="body2">{config.region}</Typography>
+                                </Box>
+                            </Box>
                         </CardContent>
-                        <CardActions>
+                        <CardActions sx={{ p: 2, pt: 0, justifyContent: "flex-end", gap: 1 }}>
                             <Button
-                                key={`open-${config.id}`}
                                 size="small"
-                                color="primary"
-                                variant="contained"
-                                onClick={() => onSelectProject(config.id)}
-                                sx={{ mr: 1 }}
-                            >
-                                Open Project
-                            </Button>
-                            <Button
-                                key={`edit-${config.id}`}
-                                size="small"
-                                startIcon={<Edit />}
+                                variant="outlined"
+                                color="inherit"
                                 onClick={() => handleOpenDialog(config)}
                             >
                                 {t("common.edit", "Edit")}
                             </Button>
                             <Button
-                                key={`delete-${config.id}`}
                                 size="small"
-                                color="error"
-                                startIcon={<Delete />}
-                                onClick={() => handleDelete(config)}
+                                variant="contained"
+                                color="primary"
+                                onClick={() => onSelectProject(config.id)}
                             >
-                                {t("common.delete", "Delete")}
+                                Open Project
                             </Button>
                         </CardActions>
                     </Card>

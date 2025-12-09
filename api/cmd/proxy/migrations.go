@@ -23,7 +23,7 @@ func RunMigrations(db *gorm.DB) error {
 	}
 
 	// AutoMigrate des modèles principaux (ajoute nouvelles colonnes/tables)
-	if err := db.AutoMigrate(&User{}, &S3Config{}); err != nil {
+	if err := db.AutoMigrate(&User{}, &S3Config{}, &ProjectLog{}); err != nil {
 		return fmt.Errorf("failed to auto-migrate models: %w", err)
 	}
 

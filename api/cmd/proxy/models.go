@@ -40,3 +40,13 @@ type S3Credentials struct {
 	Region          string `json:"region,omitempty"`
 	ForcePathStyle  bool   `json:"forcePathStyle,omitempty"`
 }
+
+// ProjectLog représente une activité sur un projet
+type ProjectLog struct {
+	gorm.Model
+	ProjectID uint   `gorm:"index;not null" json:"project_id"`
+	UserID    uint   `gorm:"index" json:"user_id"` // Peut être null pour les actions système, mais ici indexé
+	Action    string `gorm:"not null" json:"action"`
+	Details   string `json:"details"`
+	Status    string `json:"status"` // "success", "error"
+}
