@@ -41,11 +41,16 @@ type S3Credentials struct {
 	ForcePathStyle  bool   `json:"forcePathStyle,omitempty"`
 }
 
-// ProjectLog représente une activité sur un projet
+// ProjectLog représente une activité sur un projet.
+// 
+// Convention: UserID == 0 indique une action système (non initiée par un utilisateur).
+// Toutes les actions initiées par un utilisateur doivent avoir un UserID > 0.
 type ProjectLog struct {
 	gorm.Model
 	ProjectID uint   `gorm:"index;not null" json:"project_id"`
-	UserID    uint   `gorm:"index" json:"user_id"` // Peut être null pour les actions système, mais ici indexé
+	// UserID == 0 signifie une action système (aucun utilisateur associé).
+	// Pour les actions utilisateur, UserID doit être > 0.
+	UserID    uint   `gorm:"index" json:"user_id"`
 	Action    string `gorm:"not null" json:"action"`
 	Details   string `json:"details"`
 	Status    string `json:"status"` // "success", "error"
