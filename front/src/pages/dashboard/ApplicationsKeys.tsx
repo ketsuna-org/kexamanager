@@ -101,7 +101,7 @@ export default function ApplicationsKeys() {
             // permissions: set allow flags when true
             if (createForm.permissions) {
                 const allow: components["schemas"]["KeyPerm"] = {}
-                if (createForm.permissions.createBucket)allow.createBucket = true;
+                if (createForm.permissions.createBucket) allow.createBucket = true;
                 body.allow = allow
             }
             const res = await CreateKey(body)
@@ -189,7 +189,8 @@ export default function ApplicationsKeys() {
             const storage = useSessionStorage ? sessionStorage : localStorage
             storage.setItem('kexamanager:s3:keyId', res.accessKeyId)
             storage.setItem('kexamanager:s3:secretAccessKey', res.secretAccessKey)
-            window.location.hash = '#s3'
+            // Redirect to S3 Browser tab in Cluster view
+            window.location.href = '/cluster?tab=S3%20Browser'
         } catch (e) {
             console.error('Impersonate by id error', e)
             setError(e instanceof Error ? e.message : String(e))
@@ -218,7 +219,7 @@ export default function ApplicationsKeys() {
                     allow.createBucket = false
                 }
                 body.allow = allow
-            }else {
+            } else {
                 body.allow = {
                     createBucket: false
                 }
@@ -244,7 +245,8 @@ export default function ApplicationsKeys() {
             const storage = useSessionStorage ? sessionStorage : localStorage
             storage.setItem('kexamanager:s3:keyId', selectedKey.accessKeyId)
             storage.setItem('kexamanager:s3:secretAccessKey', selectedKey.secretAccessKey)
-            window.location.hash = '#s3'
+            // Redirect to S3 Browser tab in Cluster view
+            window.location.href = '/cluster?tab=S3%20Browser'
         } catch (e) {
             console.error('Impersonate error:', e)
         }

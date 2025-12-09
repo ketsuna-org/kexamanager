@@ -22,14 +22,15 @@ import VisibilityIcon from "@mui/icons-material/Visibility"
 import DownloadIcon from "@mui/icons-material/Download"
 import LinearProgress from "@mui/material/LinearProgress"
 import FolderIcon from "@mui/icons-material/Folder"
-import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder"
 import Menu from "@mui/material/Menu"
 import MenuItem from "@mui/material/MenuItem"
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown"
+import Checkbox from "@mui/material/Checkbox"
 import {
   type _Object as S3Object,
 } from "@aws-sdk/client-s3"
+import S3Breadcrumbs from "./S3Breadcrumbs"
 
 interface ObjectsListProps {
   selectedBucket: string
@@ -91,16 +92,6 @@ export default function ObjectsList({
   const [uploadMenuAnchor, setUploadMenuAnchor] = useState<null | HTMLElement>(null)
   const [createDirName, setCreateDirName] = useState("")
 
-  const onBack = () => {
-    if (prefix) {
-      const lastSlash = prefix.lastIndexOf('/', prefix.length - 2)
-      const newPrefix = lastSlash >= 0 ? prefix.slice(0, lastSlash + 1) : ''
-      onPrefixChange(newPrefix)
-    } else if (onBackToBuckets) {
-      onBackToBuckets()
-    }
-  }
-
   const getDirectories = (objects: S3Object[], prefix: string) => {
     const dirs = new Set<string>()
     for (const obj of objects) {
@@ -129,47 +120,96 @@ export default function ObjectsList({
 
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-        <Button startIcon={<ArrowBackIcon />} onClick={onBack}>{t("common.back", { defaultValue: "Back" })}</Button>
-        <Typography variant="subtitle1">{selectedBucket}{prefix ? '/' + prefix.slice(0, -1).replace(/\//g, '/') : ''}</Typography>
-        {bucketRegion !== null && (
-          <Chip size="small" label={bucketRegion ? `region: ${bucketRegion}` : "region: default"} />
-        )}
-        <Box sx={{ flex: 1 }} />
-        <TextField size="small" placeholder="New directory name" value={createDirName} onChange={(e) => setCreateDirName(e.target.value)} />
-        <Button startIcon={<CreateNewFolderIcon />} onClick={() => onCreateDirectory(createDirName)} disabled={!createDirName.trim()}>
-          Create Directory
-        </Button>
-        <Button variant="outlined" onClick={onRefresh} startIcon={<RefreshIcon />}>{t("common.refresh")}</Button>
-        <Button onClick={(e) => setUploadMenuAnchor(e.currentTarget)} startIcon={<UploadIcon />} endIcon={<ArrowDropDownIcon />} disabled={!!uploadingFile}>
-          {uploadingFile ? `Uploading ${uploadingFile}...` : "Upload"}
-        </Button>
+      <Box sx={{ px: 2, pt: 2 }}>
+        <S3Breadcrumbs
+          bucket={selectedBucket}
+          prefix={prefix}
+          onNavigate={onPrefixChange}
+          onBackToBuckets={onBackToBuckets || (() => { })}
+        />
+      </Box>
+
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={2}
+        alignItems={{ xs: "stretch", md: "center" }}
+        sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1 }}>
+          {bucketRegion !== null && (
+            <Chip size="small" label={bucketRegion ? `region: ${bucketRegion}` : "region: default"} />
+          )}
+          <TextField
+            size="small"
+            placeholder="New folder"
+            value={createDirName}
+            onChange={(e) => setCreateDirName(e.target.value)}
+            sx={{ width: 150 }}
+          />
+          <IconButton
+            onClick={() => onCreateDirectory(createDirName)}
+            disabled={!createDirName.trim()}
+            title="Create Folder"
+            color="primary"
+          >
+            <CreateNewFolderIcon />
+          </IconButton>
+        </Box>
+
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Button variant="outlined" onClick={onRefresh} startIcon={<RefreshIcon />} size="small">
+            {t("common.refresh")}
+          </Button>
+          <Button
+            onClick={(e) => setUploadMenuAnchor(e.currentTarget)}
+            startIcon={<UploadIcon />}
+            endIcon={<ArrowDropDownIcon />}
+            disabled={!!uploadingFile}
+            variant="contained"
+            size="small"
+          >
+            {uploadingFile ? `Uploading...` : "Upload"}
+          </Button>
+          <Button
+            color="error"
+            disabled={selectedObjectKeys.size === 0}
+            onClick={onDeleteSelected}
+            variant="outlined"
+            startIcon={<DeleteIcon />}
+            size="small"
+          >
+            {t("common.delete", "Delete")}
+          </Button>
+        </Stack>
+
         <Menu anchorEl={uploadMenuAnchor} open={Boolean(uploadMenuAnchor)} onClose={() => setUploadMenuAnchor(null)}>
           <MenuItem onClick={() => { setUploadMenuAnchor(null); fileInputRef.current?.click(); }}>Upload Files</MenuItem>
           <MenuItem onClick={() => { setUploadMenuAnchor(null); dirInputRef.current?.click(); }}>Upload Directory</MenuItem>
         </Menu>
+        {/* Hidden inputs ... */}
         <input ref={fileInputRef} type="file" multiple hidden onChange={(e) => onUpload(e.target.files)} />
         <input ref={(input) => { dirInputRef.current = input; if (input) input.setAttribute('webkitdirectory', 'true') }} type="file" multiple hidden onChange={(e) => onUploadDirectory(e.target.files)} />
-        {uploadingFile && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 200 }}>
+      </Stack>
+
+      {uploadingFile && (
+        <Box sx={{ px: 2, py: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>{uploadingFile}</Typography>
             <LinearProgress variant="determinate" value={uploadProgress} sx={{ flex: 1 }} />
             <Typography variant="body2">{`${uploadProgress}%`}</Typography>
           </Box>
-        )}
-        <Button color="error" disabled={selectedObjectKeys.size === 0} onClick={onDeleteSelected}>
-          {t("common.delete_selected", { defaultValue: "Delete selected" })}
-        </Button>
-      </Stack>
+        </Box>
+      )}
 
       <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell width={24}>
-                <input
-                  type="checkbox"
+              <TableCell padding="checkbox">
+                <Checkbox
                   checked={files.length > 0 && selectedObjectKeys.size === files.length}
                   onChange={(e) => onSelectAll(e.target.checked)}
+                  size="small"
                 />
               </TableCell>
               <TableCell>Key</TableCell>
@@ -208,11 +248,11 @@ export default function ObjectsList({
             ))}
             {files.map((o) => (
               <TableRow key={`${o.Key}-${o.ETag}`} hover>
-                <TableCell>
-                  <input
-                    type="checkbox"
+                <TableCell padding="checkbox">
+                  <Checkbox
                     checked={selectedObjectKeys.has(o.Key!)}
                     onChange={() => onToggleSelect(o.Key!)}
+                    size="small"
                   />
                 </TableCell>
                 <TableCell>{o.Key!.slice(prefix.length)}</TableCell>

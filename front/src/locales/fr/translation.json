@@ -42,6 +42,7 @@
         "show_raw": "Afficher le JSON brut",
         "hide_raw": "Masquer le JSON brut",
         "copy_json": "Copier le JSON",
+        "total_capacity": "Capacité totale",
         "connected_nodes": "Noeuds connectés",
         "storage_nodes": "Noeuds de stockage",
         "partitions_all_ok": "Partitions toutes OK",
@@ -60,6 +61,10 @@
         "cluster_preview_changes": "Aperçu des changements de disposition",
         "cluster_revert_layout": "Revenir à la disposition précédente",
         "cluster_history": "Historique des dispositions",
+        "layout": "Disposition",
+        "history": "Historique",
+        "preview": "Aperçu",
+        "revert": "Revenir en arrière",
         "cluster_layout_input_placeholder": "Collez le JSON de la disposition ici",
         "cluster_skip_dead_nodes": "Ignorer les noeuds morts",
         "cluster_skip_nodes_placeholder": "node1,node2 ou tableau JSON",
@@ -85,6 +90,10 @@
         "zone_redundancy_atleast_count": "Nombre minimum de zones",
         "cluster_roles_edit": "Édition des rôles du cluster",
         "remove_role": "Supprimer le rôle",
+        "capacity_bytes": "Capacité (Octets)",
+        "tags_comma": "Tags (virgule)",
+        "node_id_input": "ID du noeud",
+        "zone_input": "Zone",
         "add_role_change": "Ajouter le changement de rôle",
         "cluster_apply_confirm_title": "Appliquer la disposition mise en attente ?",
         "cluster_apply_confirm_desc": "Appliquer la disposition mise en attente va modifier la configuration du cluster et peut impacter la disponibilité. Voulez-vous continuer ?",
@@ -103,7 +112,11 @@
         "used_data": "Données utilisées",
         "no_current_layout": "Aucune disposition actuelle disponible",
         "node_up": "en ligne",
-        "node_down": "hors ligne"
+        "node_down": "hors ligne",
+        "partition_size": "Taille de partition",
+        "layout_version": "Version de disposition",
+        "stored_partitions": "Partitions stockées",
+        "usable_capacity": "Capacité utilisable"
     },
     "blocks": {
         "col": {

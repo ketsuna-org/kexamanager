@@ -20,7 +20,8 @@ func HandlePutObject() http.HandlerFunc {
 		}
 
 		// Parse multipart form
-		err := r.ParseMultipartForm(32 << 20) // 32MB max memory
+		// Increase limit to 512MB for memory buffer
+		err := r.ParseMultipartForm(512 << 20)
 		if err != nil {
 			fmt.Printf("DEBUG: Failed to parse multipart form: %v\n", err)
 			w.Header().Set("Content-Type", "application/json")
@@ -152,6 +153,10 @@ func HandlePutObject() http.HandlerFunc {
 
 		fmt.Printf("DEBUG: Successfully uploaded object: %s/%s\n", bucket, key)
 
+		if LogActionFunc != nil {
+			LogActionFunc(uint(configID), userID, "upload_file", fmt.Sprintf("Uploaded file %s/%s (%d bytes)", bucket, key, fileSize), "success")
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{"success": true}`))
 	}
@@ -168,7 +173,8 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 		}
 
 		// Parse multipart form
-		err := r.ParseMultipartForm(32 << 20) // 32MB max memory
+		// Increase limit to 512MB for memory buffer
+		err := r.ParseMultipartForm(512 << 20)
 		if err != nil {
 			fmt.Printf("DEBUG: Failed to parse multipart form: %v\n", err)
 			w.Header().Set("Content-Type", "application/json")
@@ -269,7 +275,12 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 
 		fmt.Printf("DEBUG: Successfully uploaded object: %s/%s, size: %d\n", bucket, key, info.Size)
 
+		if LogActionFunc != nil {
+			LogActionFunc(config.ID, 0, "upload_file", fmt.Sprintf("Uploaded file %s/%s (%d bytes)", bucket, key, info.Size), "success")
+		}
+
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"success": true}`))
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(fmt.Sprintf(`{"message": "File uploaded successfully", "bucket": "%s", "key": "%s", "size": %d, "etag": "%s"}`, bucket, key, info.Size, info.ETag)))
 	}
 }

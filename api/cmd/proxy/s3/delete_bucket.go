@@ -53,6 +53,11 @@ func HandleDeleteBucket() http.HandlerFunc {
 		}
 
 		resp := DeleteBucketResponse{Success: true}
+
+		if LogActionFunc != nil {
+			LogActionFunc(req.ConfigID, userID, "delete_bucket", fmt.Sprintf("Deleted bucket %s", req.Bucket), "success")
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}
@@ -91,6 +96,11 @@ func HandleDeleteBucketWithConfig(config S3ConfigData) http.HandlerFunc {
 		}
 
 		resp := DeleteBucketResponse{Success: true}
+
+		if LogActionFunc != nil {
+			LogActionFunc(config.ID, 0, "delete_bucket", fmt.Sprintf("Deleted bucket %s", req.Bucket), "success")
+		}
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(resp)
 	}

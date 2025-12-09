@@ -193,6 +193,8 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 	} else if strings.HasPrefix(endpointStart, "v2") {
 		service = "admin"
 		remainingPath = "/" + strings.Join(pathParts[1:], "/")
+	} else if endpointStart == "logs" {
+		service = "logs"
 	} else {
 		jsonError(w, "Invalid service", http.StatusNotFound)
 		return
@@ -203,6 +205,8 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 		handleAdminProxy(w, r, config, remainingPath)
 	case "s3":
 		handleS3Request(w, r, config, remainingPath)
+	case "logs":
+		HandleListLogs(w, r)
 	default:
 		jsonError(w, "Invalid service", http.StatusNotFound)
 	}
@@ -353,7 +357,9 @@ func main() {
 	initRootUser()
 
 	// Initialiser les handlers S3
-	s3.InitHandlers(validateToken, getS3Config)
+	s3.InitHandlers(validateToken, getS3Config, func(projectID, userID uint, action, details, status string) error {
+		return LogActivity(db, projectID, userID, action, details, status)
+	})
 
 	// Utiliser les valeurs des flags (qui incluent maintenant les variables d'environnement)
 	listenPort := strings.TrimSpace(*portFlag)

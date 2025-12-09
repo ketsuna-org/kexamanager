@@ -46,18 +46,16 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                 alignItems: "center",
                 justifyContent: "center",
                 bgcolor: "background.default",
-                backgroundImage: "radial-gradient(circle at 25px 25px, rgba(59, 130, 246, 0.05) 2%, transparent 0%), radial-gradient(circle at 75px 75px, rgba(156, 39, 176, 0.05) 2%, transparent 0%)",
-                backgroundSize: "100px 100px",
                 p: 2,
             }}
         >
             <Paper
                 sx={{
                     width: "100%",
-                    maxWidth: 480,
+                    maxWidth: 400,
                     p: 4,
-                    backdropFilter: "blur(10px)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    border: "1px solid",
+                    borderColor: "divider",
                 }}
                 component="form"
                 onSubmit={submit}

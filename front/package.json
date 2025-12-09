@@ -19,10 +19,12 @@
         "@mui/icons-material": "^7.3.2",
         "@mui/material": "^7.3.2",
         "i18next": "^25.5.2",
+        "lucide-react": "^0.556.0",
         "prettier": "^3.6.2",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-i18next": "^15.7.3",
+        "react-router-dom": "^7.10.1",
         "recharts": "^3.2.1"
     },
     "devDependencies": {

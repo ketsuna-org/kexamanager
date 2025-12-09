@@ -17,19 +17,8 @@ export interface ApiResponse<T = unknown> {
     error?: string
 }
 
-const BASE_URL = (() => {
-    // Si on est sur une route avec un chemin (ex: /kexamanager), utiliser ce chemin + /api
-    // Sinon, juste /api
-    const path = window.location.pathname
-    // Si le chemin se termine par /, on l'enlève
-    const cleanPath = path.endsWith('/') ? path.slice(0, -1) : path
-    // Si le chemin est vide ou juste /, retourner /api
-    if (!cleanPath || cleanPath === '') {
-        return '/api'
-    }
-    // Sinon, ajouter /api au chemin
-    return `${cleanPath}/api`
-})()
+// Always target the root API, independent of the SPA routing path (e.g. /projects).
+const BASE_URL = "/api"
 
 // Global current project ID - updated by App component
 let currentProjectId: number | null = null
