@@ -1,18 +1,14 @@
 import { Box, Card, Typography, useTheme } from "@mui/material"
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 
-const data = [
-    { time: "23h", value: 350 }, { time: "0h", value: 350 }, { time: "1h", value: 180 },
-    { time: "2h", value: 380 }, { time: "3h", value: 300 }, { time: "4h", value: 500 },
-    { time: "5h", value: 600 }, { time: "6h", value: 350 }, { time: "7h", value: 360 },
-    { time: "8h", value: 320 }, { time: "9h", value: 400 }, { time: "10h", value: 300 },
-    { time: "11h", value: 100 }, { time: "12h", value: 400 }, { time: "13h", value: 580 },
-    { time: "14h", value: 480 }, { time: "15h", value: 460 }, { time: "16h", value: 560 },
-    { time: "17h", value: 340 }, { time: "18h", value: 480 }, { time: "19h", value: 530 },
-    { time: "20h", value: 250 }, { time: "21h", value: 420 }, { time: "22h", value: 200 },
-]
 
-const TrafficChart = () => {
+type TrafficDataPoint = { time: string, value: number };
+
+interface TrafficChartProps {
+    data: TrafficDataPoint[];
+}
+
+const TrafficChart = ({ data }: TrafficChartProps) => {
     const theme = useTheme()
 
     return (
