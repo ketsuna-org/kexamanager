@@ -24,7 +24,7 @@ loader.init().then(monaco => {
 interface PreviewDialogProps {
   open: boolean
   onClose: () => void
-  key: string
+  objectKey: string
   url?: string
   mime?: string
   onSave?: (key: string, content: string) => Promise<void>
@@ -33,7 +33,7 @@ interface PreviewDialogProps {
 export default function PreviewDialog({
   open,
   onClose,
-  key,
+  objectKey,
   url,
   mime,
   onSave,
@@ -85,13 +85,13 @@ export default function PreviewDialog({
       setContent("")
       setEditMode(false)
     }
-  }, [open, url, mime, key])
+  }, [open, url, mime, objectKey])
 
   const handleSave = async () => {
     if (!onSave) return
     setSaving(true)
     try {
-      await onSave(key, content)
+      await onSave(objectKey, content)
       setEditMode(false)
     } catch (error) {
       console.error("Failed to save file:", error)
@@ -348,12 +348,12 @@ export default function PreviewDialog({
     }
   }
 
-  const language = mime ? getLanguageFromMime(mime) : getLanguageFromKey(key)
+  const language = mime ? getLanguageFromMime(mime) : getLanguageFromKey(objectKey)
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xl">
       <DialogTitle>
-        {key}
+        {objectKey}
         {mime?.startsWith("text/") && onSave && (
           <IconButton
             onClick={handleEditToggle}
@@ -370,7 +370,7 @@ export default function PreviewDialog({
           <CircularProgress size={20} />
         ) : url ? (
           mime?.startsWith("image/") ? (
-            <img src={url} alt={key} style={{ maxWidth: "100%" }} />
+            <img src={url} alt={objectKey} style={{ maxWidth: "100%" }} />
           ) : mime?.startsWith("video/") ? (
             <video controls style={{ maxWidth: "100%" }}>
               <source src={url} type={mime} />
@@ -382,7 +382,7 @@ export default function PreviewDialog({
                 Language: {language} | Content length: {content.length} chars
               </div>
               <Editor
-                key={`editor-${key}-${editMode}`} // Force re-render when switching modes
+                key={`editor-${objectKey}-${editMode}`} // Force re-render when switching modes
                 height="60vh"
                 language={language}
                 value={content}

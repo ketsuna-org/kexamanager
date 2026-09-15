@@ -707,7 +707,7 @@ export default function S3Browser({ selectedProject: projectConfig }: S3BrowserP
       <PreviewDialog
         open={previewDialog.open}
         onClose={() => setPreviewDialog({ open: false })}
-        key={previewDialog.key || ""}
+        objectKey={previewDialog.key || ""}
         url={previewDialog.url}
         mime={previewDialog.mime}
       />
