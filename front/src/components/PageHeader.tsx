@@ -42,7 +42,12 @@ export default function PageHeader({ title, subtitle, badge, action, children }:
                         {badge && <Chip label={badge.label} color={badge.color || "primary"} variant={badge.variant || "filled"} size="small" sx={{ fontWeight: 600 }} />}
                     </Box>
                     {subtitle && (
-                        <Typography variant="body1" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: "text.secondary",
+                                lineHeight: 1.5
+                            }}>
                             {subtitle}
                         </Typography>
                     )}
@@ -51,5 +56,5 @@ export default function PageHeader({ title, subtitle, badge, action, children }:
             </Box>
             {children}
         </Box>
-    )
+    );
 }

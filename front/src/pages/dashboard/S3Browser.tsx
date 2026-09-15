@@ -9,8 +9,12 @@ import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
 import Button from "@mui/material/Button"
 import { GetBucketInfo } from "../../utils/apiWrapper"
+import { s3ApiRequest } from "../../api/storage"
 import { BucketsList, ObjectsList, CreateBucketDialog, CopyObjectDialog } from "./components"
 import ConfirmDialog from "../../components/ConfirmDialog"
+import PageHeader from "../../components/PageHeader"
+import { useProject } from "../../contexts/ProjectContext"
+import { projectBadge } from "./projectBadge"
 import PreviewDialog from "./components/PreviewDialog"
 
 interface ConfirmState {
@@ -50,41 +54,18 @@ function useS3KeyId() {
   return keyId
 }
 
-async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: number): Promise<T> {
-  const keyId = getStoredKeyId()
-  const token = getStoredToken()
-  const baseUrl = configId ? `/api/${configId}/s3` : '/api/s3'
-  const jwtToken = localStorage.getItem("kexamanager:token")
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  }
-  if (jwtToken) {
-    headers['Authorization'] = `Bearer ${jwtToken}`
-  }
-  const response = await fetch(`${baseUrl}/${endpoint}`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ keyId, token, ...(body as Record<string, unknown> || {}) }),
-  })
-  if (!response.ok) {
-    // Try to parse JSON error response
-    try {
-      const errorData = await response.json()
-      throw new Error(`${errorData.error}: ${errorData.details || ''}`)
-    } catch {
-      // Fallback to status text if not JSON
-      throw new Error(`API request failed: ${response.status} ${response.statusText}`)
-    }
-  }
-  return response.json()
-}
-
 interface S3BrowserProps {
-  selectedProject: { id: number; name: string; admin_url?: string; type?: string } | null
+  /**
+   * Project handed over by the App.tsx and ClusterLayout call sites. Only
+   * `admin_url` is read here: the shared project context does not carry it, and
+   * its absence marks a project without an admin API.
+   */
+  selectedProject?: { admin_url?: string; type?: string } | null
 }
 
-export default function S3Browser({ selectedProject }: S3BrowserProps) {
+export default function S3Browser({ selectedProject: projectConfig }: S3BrowserProps) {
   const { t } = useTranslation()
+  const { selectedProject } = useProject()
   const keyId = useS3KeyId()
   const [selectedConfigId, setSelectedConfigId] = useState<number | null>(selectedProject?.id || null)
 
@@ -104,7 +85,6 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
   const [prefix, setPrefix] = useState<string>("")
   const [continuationToken, setContinuationToken] = useState<string | undefined>(undefined)
   const [isListingMore, setIsListingMore] = useState(false)
-  // const [uploadingFile, setUploadingFile] = useState<string | null>(null)
   const [uploadingFile, setUploadingFile] = useState<string | null>(null)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedObjectKeys, setSelectedObjectKeys] = useState<Set<string>>(new Set())
@@ -148,8 +128,8 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
 
   function confirmDeleteBucket(name: string) {
     setConfirmState({
-      title: t("s3browser.delete_bucket_title", "Delete Bucket"),
-      message: t("s3browser.delete_bucket_confirm", `Are you sure you want to delete bucket "${name}"? This action cannot be undone.`),
+      title: t("s3browser.delete_bucket_title"),
+      message: t("s3browser.delete_bucket_confirm", { name }),
       confirmColor: "error",
       onConfirm: () => performDeleteBucket(name)
     })
@@ -182,7 +162,6 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
         bucket,
         prefix: opts?.prefix !== undefined ? opts.prefix : (prefix || undefined)
       }, selectedConfigId || undefined)
-      console.log('List objects response:', res)
       const items = res.objects ? res.objects.map(obj => ({
         Key: obj.key,
         Size: obj.size,
@@ -193,7 +172,6 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
       setContinuationToken(res.isTruncated ? res.continuationToken : undefined)
       if (!opts?.loadMore) {
         setSelectedObjectKeys(new Set())
-        console.log('Setting bucket total size to:', res.totalSize)
         setBucketTotalSize(res.totalSize)
       }
     } catch (e) {
@@ -212,9 +190,8 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     // Try to get bucket info for quota checking
     // Only call admin GetBucketInfo if we have a selectedProject with an admin_url
     // and it's not a plain 's3' project (which doesn't expose the admin API).
-    if (selectedProject && selectedProject.admin_url && selectedProject.type !== 's3') {
+    if (projectConfig && projectConfig.admin_url && projectConfig.type !== 's3') {
       try {
-        console.log('Trying to get bucket info for:', name)
         let bucketInfo;
         try {
           bucketInfo = await GetBucketInfo({ globalAlias: name })
@@ -222,16 +199,14 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
           // Try with search
           bucketInfo = await GetBucketInfo({ search: name })
         }
-        console.log('Got bucket info:', bucketInfo)
         setBucketQuota(bucketInfo.quotas || null)
       } catch (e) {
-        console.log('Failed to get bucket info:', e)
+        console.error('Failed to get bucket info:', e)
         // Ignore if not admin or bucket not found
         setBucketQuota(null)
       }
     } else {
       // No admin API available for this project — clear quota and continue
-      console.log('Skipping admin GetBucketInfo: no admin_url or project is type s3')
       setBucketQuota(null)
     }
     await listObjects(name)
@@ -239,8 +214,8 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
 
   function confirmDeleteObject(bucket: string, key: string) {
     setConfirmState({
-      title: t("s3browser.delete_object_title", "Delete Object"),
-      message: t("s3browser.delete_object_confirm", `Are you sure you want to delete "${key}"?`),
+      title: t("s3browser.delete_object_title"),
+      message: t("s3browser.delete_object_confirm", { key }),
       confirmColor: "error",
       onConfirm: () => performDeleteObject(bucket, key)
     })
@@ -265,8 +240,8 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
 
   function confirmDeleteDirectory(dirPrefix: string) {
     setConfirmState({
-      title: t("s3browser.delete_folder_title", "Delete Folder"),
-      message: t("s3browser.delete_folder_confirm", `Are you sure you want to delete folder "${dirPrefix}" and all its contents?`),
+      title: t("s3browser.delete_folder_title"),
+      message: t("s3browser.delete_folder_confirm", { prefix: dirPrefix }),
       confirmColor: "error",
       onConfirm: () => performDeleteDirectory(dirPrefix)
     })
@@ -364,12 +339,8 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     setError(null)
 
     // Check bucket size quota before uploading
-    console.log('Bucket quota:', bucketQuota)
-    console.log('Bucket total size:', bucketTotalSize)
     if (bucketQuota && typeof bucketQuota.maxSize === 'number') {
       const totalFileSize = Array.from(files).reduce((sum, file) => sum + file.size, 0)
-      console.log('Total file size:', totalFileSize)
-      console.log('Would exceed?', bucketTotalSize + totalFileSize > bucketQuota.maxSize)
       if (bucketTotalSize + totalFileSize > bucketQuota.maxSize) {
         return new Promise<void>((resolve) => {
           setQuotaAlert({
@@ -424,8 +395,8 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
   function confirmDeleteSelected(bucket: string) {
     if (selectedObjectKeys.size === 0) return
     setConfirmState({
-      title: t("s3browser.delete_selected_title", "Delete Selected"),
-      message: t("s3browser.delete_selected_confirm", `Are you sure you want to delete ${selectedObjectKeys.size} items?`),
+      title: t("s3browser.delete_selected_title"),
+      message: t("s3browser.delete_selected_confirm", { count: selectedObjectKeys.size }),
       confirmColor: "error",
       onConfirm: () => performDeleteSelected(bucket)
     })
@@ -450,24 +421,6 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
       setLoading(false)
     }
   }
-
-  // async function handleCopyObject(bucket: string) {
-  //   if (!session || !copyDialog.sourceKey || !copyDialog.destKey) return
-  //   setLoading(true)
-  //   try {
-  //     // TODO: Implement copy via API
-  //     setCopyDialog({ open: false })
-  //     await listObjects(bucket)
-  //   } catch (e) {
-  //     setError(e instanceof Error ? e.message : String(e))
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-
-  // async function handlePreview(bucket: string, key: string) {
-  //   // TODO: Implement preview via API
-  // }
 
   async function handlePreview(bucket: string, key: string) {
     setLoading(true)
@@ -627,29 +580,39 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
     if (selectedConfigId) refreshBuckets()
   }, [selectedConfigId, refreshBuckets])
 
-  if (!keyId && selectedProject && selectedProject.admin_url) {
+  if (!keyId && projectConfig && projectConfig.admin_url) {
     return (
       <Box sx={{ p: 2 }}>
-        <Typography variant="h6">{t("s3browser.no_session_title", { defaultValue: "S3 Browser" })}</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          {t("s3browser.no_session_desc", { defaultValue: "Aucune session S3 trouvée. Utilisez 'Impersonate key' dans Applications Keys pour configurer une session." })}
-        </Typography>
+        <PageHeader
+          title={t("s3browser.no_session_title")}
+          subtitle={t("s3browser.no_session_desc")}
+          badge={projectBadge(selectedProject)}
+        />
       </Box>
-    )
+    );
   }
 
   return (
-    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography variant="h6">
-          {selectedProject ? `Project: ${selectedProject.name}` : t('s3browser.cluster_storage', 'Cluster Storage')}
-        </Typography>
+    <Box component="section" aria-label={t("s3browser.title")} sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <Box sx={{ px: 3, pt: 3, borderBottom: 1, borderColor: 'divider' }}>
+        <PageHeader
+          title={t("s3browser.title")}
+          subtitle={
+            selectedProject
+              ? t("s3browser.scope_subtitle", {
+                name: selectedProject.name })
+              : t("s3browser.cluster_storage")
+          }
+          badge={projectBadge(selectedProject)}
+        />
       </Box>
       {!selectedBucket ? (
         <BucketsList
           buckets={buckets}
           loading={loading}
+          error={!!error}
           onRefresh={refreshBuckets}
+          onRetry={refreshBuckets}
           onOpenBucket={handleOpenBucket}
           onDeleteBucket={confirmDeleteBucket}
           onCreateOpen={() => setCreateOpen(true)}
@@ -658,6 +621,7 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
         <ObjectsList
           selectedBucket={selectedBucket}
           bucketRegion={bucketRegion}
+          error={error}
           objects={objects}
           loading={loading}
           isListingMore={isListingMore}
@@ -691,9 +655,10 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
           onDeleteDirectory={confirmDeleteDirectory}
           onCreateDirectory={handleCreateDirectory}
         />
-      )}      {error && (
-        <Box sx={{ mt: 1 }}>
-          <Chip color="error" label={error} />
+      )}
+      {error && !selectedBucket && (
+        <Box sx={{ px: 2, pb: 2 }}>
+          <Chip color="error" role="alert" label={error} />
         </Box>
       )}
 
@@ -723,7 +688,7 @@ export default function S3Browser({ selectedProject }: S3BrowserProps) {
           <Typography>{quotaAlert?.message}</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setQuotaAlert(null)}>Cancel</Button>
+          <Button onClick={() => setQuotaAlert(null)}>{t("common.cancel")}</Button>
           <Button onClick={quotaAlert?.onConfirm} variant="contained" color="warning">
             Continue Upload
           </Button>

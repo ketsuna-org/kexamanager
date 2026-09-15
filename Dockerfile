@@ -1,6 +1,6 @@
 # Multi-stage Dockerfile pour KexaManager
 # Stage 1: Build frontend avec Bun
-FROM oven/bun:1.2-alpine AS frontend-builder
+FROM oven/bun:1.4-alpine AS frontend-builder
 WORKDIR /src/front
 
 # Copier les fichiers de dépendances pour une meilleure mise en cache
@@ -15,7 +15,7 @@ COPY front/ ./
 RUN bun run build
 
 # Stage 2: Build Go proxy
-FROM golang:1.24.5-alpine AS go-builder
+FROM golang:1.27-alpine AS go-builder
 WORKDIR /src
 
 # Installer git et les dépendances de build pour CGO et SQLite
@@ -54,7 +54,6 @@ RUN chmod +x /app/proxy
 
 # Variables d'environnement (seules les variables techniques sont définies dans l'image)
 ENV PORT=7400
-ENV STATIC_DIR=/app/public
 
 EXPOSE 7400
 

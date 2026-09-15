@@ -1,0 +1,18 @@
+# Build context exclusions (image bulds front/ and api/ only)
+node_modules
+**/node_modules
+.git
+.github
+output
+data
+*.db
+*.log
+.env
+.env.*
+devenv.lock
+devenv.local.nix
+.direnv
+.devenv*
+.vscode
+.idea
+README.md

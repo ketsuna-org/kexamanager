@@ -1,29 +1,42 @@
-
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { ThemeProvider, type Theme } from "@mui/material/styles"
-import { lightTheme, darkTheme } from "../theme"
+import { ThemeProvider, useColorScheme } from "@mui/material/styles"
 import CssBaseline from "@mui/material/CssBaseline"
+import { DEFAULT_MODE, MODE_STORAGE_KEY, theme } from "../theme"
+import { SettingsContext, type ThemeMode } from "./useSettings"
 
-type ThemeMode = 'light' | 'dark'
-
-interface SettingsContextType {
+interface SettingsState {
     lang: string
     setLang: (lang: string) => void
-    themeMode: ThemeMode
-    toggleTheme: () => void
     sidebarCollapsed: boolean
     toggleSidebar: () => void
 }
 
-const SettingsContext = createContext<SettingsContextType | null>(null)
+/**
+ * Second provider layer: it lives inside `ThemeProvider` so it can drive the MUI
+ * color scheme (`useColorScheme`) while exposing the historical context API.
+ * The mode itself is persisted by `ThemeProvider` under `MODE_STORAGE_KEY`.
+ */
+const ColorSchemeBridge = ({ value, children }: { value: SettingsState; children: ReactNode }) => {
+    const { mode, setMode } = useColorScheme()
 
-export const useSettings = () => {
-    const context = useContext(SettingsContext)
-    if (!context) {
-        throw new Error("useSettings must be used within a SettingsProvider")
-    }
-    return context
+    const themeMode: ThemeMode = mode === "light" ? "light" : "dark"
+
+    const toggleTheme = useCallback(() => {
+        setMode(themeMode === "light" ? "dark" : "light")
+    }, [setMode, themeMode])
+
+    const contextValue = useMemo(
+        () => ({ ...value, themeMode, toggleTheme }),
+        [value, themeMode, toggleTheme],
+    )
+
+    return (
+        <SettingsContext.Provider value={contextValue}>
+            <CssBaseline />
+            {children}
+        </SettingsContext.Provider>
+    )
 }
 
 export const SettingsProvider = ({ children }: { children: ReactNode }) => {
@@ -32,13 +45,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     // Language State
     const [lang, setLang] = useState<string>(() => localStorage.getItem("kexamanager:lang") || "fr")
 
-    // Theme State
-    const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
-        const saved = localStorage.getItem("kexamanager:theme")
-        return (saved === "light" || saved === "dark") ? saved : "dark"
+    // Sidebar State
+    const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+        return localStorage.getItem("kexamanager:sidebarCollapsed") === "true"
     })
-
-    const theme: Theme = themeMode === "light" ? lightTheme : darkTheme
 
     // Sync Language
     useEffect(() => {
@@ -46,33 +56,26 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem("kexamanager:lang", lang)
     }, [lang, i18n])
 
-    // Sync Theme
-    useEffect(() => {
-        localStorage.setItem("kexamanager:theme", themeMode)
-    }, [themeMode])
-
-    // Sidebar State
-    const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-        return localStorage.getItem("kexamanager:sidebarCollapsed") === "true"
-    })
-
     // Sync Sidebar
     useEffect(() => {
         localStorage.setItem("kexamanager:sidebarCollapsed", String(sidebarCollapsed))
     }, [sidebarCollapsed])
 
-    const toggleSidebar = () => setSidebarCollapsed(prev => !prev)
+    const toggleSidebar = useCallback(() => setSidebarCollapsed(prev => !prev), [])
 
-    const toggleTheme = () => {
-        setThemeMode((prev) => (prev === "light" ? "dark" : "light"))
-    }
+    const state = useMemo<SettingsState>(
+        () => ({ lang, setLang, sidebarCollapsed, toggleSidebar }),
+        [lang, sidebarCollapsed, toggleSidebar],
+    )
 
     return (
-        <SettingsContext.Provider value={{ lang, setLang, themeMode, toggleTheme, sidebarCollapsed, toggleSidebar }}>
-            <ThemeProvider theme={theme}>
-                <CssBaseline />
-                {children}
-            </ThemeProvider>
-        </SettingsContext.Provider>
+        <ThemeProvider
+            theme={theme}
+            defaultMode={DEFAULT_MODE}
+            modeStorageKey={MODE_STORAGE_KEY}
+            disableTransitionOnChange
+        >
+            <ColorSchemeBridge value={state}>{children}</ColorSchemeBridge>
+        </ThemeProvider>
     )
 }

@@ -1,28 +1,22 @@
-import { useEffect, useState, Fragment, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { ListBlockErrors, PurgeBlocks, RetryBlockResync } from "../../utils/apiWrapper"
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableContainer from "@mui/material/TableContainer"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
-import Paper from "@mui/material/Paper"
 import Button from "@mui/material/Button"
 import Dialog from "@mui/material/Dialog"
 import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
 import Typography from "@mui/material/Typography"
-import Alert from "@mui/material/Alert"
-import CircularProgress from "@mui/material/CircularProgress"
 import Box from "@mui/material/Box"
 import Stack from "@mui/material/Stack"
-import IconButton from "@mui/material/IconButton"
-import Collapse from "@mui/material/Collapse"
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown"
-import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp"
+import Paper from "@mui/material/Paper"
+import RefreshIcon from "@mui/icons-material/Refresh"
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined"
 import type { components } from "../../types/openapi"
+import PageHeader from "../../components/PageHeader"
+import DataTable, { type DataTableColumn } from "../../components/data/DataTable"
+import { useProject } from "../../contexts/ProjectContext"
+import { projectBadge } from "./projectBadge"
 
 type MultiResp = components["schemas"]["MultiResponse_LocalListBlockErrorsResponse"]
 
@@ -34,12 +28,11 @@ type NodeErrors = {
 
 export default function Blocks() {
     const { t } = useTranslation()
+    const { selectedProject } = useProject()
     const [items, setItems] = useState<NodeErrors[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [detailOpen, setDetailOpen] = useState(false)
-    const [detailItem, setDetailItem] = useState<unknown | null>(null)
-    const [expanded, setExpanded] = useState<Record<string, boolean>>({})
+    const [detailNodeId, setDetailNodeId] = useState<string | null>(null)
     const [purgeConfirm, setPurgeConfirm] = useState<null | { nodeId: string; blockHash: string }>(null)
     const [retryConfirm, setRetryConfirm] = useState<null | { nodeId: string; blockHash: string }>(null)
     const [actionBusy, setActionBusy] = useState(false)
@@ -75,14 +68,8 @@ export default function Blocks() {
         load()
     }, [load])
 
-    function openDetails(i: unknown) {
-        setDetailItem(i)
-        setDetailOpen(true)
-    }
-    function closeDetails() {
-        setDetailOpen(false)
-        setDetailItem(null)
-    }
+    /** Le detail est derive de `items` : apres purge/resync il reflete le rechargement. */
+    const detailItem = detailNodeId === null ? null : items.find((it) => it.id === detailNodeId) ?? null
 
     async function doPurge() {
         if (!purgeConfirm) return
@@ -113,115 +100,121 @@ export default function Blocks() {
     }
 
     return (
-        <div>
-            <Typography variant="h5">{t("dashboard.blocks")}</Typography>
-            <Typography variant="body2" gutterBottom>
-                {t("dashboard.blocks_desc")}
-            </Typography>
+        <Box sx={{ p: 3 }}>
+            <PageHeader
+                title={t("dashboard.blocks")}
+                subtitle={t("dashboard.blocks_desc")}
+                badge={projectBadge(selectedProject)}
+                action={
+                    <Button variant="outlined" startIcon={<RefreshIcon />} onClick={load} disabled={loading}>
+                        {t("common.refresh")}
+                    </Button>
+                }
+            />
 
-            {loading && (
-                <Box display="flex" alignItems="center" gap={2}>
-                    <CircularProgress size={20} />
-                    <Typography>{t("common.loading")}</Typography>
-                </Box>
-            )}
+            <DataTable<NodeErrors>
+                rows={items}
+                getRowId={(it) => it.id}
+                loading={loading}
+                error={error}
+                errorTitle={t("blocks.load_error") as string}
+                retryLabel={t("common.retry") as string}
+                onRetry={() => { void load() }}
+                tableLabel={t("dashboard.blocks") as string}
+                columns={[
+                    {
+                        id: "node",
+                        header: t("blocks.col.node"),
+                        cell: (it) => (
+                            <Stack spacing={0.25}>
+                                <Typography variant="code">{it.id}</Typography>
+                                {it.error && (
+                                    <Typography variant="caption" sx={{ color: "error.main" }}>
+                                        {it.error}
+                                    </Typography>
+                                )}
+                            </Stack>
+                        ),
+                        sortValue: (it) => it.id,
+                        minWidth: 180,
+                    },
+                    {
+                        id: "error_count",
+                        header: t("blocks.col.error_count"),
+                        numeric: true,
+                        cell: (it) => (it.errors ? it.errors.length : "-"),
+                        sortValue: (it) => it.errors?.length ?? -1,
+                        minWidth: 140,
+                    },
+                    {
+                        id: "actions",
+                        header: t("common.actions"),
+                        align: "right" as const,
+                        minWidth: 110,
+                        cell: (it) => (
+                            <Button size="small" onClick={() => setDetailNodeId(it.id)}>
+                                {t("common.details")}
+                            </Button>
+                        ),
+                    },
+                ] satisfies DataTableColumn<NodeErrors>[]}
+                searchValue={(it) => [it.id, it.error ?? "", ...(it.errors ?? []).map((e) => e.blockHash)].join(" ")}
+                defaultSort={{ id: "error_count", dir: "desc" }}
+                pagination={{ defaultRowsPerPage: 25, rowsPerPageOptions: [25, 50, 100] }}
+                emptyState={{
+                    icon: <ReportProblemOutlinedIcon sx={{ fontSize: 48, color: "text.disabled" }} />,
+                    title: t("blocks.empty") as string,
+                    description: t("blocks.empty_desc") as string,
+                    primaryAction: { label: t("common.refresh") as string, onClick: () => { void load() } },
+                }}
+            />
 
-            {error && <Alert severity="error">{error}</Alert>}
-
-            {!loading && !error && (
-                <Box>
-                    {items.length === 0 ? (
-                        <Alert severity="info">{t("blocks.empty")}</Alert>
-                    ) : (
-                        <TableContainer component={Paper} variant="outlined">
-                            <Table size="small">
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell />
-                                        <TableCell>{t("blocks.col.node")}</TableCell>
-                                        <TableCell>{t("blocks.col.error_count")}</TableCell>
-                                        <TableCell>{t("common.actions")}</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {items.map((it) => (
-                                        <Fragment key={it.id}>
-                                            <TableRow hover>
-                                                <TableCell sx={{ width: 48 }}>
-                                                    <IconButton size="small" onClick={() => setExpanded((prev) => ({ ...prev, [it.id]: !prev[it.id] }))}>
-                                                        {expanded[it.id] ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-                                                    </IconButton>
-                                                </TableCell>
-                                                <TableCell component="th" scope="row">
-                                                    {it.id}
-                                                </TableCell>
-                                                <TableCell>{it.errors ? it.errors.length : "-"}</TableCell>
-                                                <TableCell>
-                                                    <Button size="small" onClick={() => openDetails(it)}>
-                                                        {t("common.details")}
-                                                    </Button>
-                                                    <Button size="small" onClick={() => load()}>
-                                                        {t("common.refresh")}
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                            <TableRow>
-                                                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
-                                                    <Collapse in={!!expanded[it.id]} timeout="auto" unmountOnExit>
-                                                        <Box margin={1}>
-                                                            <Typography variant="subtitle2">{t("blocks.details")}</Typography>
-                                                            <Paper variant="outlined" sx={{ mt: 1, p: 1 }}>
-                                                                {it.error ? (
-                                                                    <Typography color="error">{it.error}</Typography>
-                                                                ) : it.errors && it.errors.length > 0 ? (
-                                                                    <Table size="small">
-                                                                        <TableBody>
-                                                                            {it.errors.map((e, i) => (
-                                                                                <TableRow key={i}>
-                                                                                    <TableCell sx={{ py: 0.3, pr: 1, fontWeight: "bold" }}>{e.blockHash}</TableCell>
-                                                                                    <TableCell sx={{ py: 0.3 }}>{`errors: ${e.errorCount}, refcount: ${e.refcount}`}</TableCell>
-                                                                                    <TableCell sx={{ py: 0.3, width: 1, whiteSpace: "nowrap" }}>
-                                                                                        <Stack direction="row" spacing={1}>
-                                                                                            <Button size="small" color="error" onClick={() => setPurgeConfirm({ nodeId: it.id, blockHash: e.blockHash })}>
-                                                                                                {t("blocks.purge")}
-                                                                                            </Button>
-                                                                                            <Button size="small" onClick={() => setRetryConfirm({ nodeId: it.id, blockHash: e.blockHash })}>
-                                                                                                {t("blocks.retry_resync")}
-                                                                                            </Button>
-                                                                                        </Stack>
-                                                                                    </TableCell>
-                                                                                </TableRow>
-                                                                            ))}
-                                                                        </TableBody>
-                                                                    </Table>
-                                                                ) : (
-                                                                    <Typography variant="body2">-</Typography>
-                                                                )}
-                                                            </Paper>
-                                                        </Box>
-                                                    </Collapse>
-                                                </TableCell>
-                                            </TableRow>
-                                        </Fragment>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-                    )}
-                </Box>
-            )}
-
-            <Dialog open={detailOpen} onClose={closeDetails} fullWidth maxWidth="md">
+            <Dialog open={detailItem !== null} onClose={() => setDetailNodeId(null)} fullWidth maxWidth="md">
                 <DialogTitle>{t("common.details")}</DialogTitle>
                 <DialogContent>
-                    <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(detailItem, null, 2)}</pre>
+                    {detailItem && (
+                        <Stack spacing={1}>
+                            <Typography variant="subtitle2">{t("blocks.details")}</Typography>
+                            <Typography variant="body2">{detailItem.id}</Typography>
+                            {detailItem.error ? (
+                                <Typography sx={{ color: "error.main" }}>{detailItem.error}</Typography>
+                            ) : detailItem.errors && detailItem.errors.length > 0 ? (
+                                <Stack spacing={1}>
+                                    {detailItem.errors.map((e) => (
+                                        <Paper key={e.blockHash} variant="outlined" sx={{ p: 1 }}>
+                                            <Stack direction="row" spacing={1.5} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+                                                <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: "bold", wordBreak: "break-all" }}>
+                                                    {e.blockHash}
+                                                </Typography>
+                                                <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                                                    {`errors: ${e.errorCount}, refcount: ${e.refcount}`}
+                                                </Typography>
+                                                <Stack direction="row" spacing={1} sx={{ ml: "auto" }}>
+                                                    <Button size="small" color="error" onClick={() => setPurgeConfirm({ nodeId: detailItem.id, blockHash: e.blockHash })}>
+                                                        {t("blocks.purge")}
+                                                    </Button>
+                                                    <Button size="small" onClick={() => setRetryConfirm({ nodeId: detailItem.id, blockHash: e.blockHash })}>
+                                                        {t("blocks.retry_resync")}
+                                                    </Button>
+                                                </Stack>
+                                            </Stack>
+                                        </Paper>
+                                    ))}
+                                </Stack>
+                            ) : (
+                                <Typography variant="body2">-</Typography>
+                            )}
+                            <Paper variant="outlined" sx={{ p: 1 }}>
+                                <pre style={{ whiteSpace: "pre-wrap", margin: 0 }}>{JSON.stringify(detailItem, null, 2)}</pre>
+                            </Paper>
+                        </Stack>
+                    )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={closeDetails}>{t("common.close")}</Button>
+                    <Button onClick={() => setDetailNodeId(null)}>{t("common.close")}</Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Confirm purge */}
             <Dialog open={!!purgeConfirm} onClose={() => setPurgeConfirm(null)}>
                 <DialogTitle>{t("blocks.purge_confirm_title")}</DialogTitle>
                 <DialogContent>
@@ -237,7 +230,6 @@ export default function Blocks() {
                 </DialogActions>
             </Dialog>
 
-            {/* Confirm retry resync */}
             <Dialog open={!!retryConfirm} onClose={() => setRetryConfirm(null)}>
                 <DialogTitle>{t("blocks.retry_confirm_title")}</DialogTitle>
                 <DialogContent>
@@ -252,6 +244,6 @@ export default function Blocks() {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </div>
-    )
+        </Box>
+    );
 }

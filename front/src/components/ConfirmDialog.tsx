@@ -36,10 +36,10 @@ export default function ConfirmDialog({
             </DialogContent>
             <DialogActions>
                 <Button onClick={onClose} color="inherit" disabled={loading}>
-                    {cancelLabel || t("common.cancel", "Cancel")}
+                    {cancelLabel || t("common.cancel")}
                 </Button>
                 <Button onClick={onConfirm} variant="contained" color={confirmColor} disabled={loading} autoFocus>
-                    {loading ? <CircularProgress size={24} color="inherit" /> : (confirmLabel || t("common.confirm", "Confirm"))}
+                    {loading ? <CircularProgress size={24} color="inherit" /> : (confirmLabel || t("common.confirm"))}
                 </Button>
             </DialogActions>
         </Dialog>

@@ -44,7 +44,7 @@ export async function authenticateWithCredentials(username: string, password: st
         clearAuthToken()
         localStorage.removeItem("kexamanager:user")
         const apiError = error as ApiError
-        throw new Error(apiError.message || "Authentication failed")
+        throw new Error(apiError.message || "Authentication failed", { cause: error })
     }
 }
 
@@ -78,29 +78,3 @@ export function logout(): void {
     clearAuthToken()
     localStorage.removeItem("kexamanager:user")
 }
-
-// Exemple d'utilisation :
-//
-// import { authenticateWithToken, logout, getClusterHealth } from '@/auth/tokenAuth'
-//
-// // Dans le composant Login
-// try {
-//   const clusterHealth = await authenticateWithToken(userToken)
-//   console.log('Authentification réussie:', clusterHealth)
-//   onAuth() // Passer à l'interface principale
-// } catch (error) {
-//   setError(error.message)
-// }
-//
-// // Vérifier périodiquement la santé du cluster
-// useEffect(() => {
-//   const interval = setInterval(async () => {
-//     try {
-//       await getClusterHealth()
-//     } catch (error) {
-//       console.warn('Problème de connexion au cluster:', error.message)
-//     }
-//   }, 30000) // Toutes les 30 secondes
-//
-//   return () => clearInterval(interval)
-// }, [])

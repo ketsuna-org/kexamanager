@@ -183,6 +183,16 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Endpoints d'agregat (capacites et statistiques) : traites avant les services.
+	if endpointStart == "capabilities" {
+		HandleProjectCapabilities(w, r, uint(projectID), config)
+		return
+	}
+	if endpointStart == "stats" {
+		handleProjectStats(w, r, uint(projectID), config, pathParts)
+		return
+	}
+
 	// Determine service and remaining path
 	var service string
 	var remainingPath string
@@ -254,9 +264,9 @@ func handleS3Request(w http.ResponseWriter, r *http.Request, config s3.S3ConfigD
 	case "list-buckets":
 		s3.HandleListBucketsWithConfig(config).ServeHTTP(w, r)
 	case "create-bucket":
-		s3.HandleCreateBucketWithConfig(config).ServeHTTP(w, r)
+		serveBucketMutation(w, r, config, s3.HandleCreateBucketWithConfig(config))
 	case "delete-bucket":
-		s3.HandleDeleteBucketWithConfig(config).ServeHTTP(w, r)
+		serveBucketMutation(w, r, config, s3.HandleDeleteBucketWithConfig(config))
 	case "list-objects":
 		s3.HandleListObjectsWithConfig(config).ServeHTTP(w, r)
 	case "get-object":
@@ -265,8 +275,35 @@ func handleS3Request(w http.ResponseWriter, r *http.Request, config s3.S3ConfigD
 		s3.HandlePutObjectWithConfig(config).ServeHTTP(w, r)
 	case "delete-object":
 		s3.HandleDeleteObjectWithConfig(config).ServeHTTP(w, r)
+	case "stat-object":
+		s3.HandleStatObjectWithConfig(config).ServeHTTP(w, r)
+	case "copy-object":
+		s3.HandleCopyObjectWithConfig(config).ServeHTTP(w, r)
+	case "delete-objects":
+		s3.HandleDeleteObjectsWithConfig(config).ServeHTTP(w, r)
+	case "bucket-usage":
+		s3.HandleBucketUsageWithConfig(config).ServeHTTP(w, r)
+	case "bucket-config":
+		s3.HandleBucketConfigWithConfig(config).ServeHTTP(w, r)
 	default:
 		http.NotFound(w, r)
+	}
+}
+
+// serveBucketMutation sert une mutation de bucket puis invalide le cache stats
+// du projet quand la reponse est un succes (2xx), pour que l'UI ne reaffiche pas
+// une liste de buckets perimee apres un create/delete.
+//
+// Les mutations qui passent par le proxy admin transparent (/v2/* : alias,
+// quotas...) ne sont pas interceptables ici : pour ces cas, c'est le
+// stale-while-revalidate du cache stats qui borne la fenetre de peremption a un TTL.
+func serveBucketMutation(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, handler http.Handler) {
+	status := &respWriter{ResponseWriter: w, status: http.StatusOK}
+	handler.ServeHTTP(status, r)
+	if status.status >= http.StatusOK && status.status < http.StatusMultipleChoices {
+		// config.ID est l'id de projet charge par getS3Config (WHERE id = projectID),
+		// donc la meme cle que celle utilisee par les handlers stats.
+		invalidateProjectStatsCache(config.ID)
 	}
 }
 

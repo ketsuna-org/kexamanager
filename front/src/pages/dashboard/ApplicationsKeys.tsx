@@ -1,49 +1,59 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, type SubmitEvent } from "react"
 import { useTranslation } from "react-i18next"
+import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
+import Checkbox from "@mui/material/Checkbox"
 import Dialog from "@mui/material/Dialog"
 import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
 import DialogActions from "@mui/material/DialogActions"
+import FormControlLabel from "@mui/material/FormControlLabel"
 import TextField from "@mui/material/TextField"
-// Tooltip and Switch removed as they're unused in this component
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableContainer from "@mui/material/TableContainer"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
-import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import Stack from "@mui/material/Stack"
 import IconButton from "@mui/material/IconButton"
-import CircularProgress from "@mui/material/CircularProgress"
 import Chip from "@mui/material/Chip"
+import Tooltip from "@mui/material/Tooltip"
+import DeleteIcon from "@mui/icons-material/Delete"
+import KeyIcon from "@mui/icons-material/Key"
 import { ListKeys, CreateKey, DeleteKey, GetKeyInfo, UpdateKey, ImportKey } from "../../utils/apiWrapper"
 import type { components } from "../../types/openapi"
+import PageHeader from "../../components/PageHeader"
+import DataTable, { type DataTableColumn } from "../../components/data/DataTable"
+import { useProject } from "../../contexts/ProjectContext"
+import { projectBadge } from "./projectBadge"
+import { formatDateTime } from "../../utils/format"
 
 type KeyItem = components["schemas"]["ListKeysResponseItem"]
 type KeyDetails = components["schemas"]["GetKeyInfoResponse"]
 
+/** Largeur minimale du bouton de validation pour qu'il ne se decale pas pendant l'envoi. */
+const SUBMIT_BUTTON_SX = { minWidth: 96 } as const
+
 export default function ApplicationsKeys() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
+    const { selectedProject } = useProject()
     const [keys, setKeys] = useState<KeyItem[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
 
     const [createOpen, setCreateOpen] = useState(false)
     const [createSubmitting, setCreateSubmitting] = useState(false)
+    const [createError, setCreateError] = useState<string | null>(null)
     const [createForm, setCreateForm] = useState({ name: "", expiration: "", neverExpires: false, permissions: { createBucket: false } })
 
     const [importOpen, setImportOpen] = useState(false)
     const [importSubmitting, setImportSubmitting] = useState(false)
+    const [importError, setImportError] = useState<string | null>(null)
     const [importForm, setImportForm] = useState({ accessKeyId: "", secretAccessKey: "", name: "" })
 
     const [detailOpen, setDetailOpen] = useState(false)
     const [selectedKey, setSelectedKey] = useState<KeyDetails | null>(null)
     const [editing, setEditing] = useState(false)
     const [savingDetails, setSavingDetails] = useState(false)
+    const [detailsError, setDetailsError] = useState<string | null>(null)
     const [detailsForm, setDetailsForm] = useState({ name: "", expiration: "", neverExpires: false, permissions: { createBucket: false } })
     const [showSecret, setShowSecret] = useState(false)
 
@@ -64,6 +74,7 @@ export default function ApplicationsKeys() {
     const load = useCallback(async () => {
         setLoading(true)
         setError(null)
+        setLoadError(null)
         try {
             const res = await ListKeys()
             const maybe = res as unknown
@@ -73,7 +84,7 @@ export default function ApplicationsKeys() {
             else setKeys([])
         } catch (e) {
             const msg = (e as unknown) instanceof Error ? (e as Error).message : String(e)
-            setError(msg)
+            setLoadError(msg)
         } finally {
             setLoading(false)
         }
@@ -85,14 +96,17 @@ export default function ApplicationsKeys() {
 
     function openCreate() {
         setCreateForm({ name: "", expiration: "", neverExpires: false, permissions: { createBucket: false } })
+        setCreateError(null)
         setCreateOpen(true)
     }
     function closeCreate() {
         setCreateOpen(false)
+        setCreateError(null)
     }
 
     async function submitCreate() {
         setCreateSubmitting(true)
+        setCreateError(null)
         try {
             const body: components["schemas"]["UpdateKeyRequestBody"] = {}
             if (createForm.name) body.name = createForm.name
@@ -115,22 +129,31 @@ export default function ApplicationsKeys() {
             setCreateOpen(false)
         } catch (e) {
             console.error("CreateKey error", e)
-            setError(String(e))
+            setCreateError(String(e))
         } finally {
             setCreateSubmitting(false)
         }
     }
 
+    /** Soumission au clavier (Entree) du dialogue de creation. */
+    function handleCreateSubmit() {
+        if (createSubmitting) return
+        void submitCreate()
+    }
+
     function openImport() {
         setImportForm({ accessKeyId: "", secretAccessKey: "", name: "" })
+        setImportError(null)
         setImportOpen(true)
     }
     function closeImport() {
         setImportOpen(false)
+        setImportError(null)
     }
 
     async function submitImport() {
         setImportSubmitting(true)
+        setImportError(null)
         try {
             const res = await ImportKey({ accessKeyId: importForm.accessKeyId, secretAccessKey: importForm.secretAccessKey, name: importForm.name || undefined })
             const maybe2 = res as unknown as { secretAccessKey?: string }
@@ -142,10 +165,16 @@ export default function ApplicationsKeys() {
             setImportOpen(false)
         } catch (e) {
             console.error("ImportKey error", e)
-            setError(String(e))
+            setImportError(String(e))
         } finally {
             setImportSubmitting(false)
         }
+    }
+
+    /** Soumission au clavier (Entree) du dialogue d'import. */
+    function handleImportSubmit() {
+        if (importSubmitting) return
+        void submitImport()
     }
 
     function confirmDelete(id: string) {
@@ -168,6 +197,7 @@ export default function ApplicationsKeys() {
     }
 
     async function openDetails(id: string) {
+        setDetailsError(null)
         try {
             const res = await GetKeyInfo({ id, showSecretKey: true })
             setSelectedKey(res)
@@ -201,11 +231,19 @@ export default function ApplicationsKeys() {
         setDetailOpen(false)
         setSelectedKey(null)
         setEditing(false)
+        setDetailsError(null)
+    }
+
+    /** Soumission au clavier (Entree) du formulaire d'edition des details. */
+    function handleDetailsSubmit() {
+        if (!editing || savingDetails) return
+        void saveDetails()
     }
 
     async function saveDetails() {
         if (!selectedKey) return
         setSavingDetails(true)
+        setDetailsError(null)
         try {
             const body: components["schemas"]["UpdateKeyRequestBody"] = {}
             if (detailsForm.name) body.name = detailsForm.name
@@ -231,7 +269,7 @@ export default function ApplicationsKeys() {
             setEditing(false)
         } catch (e) {
             console.error("UpdateKey error", e)
-            setError(String(e))
+            setDetailsError(String(e))
         } finally {
             setSavingDetails(false)
         }
@@ -255,93 +293,130 @@ export default function ApplicationsKeys() {
     return (
         <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             {error && (
-                <Typography color="error" sx={{ mb: 1 }}>
+                <Alert severity="error" onClose={() => setError(null)} sx={{ mb: 1 }}>
                     {error}
-                </Typography>
+                </Alert>
             )}
-            <Box sx={{
-                display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                justifyContent: "space-between",
-                alignItems: { xs: "stretch", sm: "center" },
-                gap: 2,
-                mb: 2,
-                flexShrink: 0
-            }}>
-                <Stack sx={{ flex: 1 }}>
-                    <Typography variant="h6">{t("dashboard.apps")}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        {t("dashboard.apps_desc")}
-                    </Typography>
-                </Stack>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                    <Button variant="outlined" onClick={() => load()}>
-                        {t("common.refresh")}
-                    </Button>
-                    <Button variant="contained" onClick={openCreate}>
-                        {t("common.add")}
-                    </Button>
-                    <Button variant="text" onClick={openImport}>
-                        {t("keys.import.label")}
-                    </Button>
-                </Stack>
+            <Box sx={{ flexShrink: 0 }}>
+                <PageHeader
+                    title={t("dashboard.apps")}
+                    subtitle={t("dashboard.apps_desc")}
+                    badge={projectBadge(selectedProject)}
+                    action={
+                        <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                            <Button variant="outlined" onClick={() => load()}>
+                                {t("common.refresh")}
+                            </Button>
+                            <Button variant="contained" onClick={openCreate}>
+                                {t("common.add")}
+                            </Button>
+                            <Button variant="text" onClick={openImport}>
+                                {t("keys.import.label")}
+                            </Button>
+                        </Stack>
+                    }
+                />
             </Box>
 
-            <TableContainer component={Paper} sx={{ flex: 1, overflow: "auto" }}>
-                <Table size="small" stickyHeader>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>{t("keys.col.name")}</TableCell>
-                            <TableCell>{t("buckets.col.creationDate")}</TableCell>
-                            <TableCell>{t("keys.col.expiration")}</TableCell>
-                            <TableCell>{t("common.actions")}</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {loading && (
-                            <TableRow>
-                                <TableCell colSpan={4} sx={{ textAlign: "center" }}>
-                                    <CircularProgress size={20} /> {t("common.loading")}
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {!loading && keys.length === 0 && (
-                            <TableRow>
-                                <TableCell colSpan={4} sx={{ textAlign: "center" }}>
-                                    {t("keys.empty")}
-                                </TableCell>
-                            </TableRow>
-                        )}
-                        {!loading &&
-                            keys.map((k) => (
-                                <TableRow key={k.id} hover>
-                                    <TableCell>{k.name}</TableCell>
-                                    <TableCell>{k.created ? new Date(k.created).toLocaleString() : ""}</TableCell>
-                                    <TableCell>{k.expiration || ""}</TableCell>
-                                    <TableCell>
-                                        <Stack direction="row" spacing={1} alignItems="center">
-                                            <Button size="small" onClick={() => openDetails(k.id)}>
-                                                {t("common.details")}
-                                            </Button>
-                                            <Button size="small" variant="outlined" onClick={() => impersonateKeyById(k.id)}>
-                                                Impersonate
-                                            </Button>
-                                            <IconButton size="small" aria-label="delete" onClick={() => confirmDelete(k.id)}>
-                                                <span style={{ color: "error.main" }}>{t("common.delete")}</span>
-                                            </IconButton>
-                                        </Stack>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <Box sx={{ flex: 1, overflow: "auto" }}>
+                <DataTable<KeyItem>
+                    rows={keys}
+                    getRowId={(k) => k.id}
+                    loading={loading}
+                    error={loadError}
+                    errorTitle={t("common.load_error")}
+                    retryLabel={t("common.retry")}
+                    onRetry={() => { void load() }}
+                    tableLabel={t("dashboard.apps") as string}
+                    columns={[
+                        {
+                            id: "name",
+                            header: t("keys.col.name"),
+                            minWidth: 220,
+                            truncate: true,
+                            textValue: (k) => k.name,
+                            sortValue: (k) => k.name,
+                            cell: (k) => k.name,
+                        },
+                        {
+                            id: "created",
+                            header: t("buckets.col.creationDate"),
+                            minWidth: 170,
+                            sortValue: (k) => (k.created ? new Date(k.created) : null),
+                            cell: (k) => (k.created ? formatDateTime(k.created, i18n.language) : ""),
+                        },
+                        {
+                            id: "expiration",
+                            header: t("keys.col.expiration"),
+                            minWidth: 170,
+                            sortValue: (k) => (k.expiration ? new Date(k.expiration) : null),
+                            cell: (k) => k.expiration || "",
+                        },
+                        {
+                            id: "actions",
+                            header: t("common.actions"),
+                            align: "right",
+                            minWidth: 260,
+                            cell: (k) => (
+                                <Stack direction="row" spacing={1} sx={{
+                                    alignItems: "center",
+                                    justifyContent: "flex-end"
+                                }}>
+                                    <Button size="small" onClick={() => openDetails(k.id)}>
+                                        {t("common.details")}
+                                    </Button>
+                                    <Button size="small" variant="outlined" onClick={() => impersonateKeyById(k.id)}>
+                                        Impersonate
+                                    </Button>
+                                    <Tooltip title={t("common.delete")}>
+                                        <IconButton
+                                            size="small"
+                                            color="error"
+                                            sx={{ width: 32, height: 32 }}
+                                            aria-label={`${t("common.delete")} ${k.name}`}
+                                            onClick={() => confirmDelete(k.id)}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                </Stack>
+                            ),
+                        },
+                    ] satisfies DataTableColumn<KeyItem>[]}
+                    searchValue={(k) => `${k.name} ${k.id}`}
+                    pagination={{ defaultRowsPerPage: 25, rowsPerPageOptions: [25, 50, 100] }}
+                    emptyState={{
+                        icon: <KeyIcon sx={{ fontSize: 48, color: "text.disabled" }} />,
+                        title: t("keys.empty"),
+                        primaryAction: { label: t("common.add"), onClick: openCreate },
+                    }}
+                />
+            </Box>
 
             {/* Create dialog */}
-            <Dialog open={createOpen} onClose={closeCreate} fullWidth maxWidth="sm">
+            <Dialog
+                open={createOpen}
+                onClose={closeCreate}
+                fullWidth
+                maxWidth="sm"
+                slotProps={{
+                    paper: {
+                        component: "form",
+                        onSubmit: (event: SubmitEvent<HTMLDivElement>) => {
+                            event.preventDefault()
+                            handleCreateSubmit()
+                        },
+                    },
+                }}
+            >
                 <DialogTitle>{t("common.add")}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
+                        {createError && (
+                            <Alert severity="error" onClose={() => setCreateError(null)}>
+                                {createError}
+                            </Alert>
+                        )}
                         <TextField label={t("keys.col.name")} value={createForm.name} onChange={(e) => setCreateForm((f) => ({ ...f, name: e.target.value }))} fullWidth />
                         <TextField
                             label={t("keys.create_expiration_label")}
@@ -349,34 +424,62 @@ export default function ApplicationsKeys() {
                             value={createForm.expiration}
                             onChange={(e) => setCreateForm((f) => ({ ...f, expiration: e.target.value }))}
                             fullWidth
-                            InputLabelProps={{ shrink: true }}
+                            slotProps={{
+                                inputLabel: { shrink: true }
+                            }}
                         />
-                        <label>
-                            <input
-                                type="checkbox"
-                                checked={createForm.permissions.createBucket}
-                                onChange={(e) => setCreateForm((f) => ({ ...f, permissions: { ...f.permissions, createBucket: e.target.checked } }))}
-                            />{" "}
-                            {t("keys.perm.createBucket")}
-                        </label>
-                        <label>
-                            <input type="checkbox" checked={createForm.neverExpires} onChange={(e) => setCreateForm((f) => ({ ...f, neverExpires: e.target.checked }))} /> {t("common.never_expire")}
-                        </label>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={createForm.permissions.createBucket}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, permissions: { ...f.permissions, createBucket: e.target.checked } }))}
+                                />
+                            }
+                            label={t("keys.perm.createBucket")}
+                        />
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={createForm.neverExpires}
+                                    onChange={(e) => setCreateForm((f) => ({ ...f, neverExpires: e.target.checked }))}
+                                />
+                            }
+                            label={t("common.never_expire")}
+                        />
                     </Stack>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeCreate}>{t("common.cancel")}</Button>
-                    <Button variant="contained" onClick={submitCreate} disabled={createSubmitting}>
+                    <Button type="submit" variant="contained" disabled={createSubmitting} sx={SUBMIT_BUTTON_SX}>
                         {t("common.add")}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Import dialog */}
-            <Dialog open={importOpen} onClose={closeImport} fullWidth maxWidth="sm">
+            <Dialog
+                open={importOpen}
+                onClose={closeImport}
+                fullWidth
+                maxWidth="sm"
+                slotProps={{
+                    paper: {
+                        component: "form",
+                        onSubmit: (event: SubmitEvent<HTMLDivElement>) => {
+                            event.preventDefault()
+                            handleImportSubmit()
+                        },
+                    },
+                }}
+            >
                 <DialogTitle>{t("keys.import_title")}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
+                        {importError && (
+                            <Alert severity="error" onClose={() => setImportError(null)}>
+                                {importError}
+                            </Alert>
+                        )}
                         <TextField label={t("keys.import.accessKeyId")} value={importForm.accessKeyId} onChange={(e) => setImportForm((f) => ({ ...f, accessKeyId: e.target.value }))} fullWidth />
                         <TextField
                             label={t("keys.import.secretAccessKey")}
@@ -389,16 +492,35 @@ export default function ApplicationsKeys() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={closeImport}>{t("common.cancel")}</Button>
-                    <Button variant="contained" onClick={submitImport} disabled={importSubmitting}>
+                    <Button type="submit" variant="contained" disabled={importSubmitting} sx={SUBMIT_BUTTON_SX}>
                         {t("keys.import.label")}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             {/* Details dialog */}
-            <Dialog open={detailOpen} onClose={closeDetails} fullWidth maxWidth="md">
+            <Dialog
+                open={detailOpen}
+                onClose={closeDetails}
+                fullWidth
+                maxWidth="md"
+                slotProps={editing ? {
+                    paper: {
+                        component: "form",
+                        onSubmit: (event: SubmitEvent<HTMLDivElement>) => {
+                            event.preventDefault()
+                            handleDetailsSubmit()
+                        },
+                    },
+                } : undefined}
+            >
                 <DialogTitle>{t("common.details")}</DialogTitle>
                 <DialogContent>
+                    {detailsError && (
+                        <Alert severity="error" onClose={() => setDetailsError(null)} sx={{ mt: 1 }}>
+                            {detailsError}
+                        </Alert>
+                    )}
                     {selectedKey ? (
                         <Box sx={{ mt: 1 }}>
                             {!editing ? (
@@ -424,10 +546,12 @@ export default function ApplicationsKeys() {
                                     <Box sx={{ mt: 0.5 }}>
                                         {selectedKey.permissions && Object.keys(selectedKey.permissions).length > 0 ? (
                                             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap" }}>
-                                                {Object.entries(selectedKey.permissions).map(([k, v]) => (v ? <Chip key={k} label={t(`keys.perm.${k}`)} size="small" /> : null))}
+                                                {Object.entries(selectedKey.permissions).map(([k, v]) => (v ? <Chip key={k} label={t(`keys.perm.${k}`, k)} size="small" /> : null))}
                                             </Stack>
                                         ) : (
-                                            <Typography variant="body2" color="text.secondary">
+                                            <Typography variant="body2" sx={{
+                                                color: "text.secondary"
+                                            }}>
                                                 {t("keys.no_permissions")}
                                             </Typography>
                                         )}
@@ -444,7 +568,7 @@ export default function ApplicationsKeys() {
                                                     </Button>
                                                 ) : (
                                                     <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                                                        <code style={{ wordBreak: "break-all" }}>{selectedKey.secretAccessKey}</code>
+                                                        <Box component="code" sx={{ wordBreak: "break-all" }}>{selectedKey.secretAccessKey}</Box>
                                                         <Button
                                                             size="small"
                                                             onClick={() => {
@@ -468,7 +592,9 @@ export default function ApplicationsKeys() {
                                                 </Box>
                                             </Box>
                                         ) : (
-                                            <Typography variant="body2" color="text.secondary">
+                                            <Typography variant="body2" sx={{
+                                                color: "text.secondary"
+                                            }}>
                                                 {t("keys.no_secret")}
                                             </Typography>
                                         )}
@@ -483,26 +609,34 @@ export default function ApplicationsKeys() {
                                             type="datetime-local"
                                             value={detailsForm.expiration || ""}
                                             onChange={(e) => setDetailsForm((d) => ({ ...d, expiration: e.target.value }))}
-                                            InputLabelProps={{ shrink: true }}
+                                            slotProps={{
+                                                inputLabel: { shrink: true }
+                                            }}
                                         />
                                     )}
-                                    <label>
-                                        <input type="checkbox" checked={detailsForm.neverExpires} onChange={(e) => setDetailsForm((d) => ({ ...d, neverExpires: e.target.checked }))} />{" "}
-                                        {t("common.never_expire")}
-                                    </label>
-                                    <label>
-                                        <input
-                                            type="checkbox"
-                                            checked={detailsForm.permissions.createBucket}
-                                            onChange={(e) => setDetailsForm((d) => ({ ...d, permissions: { ...d.permissions, createBucket: e.target.checked } }))}
-                                        />{" "}
-                                        {t("keys.perm.createBucket")}
-                                    </label>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={detailsForm.neverExpires}
+                                                onChange={(e) => setDetailsForm((d) => ({ ...d, neverExpires: e.target.checked }))}
+                                            />
+                                        }
+                                        label={t("common.never_expire")}
+                                    />
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={detailsForm.permissions.createBucket}
+                                                onChange={(e) => setDetailsForm((d) => ({ ...d, permissions: { ...d.permissions, createBucket: e.target.checked } }))}
+                                            />
+                                        }
+                                        label={t("keys.perm.createBucket")}
+                                    />
                                 </Stack>
                             )}
                         </Box>
                     ) : (
-                        <div>{t("common.loading")}</div>
+                        <Typography>{t("common.loading")}</Typography>
                     )}
                 </DialogContent>
                 <DialogActions>
@@ -523,7 +657,7 @@ export default function ApplicationsKeys() {
                         </Button>
                     )}
                     {editing && (
-                        <Button variant="contained" onClick={saveDetails} disabled={savingDetails}>
+                        <Button type="submit" variant="contained" disabled={savingDetails} sx={SUBMIT_BUTTON_SX}>
                             {t("common.save")}
                         </Button>
                     )}
@@ -566,7 +700,7 @@ export default function ApplicationsKeys() {
             <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
                 <DialogTitle>{t("common.delete")}</DialogTitle>
                 <DialogContent>
-                    <div>{t("keys.delete_confirm")}</div>
+                    <Typography>{t("keys.delete_confirm")}</Typography>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setDeleteDialogOpen(false)}>{t("common.cancel")}</Button>
@@ -576,5 +710,5 @@ export default function ApplicationsKeys() {
                 </DialogActions>
             </Dialog>
         </Box>
-    )
+    );
 }

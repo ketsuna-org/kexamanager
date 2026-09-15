@@ -16,7 +16,7 @@ import Editor, { loader } from "@monaco-editor/react"
 // Configure Monaco Editor
 loader.init().then(monaco => {
   // Ensure Go language is available
-  if (!monaco.languages.getLanguages().find(lang => lang.id === 'go')) {
+  if (!monaco.languages.getLanguages().find((lang: { id: string }) => lang.id === 'go')) {
     monaco.languages.register({ id: 'go' })
   }
 })
@@ -47,38 +47,24 @@ export default function PreviewDialog({
   // Fetch text content when opening text files
   useEffect(() => {
     if (open && url && mime?.startsWith("text/")) {
-      console.log('Fetching content for:', key, 'from:', url)
-      console.log('MIME type:', mime)
       setLoading(true)
       setContent("") // Clear content while loading
       fetch(url, {
         method: 'GET',
       })
         .then(response => {
-          console.log('Fetch response status:', response.status)
-          console.log('Fetch response ok:', response.ok)
-          console.log('Fetch response type:', response.type)
-
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unknown error'}`)
           }
 
-          // Check if we can read the response
-          const contentType = response.headers.get('content-type')
-          console.log('Content-Type:', contentType)
-
           return response.text()
         })
         .then(text => {
-          console.log('Fetched content length:', text.length)
-          console.log('First 200 chars:', text.substring(0, 200))
           setContent(text)
           setLoading(false)
         })
         .catch(error => {
           console.error('Error fetching content:', error)
-          console.error('Error name:', error.name)
-          console.error('Error message:', error.message)
 
           let errorMessage = 'Failed to load file content'
           if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -148,7 +134,6 @@ export default function PreviewDialog({
 
     // If entering edit mode and content is empty, try fetching again
     if (newEditMode && !content && url && mime?.startsWith("text/")) {
-      console.log('Content is empty in edit mode, refetching...')
       setLoading(true)
       fetch(url, {
         method: 'GET',
@@ -156,14 +141,12 @@ export default function PreviewDialog({
         credentials: 'omit',
       })
         .then(response => {
-          console.log('Refetch response status:', response.status)
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unknown error'}`)
           }
           return response.text()
         })
         .then(text => {
-          console.log('Refetched content length:', text.length)
           setContent(text)
           setLoading(false)
         })
@@ -432,7 +415,7 @@ export default function PreviewDialog({
               {content}
             </pre>
           ) : (
-            <Typography variant="body2">{t("s3browser.preview_unavailable", { defaultValue: "Aucun aperçu disponible pour ce type. Téléchargez le fichier pour l'ouvrir." })}</Typography>
+            <Typography variant="body2">{t("s3browser.preview_unavailable")}</Typography>
           )
         ) : (
           <CircularProgress size={20} />
@@ -447,19 +430,19 @@ export default function PreviewDialog({
               disabled={saving}
               color="primary"
             >
-              {saving ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save" })}
+              {saving ? t("common.saving") : t("common.save")}
             </Button>
             <Button
               onClick={handleCancel}
               startIcon={<CancelIcon />}
               disabled={saving}
             >
-              {t("common.cancel", { defaultValue: "Cancel" })}
+              {t("common.cancel")}
             </Button>
           </>
         ) : (
           <>
-            <Button onClick={() => { if (url) window.open(url, "_blank") }}>{t("common.download", { defaultValue: "Download" })}</Button>
+            <Button onClick={() => { if (url) window.open(url, "_blank") }}>{t("common.download")}</Button>
             <Button onClick={onClose}>{t("common.close")}</Button>
           </>
         )}

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react"
 import {
     Box,
-    Typography,
     Button,
     Dialog,
     DialogTitle,
@@ -12,13 +11,6 @@ import {
     InputLabel,
     Select,
     MenuItem,
-    Table,
-    TableBody,
-    TableCell,
-    TableContainer,
-    TableHead,
-    TableRow,
-    Paper,
     Alert,
     CircularProgress,
     IconButton,
@@ -28,6 +20,10 @@ import { Edit, Delete, PersonAdd } from "@mui/icons-material"
 import { useTranslation } from "react-i18next"
 import { adminGet, adminPost, adminPut, adminDelete } from "../../utils/adminClient"
 import type { ApiError } from "../../utils/adminClient"
+import ConfirmDialog from "../../components/ConfirmDialog"
+import PageHeader from "../../components/PageHeader"
+import DataTable, { type DataTableColumn } from "../../components/data/DataTable"
+import { formatDateTime } from "../../utils/format"
 
 interface User {
     ID: number
@@ -40,6 +36,7 @@ interface User {
 export default function UserManager() {
     const [users, setUsers] = useState<User[]>([])
     const [loading, setLoading] = useState(true)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [error, setError] = useState("")
     const [dialogOpen, setDialogOpen] = useState(false)
     const [editingUser, setEditingUser] = useState<User | null>(null)
@@ -49,21 +46,23 @@ export default function UserManager() {
         role: "user" as "admin" | "user",
     })
     const [saving, setSaving] = useState(false)
-    const { t } = useTranslation()
+    const [pendingDelete, setPendingDelete] = useState<User | null>(null)
+    const [deleting, setDeleting] = useState(false)
+    const { t, i18n } = useTranslation()
 
     const loadUsers = useCallback(async () => {
         try {
             setLoading(true)
             const response = await adminGet<User[]>("/auth/users")
             setUsers(response)
-            setError("")
+            setLoadError(null)
         } catch (err) {
             const apiError = err as ApiError
-            setError(apiError.message || "Failed to load users")
+            setLoadError(apiError.message || t("common.load_error"))
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [t])
 
     useEffect(() => {
         loadUsers()
@@ -97,12 +96,12 @@ export default function UserManager() {
 
     const handleSave = async () => {
         if (!formData.username) {
-            setError(t("userManager.errorUsername", "Username is required"))
+            setError(t("userManager.errorUsername"))
             return
         }
 
         if (!editingUser && !formData.password) {
-            setError(t("userManager.errorPassword", "Password is required for new users"))
+            setError(t("userManager.errorPassword"))
             return
         }
 
@@ -139,47 +138,107 @@ export default function UserManager() {
         }
     }
 
-    const handleDelete = async (user: User) => {
-        if (user.username === "root") {
-            setError(t("userManager.errorDeleteRoot", "Cannot delete root user"))
-            return
-        }
-
-        if (!confirm(t("userManager.confirmDelete", `Delete user "${user.username}"?`))) {
-            return
-        }
+    const handleDelete = async () => {
+        if (!pendingDelete) return
 
         try {
-            await adminDelete(`/auth/users/${user.ID}`)
+            setDeleting(true)
+            setError("")
+            await adminDelete(`/auth/users/${pendingDelete.ID}`)
+            setPendingDelete(null)
             await loadUsers()
         } catch (err) {
             const apiError = err as ApiError
             setError(apiError.message || "Failed to delete user")
+        } finally {
+            setDeleting(false)
         }
     }
 
-    if (loading) {
-        return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                <CircularProgress />
-            </Box>
-        )
+    const requestDelete = (user: User) => {
+        if (user.username === "root") {
+            setError(t("userManager.errorDeleteRoot"))
+            return
+        }
+        setError("")
+        setPendingDelete(user)
     }
+
+    const userColumns: DataTableColumn<User>[] = [
+        {
+            id: "username",
+            header: t("userManager.username"),
+            minWidth: 200,
+            sortValue: (user) => user.username,
+            cell: (user) => (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {user.username}
+                    {user.username === "root" && <Chip label="SYSTEM" size="small" color="warning" />}
+                </Box>
+            ),
+        },
+        {
+            id: "role",
+            header: t("userManager.role"),
+            minWidth: 120,
+            sortValue: (user) => user.role,
+            cell: (user) => (
+                <Chip label={user.role.toUpperCase()} color={user.role === "admin" ? "primary" : "default"} size="small" />
+            ),
+        },
+        {
+            id: "createdAt",
+            header: t("userManager.createdAt"),
+            minWidth: 180,
+            sortValue: (user) => new Date(user.CreatedAt),
+            cell: (user) => formatDateTime(user.CreatedAt, i18n.language),
+        },
+        {
+            id: "actions",
+            header: t("userManager.actions"),
+            align: "right",
+            minWidth: 110,
+            cell: (user) =>
+                user.username === "root" ? null : (
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
+                        <IconButton
+                            size="small"
+                            color="primary"
+                            sx={{ width: 32, height: 32 }}
+                            onClick={() => handleOpenDialog(user)}
+                            aria-label={`${t("common.edit")} ${user.username}`}
+                        >
+                            <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton
+                            size="small"
+                            color="error"
+                            sx={{ width: 32, height: 32 }}
+                            onClick={() => requestDelete(user)}
+                            aria-label={`${t("common.delete")} ${user.username}`}
+                        >
+                            <Delete fontSize="small" />
+                        </IconButton>
+                    </Box>
+                ),
+        },
+    ]
 
     return (
         <Box sx={{ p: 3 }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                <Typography variant="h4" component="h1">
-                    {t("userManager.title", "Gestion des utilisateurs")}
-                </Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<PersonAdd />}
-                    onClick={() => handleOpenDialog()}
-                >
-                    {t("userManager.addUser", "Nouvel utilisateur")}
-                </Button>
-            </Box>
+            <PageHeader
+                title={t("userManager.title")}
+                subtitle={t("userManager.subtitle")}
+                action={
+                    <Button
+                        variant="contained"
+                        startIcon={<PersonAdd />}
+                        onClick={() => handleOpenDialog()}
+                    >
+                        {t("userManager.addUser")}
+                    </Button>
+                }
+            />
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
@@ -187,72 +246,31 @@ export default function UserManager() {
                 </Alert>
             )}
 
-            <TableContainer component={Paper}>
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>{t("userManager.username", "Nom d'utilisateur")}</TableCell>
-                            <TableCell>{t("userManager.role", "Rôle")}</TableCell>
-                            <TableCell>{t("userManager.createdAt", "Créé le")}</TableCell>
-                            <TableCell align="right">{t("userManager.actions", "Actions")}</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {users.map((user) => (
-                            <TableRow key={user.ID}>
-                                <TableCell>
-                                    <Box display="flex" alignItems="center" gap={1}>
-                                        {user.username}
-                                        {user.username === "root" && (
-                                            <Chip
-                                                label="SYSTEM"
-                                                size="small"
-                                                color="warning"
-                                            />
-                                        )}
-                                    </Box>
-                                </TableCell>
-                                <TableCell>
-                                    <Chip
-                                        label={user.role.toUpperCase()}
-                                        color={user.role === "admin" ? "primary" : "default"}
-                                        size="small"
-                                    />
-                                </TableCell>
-                                <TableCell>
-                                    {new Date(user.CreatedAt).toLocaleDateString()}
-                                </TableCell>
-                                <TableCell align="right">
-                                    {user.username !== "root" && (
-                                        <>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleOpenDialog(user)}
-                                                color="primary"
-                                            >
-                                                <Edit />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                onClick={() => handleDelete(user)}
-                                                color="error"
-                                            >
-                                                <Delete />
-                                            </IconButton>
-                                        </>
-                                    )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </TableContainer>
+            <DataTable<User>
+                rows={users}
+                getRowId={(user) => String(user.ID)}
+                loading={loading}
+                error={loadError}
+                errorTitle={t("common.load_error") as string}
+                retryLabel={t("common.retry") as string}
+                onRetry={() => { void loadUsers() }}
+                tableLabel={t("userManager.title") as string}
+                columns={userColumns}
+                searchValue={(user) => `${user.username} ${user.role}`}
+                defaultSort={{ id: "username", dir: "asc" }}
+                pagination={{ defaultRowsPerPage: 25, rowsPerPageOptions: [25, 50, 100] }}
+                emptyState={{
+                    icon: <PersonAdd sx={{ fontSize: 48, color: "text.disabled" }} />,
+                    title: t("userManager.empty") as string,
+                    primaryAction: { label: t("userManager.addUser") as string, onClick: () => handleOpenDialog() },
+                }}
+            />
 
             <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
                 <DialogTitle>
                     {editingUser
-                        ? t("userManager.editUser", "Modifier l'utilisateur")
-                        : t("userManager.addUser", "Nouvel utilisateur")}
+                        ? t("userManager.editUser")
+                        : t("userManager.addUser")}
                 </DialogTitle>
                 <DialogContent>
                     {error && (
@@ -261,7 +279,7 @@ export default function UserManager() {
                         </Alert>
                     )}
                     <TextField
-                        label={t("userManager.username", "Nom d'utilisateur")}
+                        label={t("userManager.username")}
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                         fullWidth
@@ -272,8 +290,8 @@ export default function UserManager() {
                     <TextField
                         label={
                             editingUser
-                                ? t("userManager.newPassword", "Nouveau mot de passe (optionnel)")
-                                : t("userManager.password", "Mot de passe")
+                                ? t("userManager.newPassword")
+                                : t("userManager.password")
                         }
                         type="password"
                         value={formData.password}
@@ -283,12 +301,12 @@ export default function UserManager() {
                         required={!editingUser}
                         helperText={
                             editingUser
-                                ? t("userManager.passwordHelp", "Laissez vide pour conserver le mot de passe actuel")
+                                ? t("userManager.passwordHelp")
                                 : ""
                         }
                     />
                     <FormControl fullWidth margin="normal">
-                        <InputLabel>{t("userManager.role", "Rôle")}</InputLabel>
+                        <InputLabel>{t("userManager.role")}</InputLabel>
                         <Select
                             value={formData.role}
                             onChange={(e) =>
@@ -297,23 +315,35 @@ export default function UserManager() {
                             disabled={editingUser?.username === "root"}
                         >
                             <MenuItem value="user">
-                                {t("userManager.roleUser", "Utilisateur")}
+                                {t("userManager.roleUser")}
                             </MenuItem>
                             <MenuItem value="admin">
-                                {t("userManager.roleAdmin", "Administrateur")}
+                                {t("userManager.roleAdmin")}
                             </MenuItem>
                         </Select>
                     </FormControl>
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseDialog}>
-                        {t("common.cancel", "Annuler")}
+                        {t("common.cancel")}
                     </Button>
                     <Button onClick={handleSave} variant="contained" disabled={saving}>
-                        {saving ? <CircularProgress size={20} /> : t("common.save", "Enregistrer")}
+                        {saving ? <CircularProgress size={20} /> : t("common.save")}
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!pendingDelete}
+                title={t("userManager.deleteUser")}
+                message={t("userManager.confirmDelete", {
+                    username: pendingDelete?.username || "" })}
+                confirmLabel={t("common.delete")}
+                confirmColor="error"
+                loading={deleting}
+                onConfirm={handleDelete}
+                onClose={() => setPendingDelete(null)}
+            />
         </Box>
-    )
+    );
 }

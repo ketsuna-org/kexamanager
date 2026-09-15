@@ -39,7 +39,9 @@ export default function S3Breadcrumbs({ bucket, prefix, onNavigate, onBackToBuck
                 const path = parts.slice(0, index + 1).join('/') + '/';
 
                 return isLast ? (
-                    <Typography key={path} color="text.primary">
+                    <Typography key={path} sx={{
+                        color: "text.primary"
+                    }}>
                         {part}
                     </Typography>
                 ) : (
@@ -55,5 +57,5 @@ export default function S3Breadcrumbs({ bucket, prefix, onNavigate, onBackToBuck
                 );
             })}
         </Breadcrumbs>
-    )
+    );
 }

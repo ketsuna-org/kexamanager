@@ -23,7 +23,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
         setLoading(true)
 
         if (!username || !password) {
-            setError(t("login.errorEmpty", "Username and password are required"))
+            setError(t("login.errorEmpty"))
             setLoading(false)
             return
         }
@@ -32,7 +32,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
             await authenticateWithCredentials(username, password)
             onAuth()
         } catch (err) {
-            setError(err instanceof Error ? err.message : t("login.errorUnknown", "An unknown error occurred"))
+            setError(err instanceof Error ? err.message : t("login.errorUnknown"))
         } finally {
             setLoading(false)
         }
@@ -41,7 +41,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
     return (
         <Box
             sx={{
-                minHeight: "100vh",
+                minHeight: "100dvh",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -73,15 +73,28 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                             justifyContent: "center",
                         }}
                     >
-                        <PersonIcon sx={{ color: "white", fontSize: 32 }} />
+                        <PersonIcon aria-hidden="true" sx={{ color: "white", fontSize: 32 }} />
                     </Box>
 
-                    <Typography variant="h4" component="h1" gutterBottom fontWeight={700} textAlign="center">
-                        {t("login.title", "KexaManager")}
+                    <Typography
+                        variant="h4"
+                        component="h1"
+                        gutterBottom
+                        sx={{
+                            fontWeight: 700,
+                            textAlign: "center"
+                        }}>
+                        {t("login.brand")}
                     </Typography>
 
-                    <Typography variant="body1" color="text.secondary" textAlign="center" sx={{ mb: 2 }}>
-                        {t("login.instructions", "Veuillez entrer vos identifiants pour vous connecter.")}
+                    <Typography
+                        variant="body1"
+                        sx={{
+                            color: "text.secondary",
+                            textAlign: "center",
+                            mb: 2
+                        }}>
+                        {t("login.instructions")}
                     </Typography>
                 </Box>
 
@@ -92,27 +105,29 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                 )}
 
                 <TextField
-                    label={t("login.usernameLabel", "Nom d'utilisateur")}
+                    label={t("login.usernameLabel")}
                     type="text"
+                    autoComplete="username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     fullWidth
                     autoFocus
                     margin="normal"
                     disabled={loading}
-                    placeholder={t("login.usernamePlaceholder", "Entrez votre nom d'utilisateur")}
+                    placeholder={t("login.usernamePlaceholder")}
                     sx={{ mb: 2 }}
                 />
 
                 <TextField
-                    label={t("login.passwordLabel", "Mot de passe")}
+                    label={t("login.passwordLabel")}
                     type="password"
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     fullWidth
                     margin="normal"
                     disabled={loading}
-                    placeholder={t("login.passwordPlaceholder", "Entrez votre mot de passe")}
+                    placeholder={t("login.passwordPlaceholder")}
                     sx={{ mb: 3 }}
                 />
 
@@ -120,6 +135,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                     variant="contained"
                     type="submit"
                     disabled={loading || !username.trim() || !password.trim()}
+                    aria-busy={loading}
                     fullWidth
                     size="large"
                     sx={{
@@ -131,6 +147,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                     {loading && (
                         <CircularProgress
                             size={20}
+                            aria-hidden="true"
                             sx={{
                                 position: "absolute",
                                 left: "50%",
@@ -140,7 +157,7 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                             }}
                         />
                     )}
-                    <Box sx={{ opacity: loading ? 0 : 1 }}>{t("login.submitButton", "Se connecter")}</Box>
+                    <Box sx={{ opacity: loading ? 0 : 1 }}>{t("login.submitButton")}</Box>
                 </Button>
 
                 <Button
@@ -154,9 +171,9 @@ export default function Login({ onAuth }: { onAuth: () => void }) {
                     fullWidth
                     sx={{ color: "text.secondary" }}
                 >
-                    {t("login.clearButton", "Effacer")}
+                    {t("login.clearButton")}
                 </Button>
             </Paper>
         </Box>
-    )
+    );
 }

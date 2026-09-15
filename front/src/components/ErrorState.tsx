@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import Alert from "@mui/material/Alert"
 import AlertTitle from "@mui/material/AlertTitle"
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline"
+import ErrorOutlinedIcon from "@mui/icons-material/ErrorOutlined"
 import RefreshIcon from "@mui/icons-material/Refresh"
 
 interface ErrorStateProps {
@@ -45,14 +45,22 @@ export default function ErrorState({
                         mb: 1,
                     }}
                 >
-                    <ErrorOutlineIcon sx={{ fontSize: 48 }} />
+                    <ErrorOutlinedIcon sx={{ fontSize: 48 }} />
                 </Box>
 
-                <Typography variant="h6" fontWeight={600}>
+                <Typography variant="h6" sx={{
+                    fontWeight: 600
+                }}>
                     {title}
                 </Typography>
 
-                <Typography variant="body1" color="text.secondary" sx={{ maxWidth: 400, lineHeight: 1.6 }}>
+                <Typography
+                    variant="body1"
+                    sx={{
+                        color: "text.secondary",
+                        maxWidth: 400,
+                        lineHeight: 1.6
+                    }}>
                     {message}
                 </Typography>
 
@@ -62,7 +70,7 @@ export default function ErrorState({
                     </Button>
                 )}
             </Box>
-        )
+        );
     }
 
     return (

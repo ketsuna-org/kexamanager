@@ -1,14 +1,9 @@
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, type SubmitEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { ListAdminTokens, CreateAdminToken, DeleteAdminToken, UpdateAdminToken, GetAdminTokenInfo, type ApiError } from "../../utils/apiWrapper"
+import { ListAdminTokens, CreateAdminToken, DeleteAdminToken, UpdateAdminToken, GetAdminTokenInfo } from "../../utils/apiWrapper"
 import type { components } from "../../types/openapi"
-import Table from "@mui/material/Table"
-import TableBody from "@mui/material/TableBody"
-import TableCell from "@mui/material/TableCell"
-import TableContainer from "@mui/material/TableContainer"
-import TableHead from "@mui/material/TableHead"
-import TableRow from "@mui/material/TableRow"
-import Paper from "@mui/material/Paper"
+import Typography from "@mui/material/Typography"
+import Box from "@mui/material/Box"
 import Dialog from "@mui/material/Dialog"
 import DialogTitle from "@mui/material/DialogTitle"
 import DialogContent from "@mui/material/DialogContent"
@@ -18,7 +13,6 @@ import IconButton from "@mui/material/IconButton"
 import TextField from "@mui/material/TextField"
 import Checkbox from "@mui/material/Checkbox"
 import FormControlLabel from "@mui/material/FormControlLabel"
-import Snackbar from "@mui/material/Snackbar"
 import Alert from "@mui/material/Alert"
 import CircularProgress from "@mui/material/CircularProgress"
 import Stack from "@mui/material/Stack"
@@ -26,11 +20,31 @@ import Tooltip from "@mui/material/Tooltip"
 import DeleteIcon from "@mui/icons-material/Delete"
 import EditIcon from "@mui/icons-material/Edit"
 import VisibilityIcon from "@mui/icons-material/Visibility"
+import TokenOutlinedIcon from "@mui/icons-material/TokenOutlined"
+import PageHeader from "../../components/PageHeader"
+import { useProject } from "../../contexts/ProjectContext"
+import { useFeedback } from "../../contexts/FeedbackContext"
+import { projectBadge } from "./projectBadge"
+import DataTable, { type DataTableColumn } from "../../components/data/DataTable"
+import { formatDateTime } from "../../utils/format"
+
+/** Message lisible à partir d'une erreur inconnue (Error, string) avec repli traduit. */
+function extractErrorMessage(err: unknown, fallback: string): string {
+    if (err instanceof Error && err.message) return err.message
+    if (typeof err === "string" && err) return err
+    return fallback
+}
+
+/** Largeur minimale du bouton de validation pour qu'il ne se décale pas pendant l'envoi. */
+const SUBMIT_BUTTON_SX = { minWidth: 96 } as const
 
 export default function AdminTokens() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
+    const { selectedProject } = useProject()
+    const { notify } = useFeedback()
     const [loading, setLoading] = useState(true)
-    const [error, setError] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
+    const [actionError, setActionError] = useState<string | null>(null)
     const [tokens, setTokens] = useState<Awaited<ReturnType<typeof ListAdminTokens>>>([])
 
     // Dialog states
@@ -39,12 +53,10 @@ export default function AdminTokens() {
     const [confirmOpen, setConfirmOpen] = useState(false)
     const [createdSecretOpen, setCreatedSecretOpen] = useState(false)
 
-    // Snackbar
-    const [snack, setSnack] = useState<{ open: boolean; severity: "success" | "error" | "info"; message: string }>({ open: false, severity: "info", message: "" })
-
     // form model for create/edit
     const [editing, setEditing] = useState<null | { id?: string }>(null)
     const [form, setForm] = useState<{ name: string; expiration?: string; neverExpires: boolean; scope: string }>({ name: "", expiration: "", neverExpires: false, scope: "*" })
+    const [formError, setFormError] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
 
     // view token detail
@@ -53,34 +65,44 @@ export default function AdminTokens() {
     // secret shown after creation
     const [createdSecret, setCreatedSecret] = useState<string | null>(null)
 
-    async function load() {
+    const load = useCallback(async () => {
         setLoading(true)
-        setError(null)
+        setLoadError(null)
         try {
             const res = await ListAdminTokens()
-            if (res && Array.isArray(res)) setTokens(res)
+            if (Array.isArray(res)) {
+                setTokens(res)
+            } else {
+                setTokens([])
+                setLoadError(t("adminTokens.load_error"))
+            }
         } catch (e) {
-            setError((e as unknown as { message?: string })?.message || String(e))
+            setTokens([])
+            setLoadError(extractErrorMessage(e, t("adminTokens.load_error")))
         } finally {
             setLoading(false)
         }
-    }
-
-    const loadCallback = useCallback(load, [])
+    }, [t])
 
     useEffect(() => {
-        loadCallback()
-    }, [loadCallback])
+        void load()
+    }, [load])
 
     function openCreate() {
         setEditing(null)
         setForm({ name: "", expiration: "", neverExpires: false, scope: "*" })
+        setFormError(null)
         setFormOpen(true)
+    }
+
+    function closeForm() {
+        setFormOpen(false)
+        setFormError(null)
     }
 
     function openEdit(tok: AdminToken) {
         if (!tok.id) {
-            setSnack({ open: true, severity: "error", message: t("adminTokens.invalid_id") })
+            setActionError(t("adminTokens.invalid_id"))
             return
         }
         setEditing({ id: tok.id ?? undefined })
@@ -91,22 +113,29 @@ export default function AdminTokens() {
             neverExpires: tok.expiration === null,
             scope: (tok.scope || []).join(", "),
         })
+        setFormError(null)
         setFormOpen(true)
     }
 
+    /** Soumission au clavier (Entrée) du formulaire de création/édition. */
+    function handleFormSubmit() {
+        if (busy) return
+        void handleSubmit()
+    }
+
     async function openView(tok: AdminToken) {
+        if (!tok.id) {
+            setActionError(t("adminTokens.invalid_id"))
+            return
+        }
+        setActionError(null)
+        setBusy(true)
         try {
-            setBusy(true)
-            if (!tok.id) {
-                setSnack({ open: true, severity: "error", message: t("adminTokens.invalid_id") })
-                return
-            }
             const res = await GetAdminTokenInfo({ id: tok.id ?? undefined })
             setCurrent(res)
             setViewOpen(true)
         } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e)
-            setSnack({ open: true, severity: "error", message: msg })
+            setActionError(extractErrorMessage(e, t("adminTokens.details_load_error")))
         } finally {
             setBusy(false)
         }
@@ -114,7 +143,7 @@ export default function AdminTokens() {
 
     function openConfirm(tok: AdminToken) {
         if (!tok.id) {
-            setSnack({ open: true, severity: "error", message: t("adminTokens.invalid_id") })
+            setActionError(t("adminTokens.invalid_id"))
             return
         }
         setCurrent(tok)
@@ -130,6 +159,8 @@ export default function AdminTokens() {
     }
 
     async function handleSubmit() {
+        setActionError(null)
+        setFormError(null)
         setBusy(true)
         try {
             if (editing && editing.id) {
@@ -142,7 +173,7 @@ export default function AdminTokens() {
                         scope: form.scope ? form.scope.split(",").map((s) => s.trim()) : undefined,
                     }
                 )
-                setSnack({ open: true, severity: "success", message: t("adminTokens.updated") })
+                notify({ severity: "success", message: t("adminTokens.updated") })
             } else {
                 const res = await CreateAdminToken({
                     name: form.name || "",
@@ -150,7 +181,7 @@ export default function AdminTokens() {
                     neverExpires: form.neverExpires || undefined,
                     scope: form.scope ? form.scope.split(",").map((s) => s.trim()) : undefined,
                 })
-                setSnack({ open: true, severity: "success", message: t("adminTokens.created") })
+                notify({ severity: "success", message: t("adminTokens.created") })
                 // show secret if returned
                 if ("secretToken" in res && (res as unknown as { secretToken?: string }).secretToken) {
                     setCreatedSecret((res as unknown as { secretToken?: string }).secretToken ?? null)
@@ -160,8 +191,7 @@ export default function AdminTokens() {
             setFormOpen(false)
             await load()
         } catch (e) {
-            const error = e as unknown as ApiError
-            setSnack({ open: true, severity: "error", message: error.message })
+            setFormError(extractErrorMessage(e, t("adminTokens.save_error")))
         } finally {
             setBusy(false)
         }
@@ -170,113 +200,179 @@ export default function AdminTokens() {
     async function handleDelete() {
         if (!current) return
         if (!current.id) {
-            setSnack({ open: true, severity: "error", message: t("adminTokens.invalid_id") })
+            setActionError(t("adminTokens.invalid_id"))
             return
         }
+        setActionError(null)
         setBusy(true)
         try {
             await DeleteAdminToken({ id: current.id })
-            setSnack({ open: true, severity: "success", message: t("adminTokens.deleted") })
+            notify({ severity: "success", message: t("adminTokens.deleted") })
             setConfirmOpen(false)
             await load()
         } catch (e) {
-            const msg = e instanceof Error ? e.message : String(e)
-            setSnack({ open: true, severity: "error", message: msg })
+            setConfirmOpen(false)
+            setActionError(extractErrorMessage(e, t("adminTokens.delete_error")))
         } finally {
             setBusy(false)
         }
     }
 
     return (
-        <div>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-                <div>
-                    <h3>{t("dashboard.adminTokens")}</h3>
-                    <p>{t("dashboard.adminTokens_desc")}</p>
-                </div>
-                <div>
-                    <Button variant="contained" onClick={openCreate}>
+        <Box>
+            <PageHeader
+                title={t("dashboard.adminTokens")}
+                subtitle={t("dashboard.adminTokens_desc")}
+                badge={projectBadge(selectedProject)}
+                action={
+                    <Button variant="contained" onClick={openCreate} sx={{ whiteSpace: "nowrap" }}>
                         {t("adminTokens.token_add")}
                     </Button>
-                </div>
-            </Stack>
+                }
+            >
+                {actionError && (
+                    <Alert severity="error" onClose={() => setActionError(null)} sx={{ mb: 2 }}>
+                        {actionError}
+                    </Alert>
+                )}
+            </PageHeader>
 
-            {loading && (
-                <div>
-                    <CircularProgress size={20} /> {t("common.loading")}
-                </div>
-            )}
-            {error && <div style={{ color: "red" }}>{error}</div>}
-
-            {!loading && !error && (
-                <TableContainer component={Paper}>
-                    <Table size="small">
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>#</TableCell>
-                                <TableCell>{t("adminTokens.created")}</TableCell>
-                                <TableCell>{t("adminTokens.name")}</TableCell>
-                                <TableCell>{t("adminTokens.expiration")}</TableCell>
-                                <TableCell>{t("adminTokens.expired")}</TableCell>
-                                <TableCell>{t("adminTokens.scope")}</TableCell>
-                                <TableCell>{t("common.actions")}</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {tokens.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={7} sx={{ textAlign: "center" }}>
-                                        {t("adminTokens.empty")}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                            {tokens.map((tok, idx) => {
-                                return (
-                                    <TableRow key={tok.id ?? idx}>
-                                        <TableCell>{tok.id ?? t("common.fromconfig")}</TableCell>
-                                        <TableCell>{tok.created ?? t("common.fromconfig")}</TableCell>
-                                        <TableCell>{tok.name ?? t("common.fromconfig")}</TableCell>
-                                        <TableCell>{tok.expiration ?? t("common.never_expire")}</TableCell>
-                                        <TableCell>{tok.expired ? t("common.yes") : t("common.no")}</TableCell>
-                                        <TableCell>{(tok.scope || []).join(", ")}</TableCell>
-                                        <TableCell>
-                                            <Stack direction="row" spacing={1}>
-                                                <Tooltip title={t("adminTokens.view") as string}>
-                                                    <span>
-                                                        <IconButton size="small" onClick={() => openView(tok)}>
-                                                            <VisibilityIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
-                                                <Tooltip title={t("adminTokens.edit") as string}>
-                                                    <span>
-                                                        <IconButton size="small" onClick={() => openEdit(tok)}>
-                                                            <EditIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
-                                                <Tooltip title={t("adminTokens.delete") as string}>
-                                                    <span>
-                                                        <IconButton size="small" color="error" onClick={() => openConfirm(tok)}>
-                                                            <DeleteIcon fontSize="small" />
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
-                                            </Stack>
-                                        </TableCell>
-                                    </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
-            )}
+            <DataTable<AdminToken>
+                rows={tokens}
+                getRowId={(tok, index) => tok.id ?? `row-${index}`}
+                loading={loading}
+                error={loadError}
+                errorTitle={t("adminTokens.load_error_title")}
+                retryLabel={t("common.retry")}
+                onRetry={() => { void load() }}
+                tableLabel={t("dashboard.adminTokens") as string}
+                columns={[
+                    {
+                        id: "id",
+                        header: t("keys.id_label"),
+                        cell: (tok) => <Typography variant="code">{tok.id ?? t("common.fromconfig")}</Typography>,
+                        sortValue: (tok) => tok.id ?? "",
+                        minWidth: 140,
+                    },
+                    {
+                        id: "created",
+                        header: t("adminTokens.created"),
+                        cell: (tok) => (tok.created ? formatDateTime(tok.created, i18n.language) : t("common.fromconfig")),
+                        sortValue: (tok) => (tok.created ? new Date(tok.created) : null),
+                        minWidth: 150,
+                    },
+                    {
+                        id: "name",
+                        header: t("adminTokens.name"),
+                        cell: (tok) => tok.name ?? t("common.fromconfig"),
+                        sortValue: (tok) => tok.name ?? "",
+                        minWidth: 140,
+                    },
+                    {
+                        id: "expiration",
+                        header: t("adminTokens.expiration"),
+                        cell: (tok) => (tok.expiration ? formatDateTime(tok.expiration, i18n.language) : t("common.never_expire")),
+                        sortValue: (tok) => (tok.expiration ? new Date(tok.expiration) : null),
+                        minWidth: 150,
+                    },
+                    {
+                        id: "expired",
+                        header: t("adminTokens.expired"),
+                        cell: (tok) => (tok.expired ? t("common.yes") : t("common.no")),
+                        sortValue: (tok) => tok.expired ?? false,
+                        minWidth: 90,
+                    },
+                    {
+                        id: "scope",
+                        header: t("adminTokens.scope"),
+                        cell: (tok) => (tok.scope || []).join(", "),
+                        sortValue: (tok) => (tok.scope || []).join(", "),
+                        truncate: true,
+                        textValue: (tok) => (tok.scope || []).join(", "),
+                        minWidth: 180,
+                    },
+                    {
+                        id: "actions",
+                        header: t("common.actions"),
+                        align: "right" as const,
+                        minWidth: 120,
+                        cell: (tok) => (
+                            <Stack direction="row" spacing={1} sx={{ justifyContent: "flex-end" }}>
+                                <Tooltip title={t("adminTokens.view") as string}>
+                                    <span>
+                                        <IconButton
+                                            size="small"
+                                            sx={{ width: 32, height: 32 }}
+                                            aria-label={`${t("adminTokens.view") as string} ${tok.name ?? tok.id ?? ""}`}
+                                            onClick={() => { void openView(tok) }}
+                                        >
+                                            <VisibilityIcon fontSize="small" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                                <Tooltip title={t("adminTokens.edit") as string}>
+                                    <span>
+                                        <IconButton
+                                            size="small"
+                                            sx={{ width: 32, height: 32 }}
+                                            aria-label={`${t("adminTokens.edit") as string} ${tok.name ?? tok.id ?? ""}`}
+                                            onClick={() => openEdit(tok)}
+                                        >
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                                <Tooltip title={t("adminTokens.delete") as string}>
+                                    <span>
+                                        <IconButton
+                                            size="small"
+                                            color="error"
+                                            sx={{ width: 32, height: 32 }}
+                                            aria-label={`${t("adminTokens.delete") as string} ${tok.name ?? tok.id ?? ""}`}
+                                            onClick={() => openConfirm(tok)}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    </span>
+                                </Tooltip>
+                            </Stack>
+                        ),
+                    },
+                ] satisfies DataTableColumn<AdminToken>[]}
+                searchValue={(tok) => [tok.id ?? "", tok.name ?? "", (tok.scope || []).join(" ")].join(" ")}
+                defaultSort={{ id: "created", dir: "desc" }}
+                pagination={{ defaultRowsPerPage: 25, rowsPerPageOptions: [25, 50, 100] }}
+                emptyState={{
+                    icon: <TokenOutlinedIcon sx={{ fontSize: 48, color: "text.disabled" }} />,
+                    title: t("adminTokens.empty") as string,
+                    primaryAction: { label: t("adminTokens.token_add") as string, onClick: openCreate },
+                }}
+            />
 
             {/* Create / Edit Dialog */}
-            <Dialog open={formOpen} onClose={() => setFormOpen(false)} fullWidth maxWidth="sm">
+            <Dialog
+                open={formOpen}
+                onClose={closeForm}
+                fullWidth
+                maxWidth="sm"
+                slotProps={{
+                    paper: {
+                        component: "form",
+                        onSubmit: (event: SubmitEvent<HTMLDivElement>) => {
+                            event.preventDefault()
+                            handleFormSubmit()
+                        },
+                    },
+                }}
+            >
                 <DialogTitle>{editing ? t("adminTokens.edit_title") : t("adminTokens.create_title")}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2} sx={{ mt: 1 }}>
+                        {formError && (
+                            <Alert severity="error" onClose={() => setFormError(null)}>
+                                {formError}
+                            </Alert>
+                        )}
                         <TextField label={t("adminTokens.name") as string} value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} fullWidth />
                         <TextField
                             label={t("adminTokens.scope") as string}
@@ -295,15 +391,17 @@ export default function AdminTokens() {
                                 type="datetime-local"
                                 value={form.expiration || ""}
                                 onChange={(e) => setForm((s) => ({ ...s, expiration: e.target.value }))}
-                                InputLabelProps={{ shrink: true }}
+                                slotProps={{
+                                    inputLabel: { shrink: true }
+                                }}
                             />
                         )}
                     </Stack>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setFormOpen(false)}>{t("common.cancel")}</Button>
-                    <Button variant="contained" onClick={handleSubmit} disabled={busy}>
-                        {busy ? <CircularProgress size={16} /> : t("common.save")}
+                    <Button onClick={closeForm}>{t("common.cancel")}</Button>
+                    <Button type="submit" variant="contained" disabled={busy} sx={SUBMIT_BUTTON_SX}>
+                        {t("common.save")}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -314,17 +412,17 @@ export default function AdminTokens() {
                 <DialogContent>
                     {busy && <CircularProgress />}
                     {current && (
-                        <div style={{ whiteSpace: "pre-wrap" }}>
+                        <Box sx={{ whiteSpace: "pre-wrap" }}>
                             <b>{t("adminTokens.name")}:</b> {current.name}
                             <br />
                             <b>ID:</b> {current.id}
                             <br />
-                            <b>{t("adminTokens.created")}:</b> {current.created}
+                            <b>{t("adminTokens.created")}:</b> {current.created ? formatDateTime(current.created, i18n.language) : t("common.fromconfig")}
                             <br />
-                            <b>{t("adminTokens.expiration")}:</b> {current.expiration}
+                            <b>{t("adminTokens.expiration")}:</b> {current.expiration ? formatDateTime(current.expiration, i18n.language) : t("common.never_expire")}
                             <br />
                             <b>{t("adminTokens.scope")}:</b> {(current.scope || []).join(", ")}
-                        </div>
+                        </Box>
                     )}
                 </DialogContent>
                 <DialogActions>
@@ -338,8 +436,8 @@ export default function AdminTokens() {
                 <DialogContent>{t("adminTokens.delete_confirm_desc")}</DialogContent>
                 <DialogActions>
                     <Button onClick={() => setConfirmOpen(false)}>{t("common.cancel")}</Button>
-                    <Button color="error" variant="contained" onClick={handleDelete} disabled={busy}>
-                        {busy ? <CircularProgress size={16} /> : t("common.delete")}
+                    <Button color="error" variant="contained" onClick={() => { void handleDelete() }} disabled={busy} sx={SUBMIT_BUTTON_SX}>
+                        {t("common.delete")}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -354,14 +452,14 @@ export default function AdminTokens() {
             >
                 <DialogTitle>{t("adminTokens.created_secret_title")}</DialogTitle>
                 <DialogContent>
-                    <p>{t("adminTokens.created_secret_msg")}</p>
-                    <div style={{ wordBreak: "break-all" }}>{createdSecret}</div>
+                    <Typography variant="body2">{t("adminTokens.created_secret_msg")}</Typography>
+                    <Box sx={{ wordBreak: "break-all" }}>{createdSecret}</Box>
                 </DialogContent>
                 <DialogActions>
                     <Button
                         onClick={() => {
-                            navigator.clipboard?.writeText(createdSecret || "")
-                            setSnack({ open: true, severity: "success", message: t("common.copied") })
+                            void navigator.clipboard?.writeText(createdSecret || "")
+                            notify({ severity: "success", message: t("common.copied") })
                         }}
                     >
                         {t("common.copy")}
@@ -377,11 +475,6 @@ export default function AdminTokens() {
                 </DialogActions>
             </Dialog>
 
-            <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))}>
-                <Alert severity={snack.severity} onClose={() => setSnack((s) => ({ ...s, open: false }))}>
-                    {snack.message}
-                </Alert>
-            </Snackbar>
-        </div>
-    )
+        </Box>
+    );
 }

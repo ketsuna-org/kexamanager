@@ -8,41 +8,50 @@ The frontend uses Vite for development. To mimic Vite's `server.proxy` behavior 
 
 Repository layout:
 - Frontend: `front/`
-- Go proxy: `api/cmd/proxy/`
+- Go proxy: `api/cmd/proxy/` (Go module root is `api/`)
 
 ## English
 
 ### Prerequisites
-- Node.js 18+ (recommended) and `npm` or `bun`
-- Go 1.22+ (or compatible with the repo's `go.mod`)
+- Node.js 24 LTS or newer
+- `bun` 1.4+ (the only package manager used by this repo)
+- Go 1.27+ (or compatible with the repo's `go.mod`)
+- A C compiler for cgo — required by the sqlite driver (`gcc` + sqlite headers). Not needed if you run the proxy through `make dev-api` / Docker.
 
 ### Environment variables
-Used by the application:
-
 **Required:**
 - `PORT` — Port for the application server (default: 7400)
-- `PASSWORD` — Admin password for the application
+- `PASSWORD` — Admin password for the `root` account (default: `admin` when unset)
 
-**Optional:**
-- `MAX_UPLOAD_MEMORY` — Maximum memory for file uploads in bytes (default: 268435456 = 256MB)
+### Local development
 
-### Development (Frontend via Vite)
+Frontend (Vite dev server, hot reload) — proxies `/api` to `http://localhost:8080`:
 ```bash
 cd front
-export PASSWORD="your-admin-password"
-npm install
-npm run dev
+bun install
+bun dev          # http://localhost:5173
 ```
-This serves the app at `http://localhost:5173` (default Vite port).
 
-### Run the Go proxy (alternative or preview)
-The proxy listens on `:8080` by default.
+Go proxy — the simplest path, works even without a local C toolchain:
 ```bash
-export PASSWORD="your-admin-password"
-go run ./api/cmd/proxy
+make dev-api     # builds and runs the proxy in a container on http://localhost:8080
 ```
-Options:
-- `PORT` or `-port` to change the listening port (e.g. `-port 3000`).
+
+Native alternative (requires a working cgo toolchain):
+```bash
+cd api
+PORT=8080 PASSWORD=your-admin-password go run ./cmd/proxy
+```
+
+Sign in at `http://localhost:5173` with `root` / `PASSWORD`.
+
+Quick verification:
+```bash
+curl -s http://localhost:8080/health
+curl -s -X POST http://localhost:8080/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"root","password":"admin"}'
+```
 
 Endpoints:
 - `GET /health` — health check
@@ -61,13 +70,11 @@ The proxy provides direct S3 operations through secure endpoints:
 
 All S3 endpoints require authentication via `keyId` and `token` in the request body.
 
-### Production build (frontend)
+### Production build
 ```bash
-cd front
-npm install
-npm run build
+make build       # frontend into output/public, then the Go binary into output/bin/proxy
 ```
-Artifacts are generated in `front/dist`. Serve this directory with your web server of choice and configure a proxy (Nginx, Caddy, Traefik, or the Go proxy) to route `"/api/*"` to your backends.
+Serve `output/public` with your web server of choice and configure a proxy (Nginx, Caddy, Traefik, or the Go proxy) to route `"/api/*"` to your backends. `make build` requires a cgo toolchain for the Go part; `make build-front` builds the frontend alone.
 
 ### Docker deployment (recommended)
 
@@ -103,12 +110,14 @@ services:
 
 Then run:
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+> The repository itself carries no `docker-compose.yml`: the CI workflow runs `docker compose pull/up` on the server from the checkout directory, so a local compose file would hijack the production deployment.
 
 #### Available Docker tags
 - `ghcr.io/ketsuna-org/kexamanager:latest` — Latest stable release
-- `ghcr.io/ketsuna-org/kexamanager:v1.0.1` — Specific version
+- `ghcr.io/ketsuna-org/kexamanager:<git-sha>` — Commit-tagged image
 
 #### Supported architectures
 - `linux/amd64` (Intel/AMD x64)
@@ -118,15 +127,17 @@ Access the application at `http://localhost:7400` after startup.
 
 ### Troubleshooting
 - Ensure all **required** environment variables are set: `PORT` and `PASSWORD`.
+- The sqlite driver needs cgo. If the proxy panics at startup with `go-sqlite3 requires cgo to work. This is a stub`, your `go env CGO_ENABLED` is `0`: rebuild with `CGO_ENABLED=1`, or use `make dev-api`.
 - Provide an auth token in localStorage under the key `"kexamanager:token"` if your API requires it (see `front/src/utils/adminClient.ts`).
-- **New:** S3 operations (upload, download, preview) are now handled through the Go proxy at `/api/s3/*` endpoints, providing enhanced security.
+- S3 operations (upload, download, preview) go through the Go proxy at `/api/s3/*` endpoints.
 
 ### Useful scripts (frontend)
 From `front/`:
-- `npm run dev` — Vite dev server
-- `npm run build` — production build
-- `npm run preview` — preview built artifacts
-- `npm run lint` — lint
+- `bun dev` — Vite dev server
+- `bun run build` — production build (`tsc -b && vite build`)
+- `bun run preview` — preview built artifacts
+- `bun run lint` — lint
+- `bun run generate:openapi` — regenerate the Garage admin API types
 
 ---
 
@@ -138,36 +149,45 @@ Application React + TypeScript (Vite) avec un proxy Go pour router les appels AP
 Le frontend utilise Vite en développement. Pour reproduire le comportement de `server.proxy` de Vite sans lancer Vite (ex: prévisualisation locale ou intégration), un proxy Go est fourni et reflète les règles de `front/vite.config.ts`.
 
 ### Prérequis
-- Node.js 18+ (recommandé) et `npm` ou `bun`
-- Go 1.22+ (ou compatible avec le `go.mod` du repo)
+- Node.js 24 LTS ou plus récent
+- `bun` 1.4+ (seul gestionnaire de paquets du repo)
+- Go 1.27+ (ou compatible avec le `go.mod` du repo)
+- Un compilateur C pour cgo — requis par le driver sqlite (`gcc` + en-têtes sqlite). Inutile si vous passez par `make dev-api` / Docker.
 
 ### Variables d'environnement
-Utilisées par l'application:
-
 **Obligatoires:**
 - `PORT` — Port du serveur d'application (par défaut: 7400)
-- `PASSWORD` — Mot de passe administrateur pour l'application
+- `PASSWORD` — Mot de passe administrateur du compte `root` (défaut: `admin` si non défini)
 
-**Optionnelles:**
-- `MAX_UPLOAD_MEMORY` — Mémoire maximale pour les téléchargements en octets (par défaut: 268435456 = 256MB)
+### Démarrage en local
 
-### Démarrage (Frontend via Vite)
+Frontend (serveur de dev Vite, rechargement à chaud) — proxifie `/api` vers `http://localhost:8080` :
 ```bash
 cd front
-export PASSWORD="votre-mot-de-passe-admin"
-npm install
-npm run dev
+bun install
+bun dev          # http://localhost:5173
 ```
-L'application est servie sur `http://localhost:5173` (port par défaut de Vite).
 
-### Lancer le proxy Go (alternative/prévisualisation)
-Le proxy écoute par défaut sur `:8080`.
+Proxy Go — le chemin le plus simple, fonctionne même sans outillage C local :
 ```bash
-export PASSWORD="votre-mot-de-passe-admin"
-go run ./api/cmd/proxy
+make dev-api     # construit et lance le proxy dans un conteneur sur http://localhost:8080
 ```
-Options :
-- `PORT` ou `-port` pour changer le port d'écoute (ex: `-port 3000`).
+
+Alternative native (nécessite une toolchain cgo fonctionnelle) :
+```bash
+cd api
+PORT=8080 PASSWORD=votre-mot-de-passe go run ./cmd/proxy
+```
+
+Connexion sur `http://localhost:5173` avec `root` / `PASSWORD`.
+
+Vérification rapide :
+```bash
+curl -s http://localhost:8080/health
+curl -s -X POST http://localhost:8080/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"root","password":"admin"}'
+```
 
 Points exposés :
 - `GET /health` — vérification rapide
@@ -186,13 +206,11 @@ Le proxy fournit des opérations S3 directes via des endpoints sécurisés :
 
 Tous les endpoints S3 nécessitent une authentification via `keyId` et `token` dans le corps de la requête.
 
-### Build de production (frontend)
+### Build de production
 ```bash
-cd front
-npm install
-npm run build
+make build       # frontend dans output/public, puis le binaire Go dans output/bin/proxy
 ```
-Le build est produit dans `front/dist`. Servez ce répertoire avec votre serveur web et configurez un proxy (Nginx, Caddy, Traefik, ou le proxy Go) pour router `"/api/*"` vers vos backends.
+Servez `output/public` avec votre serveur web et configurez un proxy (Nginx, Caddy, Traefik, ou le proxy Go) pour router `"/api/*"` vers vos backends. `make build` exige une toolchain cgo pour la partie Go ; `make build-front` ne construit que le frontend.
 
 ### Déploiement Docker (recommandé)
 
@@ -228,12 +246,14 @@ services:
 
 Puis lancez :
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
+
+> Le dépôt ne contient volontairement pas de `docker-compose.yml` : le workflow CI exécute `docker compose pull/up` sur le serveur depuis le dossier du repo, un compose local détournerait donc le déploiement de production.
 
 #### Tags Docker disponibles
 - `ghcr.io/ketsuna-org/kexamanager:latest` — Dernière version stable
-- `ghcr.io/ketsuna-org/kexamanager:v1.0.1` — Version spécifique
+- `ghcr.io/ketsuna-org/kexamanager:<sha-git>` — Image taguée par commit
 
 #### Architectures supportées
 - `linux/amd64` (Intel/AMD x64)
@@ -243,12 +263,14 @@ Accédez à l'application sur `http://localhost:7400` après le démarrage.
 
 ### Dépannage
 - Vérifiez que toutes les variables d'environnement **obligatoires** sont définies : `PORT` et `PASSWORD`.
+- Le driver sqlite nécessite cgo. Si le proxy panique au démarrage avec `go-sqlite3 requires cgo to work. This is a stub`, votre `go env CGO_ENABLED` vaut `0` : recompilez avec `CGO_ENABLED=1`, ou utilisez `make dev-api`.
 - Fournissez un token d'authentification dans le localStorage sous la clé `"kexamanager:token"` si nécessaire (cf. `front/src/utils/adminClient.ts`).
-- **Nouveau :** Les opérations S3 (upload, téléchargement, aperçu) sont maintenant gérées via le proxy Go aux endpoints `/api/s3/*`, garantissant une sécurité renforcée.
+- Les opérations S3 (upload, téléchargement, aperçu) passent par le proxy Go aux endpoints `/api/s3/*`.
 
 ### Scripts utiles (frontend)
 Depuis `front/` :
-- `npm run dev` — serveur de dev Vite
-- `npm run build` — build de production
-- `npm run preview` — prévisualisation du build
-- `npm run lint` — lint
+- `bun dev` — serveur de dev Vite
+- `bun run build` — build de production (`tsc -b && vite build`)
+- `bun run preview` — prévisualisation du build
+- `bun run lint` — lint
+- `bun run generate:openapi` — régénère les types de l'API admin Garage

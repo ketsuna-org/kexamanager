@@ -21,7 +21,13 @@
         "noUnusedParameters": true,
         "erasableSyntaxOnly": true,
         "noFallthroughCasesInSwitch": true,
-        "noUncheckedSideEffectImports": true
+        "noUncheckedSideEffectImports": true,
+
+        /* Test runtime: `@types/bun` (which pulls `bun-types`) types the `bun:test`
+           module used by the test files. Only `bun` is listed so the Node globals
+           of `@types/node` stay out of the browser app and cannot clash with the
+           Bun ones. */
+        "types": ["bun"]
     },
     "include": ["src"]
 }

@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+
 import Box from "@mui/material/Box"
 import CircularProgress from "@mui/material/CircularProgress"
 import Typography from "@mui/material/Typography"
@@ -10,7 +12,11 @@ interface LoadingStateProps {
     rows?: number
 }
 
-export default function LoadingState({ type = "spinner", message = "Loading...", size = "medium", rows = 3 }: LoadingStateProps) {
+export default function LoadingState({ type = "spinner", message, size = "medium", rows = 3 }: LoadingStateProps) {
+    const { t } = useTranslation()
+    /** Libelle resolu par i18next ; la prop `message` reste une surcharge optionnelle. */
+    const label = message ?? t("common.loading")
+
     const getSize = () => {
         switch (size) {
             case "small":
@@ -24,7 +30,7 @@ export default function LoadingState({ type = "spinner", message = "Loading...",
 
     if (type === "skeleton") {
         return (
-            <Box sx={{ width: "100%" }}>
+            <Box role="status" aria-label={label} aria-busy="true" sx={{ width: "100%" }}>
                 {Array.from({ length: rows }).map((_, index) => (
                     <Skeleton key={index} variant="rectangular" height={60} sx={{ mb: 1, borderRadius: 1 }} animation="wave" />
                 ))}
@@ -34,6 +40,9 @@ export default function LoadingState({ type = "spinner", message = "Loading...",
 
     return (
         <Box
+            role="status"
+            aria-live="polite"
+            aria-label={label}
             sx={{
                 display: "flex",
                 flexDirection: "column",
@@ -44,11 +53,16 @@ export default function LoadingState({ type = "spinner", message = "Loading...",
             }}
         >
             <CircularProgress size={getSize()} thickness={4} />
-            {message && (
-                <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                    {message}
+            {label && (
+                <Typography
+                    variant="body2"
+                    sx={{
+                        color: "text.secondary",
+                        fontWeight: 500
+                    }}>
+                    {label}
                 </Typography>
             )}
         </Box>
-    )
+    );
 }

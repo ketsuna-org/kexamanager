@@ -48,19 +48,31 @@ type Bucket struct {
 	CreationDate string `json:"creationDate"`
 }
 
+// ListObjectsRequest liste les objets d'un bucket.
+// Delimiter vide => listing recursif (comportement historique).
+// Delimiter "/" => listing "dossier courant" : les sous-dossiers remontent dans CommonPrefixes.
 type ListObjectsRequest struct {
-	KeyId    string `json:"keyId"`
-	Token    string `json:"token"`
-	Bucket   string `json:"bucket"`
-	Prefix   string `json:"prefix,omitempty"`
-	ConfigID uint   `json:"configId"`
+	KeyId             string `json:"keyId"`
+	Token             string `json:"token"`
+	Bucket            string `json:"bucket"`
+	Prefix            string `json:"prefix,omitempty"`
+	Delimiter         string `json:"delimiter,omitempty"`
+	MaxKeys           int    `json:"maxKeys,omitempty"`
+	ContinuationToken string `json:"continuationToken,omitempty"`
+	ConfigID          uint   `json:"configId"`
 }
 
 type ListObjectsResponse struct {
-	Objects           []S3Object `json:"objects"`
-	ContinuationToken string     `json:"continuationToken,omitempty"`
-	IsTruncated       bool       `json:"isTruncated"`
-	TotalSize         int64      `json:"totalSize"`
+	Objects               []S3Object `json:"objects"`
+	CommonPrefixes        []string   `json:"commonPrefixes"`
+	NextContinuationToken string     `json:"nextContinuationToken,omitempty"`
+	// Deprecated: ancien nom du jeton de continuation, conserve pour l'explorateur
+	// historique (S3Browser.tsx) jusqu'a sa suppression (Phase 3 du plan storage).
+	ContinuationToken string `json:"continuationToken,omitempty"`
+	IsTruncated       bool   `json:"isTruncated"`
+	KeyCount          int    `json:"keyCount"`
+	TotalSize         int64  `json:"totalSize"`
+	Delimiter         string `json:"delimiter"`
 }
 
 type S3Object struct {
@@ -68,6 +80,66 @@ type S3Object struct {
 	Size         int64  `json:"size"`
 	LastModified string `json:"lastModified"`
 	ETag         string `json:"etag"`
+	ContentType  string `json:"contentType,omitempty"`
+}
+
+// StatObjectRequest demande les metadonnees d'un objet (HeadObject cote S3).
+type StatObjectRequest struct {
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	Key      string `json:"key"`
+	ConfigID uint   `json:"configId"`
+}
+
+// StatObjectResponse expose ce que HeadObject permet d'afficher dans la fiche objet.
+// StorageClass reste vide sur Garage (notion inexistante) : le front affiche "-".
+type StatObjectResponse struct {
+	Key          string            `json:"key"`
+	Size         int64             `json:"size"`
+	ContentType  string            `json:"contentType"`
+	ETag         string            `json:"etag"`
+	LastModified string            `json:"lastModified"`
+	StorageClass string            `json:"storageClass"`
+	Metadata     map[string]string `json:"metadata"` // en-tetes x-amz-meta-*
+	Headers      map[string]string `json:"headers"`  // cache-control, content-disposition, content-encoding
+}
+
+// CopyObjectRequest copie un objet (S3 CopyObject, supporte par Garage).
+type CopyObjectRequest struct {
+	KeyId             string `json:"keyId"`
+	Token             string `json:"token"`
+	SourceBucket      string `json:"sourceBucket"`
+	SourceKey         string `json:"sourceKey"`
+	DestinationBucket string `json:"destinationBucket"`
+	DestinationKey    string `json:"destinationKey"`
+	ConfigID          uint   `json:"configId"`
+}
+
+type CopyObjectResponse struct {
+	Success bool   `json:"success"`
+	Key     string `json:"key"`
+	ETag    string `json:"etag"`
+}
+
+// DeleteObjectsRequest supprime des objets en lot (S3 DeleteObjects, supporte par Garage).
+type DeleteObjectsRequest struct {
+	KeyId    string   `json:"keyId"`
+	Token    string   `json:"token"`
+	Bucket   string   `json:"bucket"`
+	Keys     []string `json:"keys"`
+	ConfigID uint     `json:"configId"`
+}
+
+type DeleteObjectsError struct {
+	Key     string `json:"key"`
+	Code    string `json:"code"`
+	Message string `json:"message"`
+}
+
+type DeleteObjectsResponse struct {
+	Deleted []string             `json:"deleted"`
+	Errors  []DeleteObjectsError `json:"errors"`
 }
 
 type GetObjectRequest struct {
@@ -127,6 +199,41 @@ type DeleteBucketRequest struct {
 
 type DeleteBucketResponse struct {
 	Success bool `json:"success"`
+}
+
+// BucketUsageRequest demande les statistiques S3 (sans admin) de buckets nommes.
+type BucketUsageRequest struct {
+	KeyId               string   `json:"keyId"`
+	Token               string   `json:"token"`
+	ConfigID            uint     `json:"configId"`
+	Buckets             []string `json:"buckets,omitempty"`
+	MaxObjectsPerBucket int      `json:"maxObjectsPerBucket,omitempty"`
+	MaxBuckets          int      `json:"maxBuckets,omitempty"`
+}
+
+// BucketUsageResponse agrege des releves S3 (le front affiche ">=" si un drapeau *Complete est false).
+type BucketUsageResponse struct {
+	Totals      BucketUsageTotals   `json:"totals"`
+	Buckets     []BucketUsageBucket `json:"buckets"`
+	GeneratedAt string              `json:"generatedAt"`
+	Stale       bool                `json:"stale"`
+}
+// BucketConfigRequest demande ce que le bucket S3 dit de lui-meme.
+type BucketConfigRequest struct {
+	KeyId    string `json:"keyId"`
+	Token    string `json:"token"`
+	Bucket   string `json:"bucket"`
+	ConfigID uint   `json:"configId"`
+}
+// BucketConfigResponse expose une sonde independante par fonctionnalite (absente ou non configuree => supported=false + error rempli).
+type BucketConfigResponse struct {
+	Bucket     string              `json:"bucket"`
+	Location   BucketFeatureString `json:"location"`
+	Versioning BucketFeatureString `json:"versioning"`
+	Tagging    BucketFeatureTags   `json:"tagging"`
+	Lifecycle  BucketFeatureCount  `json:"lifecycle"`
+	Cors       BucketFeatureRules  `json:"cors"`
+	Encryption BucketFeatureRules  `json:"encryption"`
 }
 
 // getS3Credentials creates S3 credentials from the config, with optional override from request

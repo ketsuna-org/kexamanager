@@ -4,6 +4,8 @@ import Box from "@mui/material/Box"
 import Typography from "@mui/material/Typography"
 import Button from "@mui/material/Button"
 import IconButton from "@mui/material/IconButton"
+import Stack from "@mui/material/Stack"
+import Tooltip from "@mui/material/Tooltip"
 import CircularProgress from "@mui/material/CircularProgress"
 import ArrowBackIcon from "@mui/icons-material/ArrowBack"
 import EditIcon from "@mui/icons-material/Edit"
@@ -11,12 +13,15 @@ import SaveIcon from "@mui/icons-material/Save"
 import CancelIcon from "@mui/icons-material/Cancel"
 import DownloadIcon from "@mui/icons-material/Download"
 import Editor, { loader } from "@monaco-editor/react"
+import PageHeader from "../../components/PageHeader"
+import { useProject, type ProjectSummary } from "../../contexts/ProjectContext"
+import { projectBadge } from "./projectBadge"
 import { clearPreviewSession } from "../../utils/previewSession"
 
 // Configure Monaco Editor
 loader.init().then(monaco => {
   // Ensure Go language is available
-  if (!monaco.languages.getLanguages().find(lang => lang.id === 'go')) {
+  if (!monaco.languages.getLanguages().find((lang: { id: string }) => lang.id === 'go')) {
     monaco.languages.register({ id: 'go' })
   }
 })
@@ -39,8 +44,15 @@ function getStoredToken(): string | null {
   }
 }
 
-export default function PreviewPage({ selectedProject }: { selectedProject: { id: number; name: string } | null }) {
+interface PreviewPageProps {
+  /** Project still handed over by the App.tsx call site; the shared context wins. */
+  selectedProject?: ProjectSummary | null
+}
+
+export default function PreviewPage({ selectedProject: legacyProject }: PreviewPageProps) {
   const { t } = useTranslation()
+  const { selectedProject: contextProject } = useProject()
+  const selectedProject = contextProject ?? legacyProject ?? null
   const [editMode, setEditMode] = useState(false)
   const [content, setContent] = useState("")
   const [loading, setLoading] = useState(true)
@@ -82,11 +94,8 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
     // NOTE: Do NOT remove the sessionStorage keys here. In React 18 StrictMode
     // the component may mount, run effects, then unmount and mount again during
     // development; removing the keys here causes the second mount to see empty
-    // values (that's why you observed a second log with empty params). If you
-    // want to clear the preview params, do it explicitly from the caller or
-    // provide a dedicated 'clearPreview' action.
-
-    // Debug logging removed
+    // values. If you want to clear the preview params, do it explicitly from the
+    // caller or provide a dedicated 'clearPreview' action.
 
     if (u && m?.startsWith("text/")) {
       fetch(u, {
@@ -380,29 +389,50 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
 
   const language = mime ? getLanguageFromMime(mime) : getLanguageFromKey(key)
 
+  const subtitle = [mime, bucket].filter(Boolean).join(" · ")
+
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#121212' }}>
-      <Box sx={{ p: 2, borderBottom: '1px solid #333', display: 'flex', alignItems: 'center' }}>
-        <IconButton onClick={() => { clearPreviewSession(); window.location.hash = 's3' }} sx={{ mr: 1 }}>
+    <Box sx={{ height: '100dvh', display: 'flex', flexDirection: 'column', bgcolor: '#121212' }}>
+      <Box sx={{ px: 2, pt: 2, display: 'flex', alignItems: 'flex-start', gap: 1, borderBottom: '1px solid #333' }}>
+        <IconButton
+          onClick={() => { clearPreviewSession(); window.location.hash = 's3' }}
+          aria-label={t("common.close")}
+          sx={{ mt: 0.5 }}
+        >
           <ArrowBackIcon />
         </IconButton>
-        <Typography variant="h6" sx={{ flex: 1 }}>{key}</Typography>
-        {mime?.startsWith("text/") && (
-          <IconButton
-            onClick={() => setEditMode(!editMode)}
-            color="primary"
-            disabled={saving}
-          >
-            <EditIcon />
-          </IconButton>
-        )}
-        <Button
-          onClick={() => { if (url) window.open(url, "_blank") }}
-          startIcon={<DownloadIcon />}
-          sx={{ ml: 1 }}
-        >
-          {t("common.download", { defaultValue: "Download" })}
-        </Button>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <PageHeader
+            title={key || t("s3browser.preview_title")}
+            subtitle={subtitle || undefined}
+            badge={projectBadge(selectedProject)}
+            action={
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                {mime?.startsWith("text/") && (
+                  <Tooltip title={t("common.edit") as string}>
+                    <span>
+                      <IconButton
+                        onClick={() => setEditMode(!editMode)}
+                        color="primary"
+                        disabled={saving}
+                        aria-label={t("common.edit") as string}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
+                )}
+                <Button
+                  onClick={() => { if (url) window.open(url, "_blank") }}
+                  startIcon={<DownloadIcon />}
+                  disabled={!url}
+                >
+                  {t("common.download")}
+                </Button>
+              </Stack>
+            }
+          />
+        </Box>
       </Box>
 
       <Box sx={{ flex: 1, p: 2, overflow: 'auto' }}>
@@ -410,20 +440,20 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
           <CircularProgress size={20} />
         ) : url ? (
           mime?.startsWith("image/") ? (
-            <img src={url} alt={key} style={{ maxWidth: "100%", maxHeight: "100%" }} />
+            <Box component="img" src={url} alt={key} sx={{ maxWidth: "100%", maxHeight: "100%" }} />
           ) : mime?.startsWith("video/") ? (
-            <video controls style={{ maxWidth: "100%", maxHeight: "100%" }}>
+            <Box component="video" controls sx={{ maxWidth: "100%", maxHeight: "100%" }}>
               <source src={url} type={mime} />
               Your browser does not support the video tag.
-            </video>
+            </Box>
           ) : mime?.startsWith("text/") && editMode ? (
-            <div>
-              <div style={{ marginBottom: '8px', fontSize: '12px', color: '#ccc' }}>
+            <Box>
+              <Box sx={{ mb: 1, fontSize: '12px', color: '#ccc' }}>
                 Language: {language} | Content length: {content.length} chars
-              </div>
+              </Box>
               <Editor
                 key={`editor-${key}-${editMode}`}
-                height="calc(100vh - 120px)"
+                height="calc(100dvh - 120px)"
                 language={language}
                 value={content}
                 onChange={(value) => setContent(value || "")}
@@ -437,42 +467,48 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
                 }}
                 loading={<CircularProgress size={20} />}
               />
-            </div>
+            </Box>
           ) : mime?.startsWith("text/") ? (
-            <pre style={{
-              whiteSpace: 'pre-wrap',
-              wordWrap: 'break-word',
-              height: 'calc(100vh - 120px)',
-              overflow: 'auto',
-              fontFamily: 'monospace',
-              fontSize: '14px',
-              backgroundColor: '#1e1e1e',
-              color: '#f8f8f2',
-              padding: '16px',
-              borderRadius: '4px',
-              border: '1px solid #333'
-            }}>
+            <Box
+              component="pre"
+              sx={{
+                whiteSpace: 'pre-wrap',
+                wordWrap: 'break-word',
+                height: 'calc(100dvh - 120px)',
+                overflow: 'auto',
+                fontFamily: 'monospace',
+                fontSize: '14px',
+                backgroundColor: '#1e1e1e',
+                color: '#f8f8f2',
+                p: 2,
+                borderRadius: '4px',
+                border: '1px solid #333',
+                m: 0,
+              }}
+            >
               {content}
-            </pre>
+            </Box>
           ) : (
-            <Typography variant="body2">{t("s3browser.preview_unavailable", { defaultValue: "Aucun aperçu disponible pour ce type. Téléchargez le fichier pour l'ouvrir." })}</Typography>
+            <Typography variant="body2">{t("s3browser.preview_unavailable")}</Typography>
           )
         ) : (
-          <Typography variant="body2" color="text.secondary">
-            {t("s3browser.no_url", { defaultValue: "Aucun URL disponible pour ce fichier — impossible de prévisualiser. Utilisez Admin API ou fournissez une URL signée." })}
+          <Typography variant="body2" sx={{
+            color: "text.secondary"
+          }}>
+            {t("s3browser.no_url")}
           </Typography>
         )}
       </Box>
       {editMode && (
         <Box sx={{ p: 2, borderTop: '1px solid #333', display: 'flex', justifyContent: 'flex-end' }}>
           <Button
-            onClick={handleSave}
+            onClick={() => { void handleSave() }}
             startIcon={saving ? <CircularProgress size={16} /> : <SaveIcon />}
             disabled={saving}
             color="primary"
             variant="contained"
           >
-            {saving ? t("common.saving", { defaultValue: "Saving..." }) : t("common.save", { defaultValue: "Save" })}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
           <Button
             onClick={handleCancel}
@@ -480,10 +516,10 @@ export default function PreviewPage({ selectedProject }: { selectedProject: { id
             disabled={saving}
             sx={{ ml: 1 }}
           >
-            {t("common.cancel", { defaultValue: "Cancel" })}
+            {t("common.cancel")}
           </Button>
         </Box>
       )}
     </Box>
-  )
+  );
 }

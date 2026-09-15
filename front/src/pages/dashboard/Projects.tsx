@@ -21,10 +21,14 @@ import {
     FormControlLabel,
     IconButton,
 } from "@mui/material"
-import { Add, Delete } from "@mui/icons-material"
+import { Add, ArrowBack, Delete } from "@mui/icons-material"
 import { useTranslation } from "react-i18next"
 import { adminGet, adminPost, adminPut, adminDelete } from "../../utils/adminClient"
 import type { ApiError } from "../../utils/adminClient"
+import ConfirmDialog from "../../components/ConfirmDialog"
+import PageHeader from "../../components/PageHeader"
+import { useProject } from "../../contexts/ProjectContext"
+import { projectBadge } from "./projectBadge"
 
 interface ProjectsProps {
     selectedProject: number | null
@@ -48,6 +52,7 @@ interface S3Config {
 }
 
 export default function Projects({ selectedProject, onSelectProject, onProjectsChange }: ProjectsProps) {
+    const { selectedProject: activeProject } = useProject()
     const [configs, setConfigs] = useState<S3Config[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
@@ -65,6 +70,8 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
         force_path_style: true,
     })
     const [saving, setSaving] = useState(false)
+    const [pendingDelete, setPendingDelete] = useState<S3Config | null>(null)
+    const [deleting, setDeleting] = useState(false)
     const { t } = useTranslation()
 
     const loadConfigs = useCallback(async () => {
@@ -162,24 +169,35 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
         }
     }
 
-    const handleDelete = async (config: S3Config) => {
-        if (!confirm(`Delete config "${config.name}"?`)) return
+    const handleDelete = async () => {
+        if (!pendingDelete) return
 
         try {
-            await adminDelete(`/s3-configs/delete?id=${config.id}`)
+            setDeleting(true)
+            setError("")
+            await adminDelete(`/s3-configs/delete?id=${pendingDelete.id}`)
+            setPendingDelete(null)
             await loadConfigs()
         } catch (err) {
             const apiError = err as ApiError
             setError(apiError.message || "Failed to delete config")
+        } finally {
+            setDeleting(false)
         }
     }
 
     if (loading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
-                <CircularProgress />
+            <Box
+                sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    minHeight: "200px"
+                }}>
+                <CircularProgress aria-label={t("common.loading")} />
             </Box>
-        )
+        );
     }
 
     // If a project is selected, show project workspace
@@ -187,40 +205,41 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
         const project = configs.find(c => c.id === selectedProject)
         return (
             <Box sx={{ p: 3 }}>
-                <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-                    <Box>
+                <PageHeader
+                    title={project?.name || t("projects.unknownProject")}
+                    subtitle={t("projects.workspace_desc")}
+                    badge={project ? { label: project.type.toUpperCase(), variant: "outlined" } : undefined}
+                    action={
                         <Button
                             variant="outlined"
+                            startIcon={<ArrowBack />}
                             onClick={() => onSelectProject(null)}
-                            sx={{ mr: 2 }}
                         >
-                            ← Back to Projects
+                            {t("projects.backToProjects")}
                         </Button>
-                        <Typography variant="h4" component="h1" sx={{ display: 'inline' }}>
-                            Project: {project?.name || 'Unknown'}
-                        </Typography>
-                    </Box>
-                </Box>
-                <Typography variant="body1" color="text.secondary">
-                    Project workspace - configure and manage your S3/Garage environment
-                </Typography>
+                    }
+                />
             </Box>
-        )
+        );
     }
 
     // Show projects list
     return (
         <Box sx={{ p: 3 }}>
-            <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Typography variant="h4" fontWeight={700}>Projects</Typography>
-                <Button
-                    variant="contained"
-                    startIcon={<Add />}
-                    onClick={() => handleOpenDialog()}
-                >
-                    {t("projects.addConfig", "Add Project")}
-                </Button>
-            </Box>
+            <PageHeader
+                title={t("projects.title")}
+                subtitle={t("projects.list_desc")}
+                badge={projectBadge(activeProject)}
+                action={
+                    <Button
+                        variant="contained"
+                        startIcon={<Add />}
+                        onClick={() => handleOpenDialog()}
+                    >
+                        {t("projects.addConfig")}
+                    </Button>
+                }
+            />
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -228,7 +247,12 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                 </Alert>
             )}
 
-            <Box display="grid" gridTemplateColumns="repeat(auto-fill, minmax(350px, 1fr))" gap={3}>
+            <Box
+                sx={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+                    gap: 3
+                }}>
                 {configs && configs.map((config) => (
                     <Card key={config.id} sx={{
                         height: "100%",
@@ -242,7 +266,9 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                     }}>
                         <CardContent sx={{ flex: 1 }}>
                             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "start", mb: 2 }}>
-                                <Typography variant="h6" fontWeight={600}>
+                                <Typography variant="h6" sx={{
+                                    fontWeight: 600
+                                }}>
                                     {config.name}
                                 </Typography>
                                 <Box sx={{ display: "flex", gap: 1 }}>
@@ -258,7 +284,13 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                                     }}>
                                         {config.type}
                                     </Box>
-                                    <IconButton size="small" onClick={() => handleDelete(config)} sx={{ color: "text.secondary", ml: 1, mt: -0.5 }}>
+                                    <IconButton
+                                        size="small"
+                                        color="error"
+                                        aria-label={`${t("common.delete")} ${config.name}`}
+                                        onClick={() => setPendingDelete(config)}
+                                        sx={{ ml: 1, mt: -0.5 }}
+                                    >
                                         <Delete fontSize="small" />
                                     </IconButton>
                                 </Box>
@@ -266,13 +298,23 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
 
                             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                                 <Box sx={{ display: "flex", gap: 1 }}>
-                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>URL:</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: "text.secondary",
+                                            minWidth: 60
+                                        }}>URL:</Typography>
                                     <Typography variant="body2" sx={{ fontFamily: "monospace", bgcolor: "rgba(0,0,0,0.2)", px: 0.5, borderRadius: 0.5 }}>
                                         {config.s3_url}
                                     </Typography>
                                 </Box>
                                 <Box sx={{ display: "flex", gap: 1 }}>
-                                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 60 }}>Region:</Typography>
+                                    <Typography
+                                        variant="body2"
+                                        sx={{
+                                            color: "text.secondary",
+                                            minWidth: 60
+                                        }}>Region:</Typography>
                                     <Typography variant="body2">{config.region}</Typography>
                                 </Box>
                             </Box>
@@ -282,17 +324,19 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                                 size="small"
                                 variant="outlined"
                                 color="inherit"
+                                aria-label={`${t("common.edit")} ${config.name}`}
                                 onClick={() => handleOpenDialog(config)}
                             >
-                                {t("common.edit", "Edit")}
+                                {t("common.edit")}
                             </Button>
                             <Button
                                 size="small"
                                 variant="contained"
                                 color="primary"
+                                aria-label={`${t("common.open")} ${config.name}`}
                                 onClick={() => onSelectProject(config.id)}
                             >
-                                Open Project
+                                {t("common.open")}
                             </Button>
                         </CardActions>
                     </Card>
@@ -301,7 +345,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
 
             <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
                 <DialogTitle>
-                    {editingConfig ? t("projects.editConfig", "Edit Project") : t("projects.addConfig", "Add Project")}
+                    {editingConfig ? t("projects.editConfig") : t("projects.addConfig")}
                 </DialogTitle>
                 <DialogContent>
                     {error && (
@@ -310,7 +354,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                         </Alert>
                     )}
                     <TextField
-                        label={t("projects.name", "Name")}
+                        label={t("projects.name")}
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         fullWidth
@@ -318,8 +362,11 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                         required
                     />
                     <FormControl fullWidth margin="normal">
-                        <InputLabel>{t("projects.type", "Type")}</InputLabel>
+                        <InputLabel id="project-type-label">{t("projects.type")}</InputLabel>
                         <Select
+                            labelId="project-type-label"
+                            id="project-type"
+                            label={t("projects.type")}
                             value={formData.type}
                             onChange={(e) => setFormData({ ...formData, type: e.target.value as "garage" | "s3" })}
                         >
@@ -328,7 +375,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                         </Select>
                     </FormControl>
                     <TextField
-                        label={t("projects.s3Url", "S3 URL")}
+                        label={t("projects.s3Url")}
                         value={formData.s3_url}
                         onChange={(e) => setFormData({ ...formData, s3_url: e.target.value })}
                         fullWidth
@@ -338,14 +385,14 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                     {formData.type === "garage" && (
                         <>
                             <TextField
-                                label={t("projects.adminUrl", "Admin URL")}
+                                label={t("projects.adminUrl")}
                                 value={formData.admin_url}
                                 onChange={(e) => setFormData({ ...formData, admin_url: e.target.value })}
                                 fullWidth
                                 margin="normal"
                             />
                             <TextField
-                                label={t("projects.adminToken", "Admin Token")}
+                                label={t("projects.adminToken")}
                                 value={formData.admin_token}
                                 onChange={(e) => setFormData({ ...formData, admin_token: e.target.value })}
                                 fullWidth
@@ -357,7 +404,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                     {(formData.type === "s3" || (formData.type === "garage" && !formData.admin_url)) && (
                         <>
                             <TextField
-                                label={(formData.type === "s3" || (formData.type === "garage" && !formData.admin_url)) ? t("projects.clientId", "Client ID") + " *" : t("projects.clientId", "Client ID")}
+                                label={(formData.type === "s3" || (formData.type === "garage" && !formData.admin_url)) ? t("projects.clientId") + " *" : t("projects.clientId")}
                                 value={formData.client_id}
                                 onChange={(e) => setFormData({ ...formData, client_id: e.target.value })}
                                 fullWidth
@@ -365,7 +412,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                                 required={formData.type === "s3" || (formData.type === "garage" && !formData.admin_url)}
                             />
                             <TextField
-                                label={(formData.type === "s3" || (formData.type === "garage" && !formData.admin_url)) ? t("projects.clientSecret", "Client Secret") + " *" : t("projects.clientSecret", "Client Secret")}
+                                label={(formData.type === "s3" || (formData.type === "garage" && !formData.admin_url)) ? t("projects.clientSecret") + " *" : t("projects.clientSecret")}
                                 value={formData.client_secret}
                                 onChange={(e) => setFormData({ ...formData, client_secret: e.target.value })}
                                 fullWidth
@@ -376,7 +423,7 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                         </>
                     )}
                     <TextField
-                        label={t("projects.region", "Region")}
+                        label={t("projects.region")}
                         value={formData.region}
                         onChange={(e) => setFormData({ ...formData, region: e.target.value })}
                         fullWidth
@@ -389,18 +436,30 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                                 onChange={(e) => setFormData({ ...formData, force_path_style: e.target.checked })}
                             />
                         }
-                        label={t("projects.forcePathStyle", "Force Path Style")}
+                        label={t("projects.forcePathStyle")}
                     />
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseDialog}>
-                        {t("common.cancel", "Cancel")}
+                        {t("common.cancel")}
                     </Button>
-                    <Button onClick={handleSave} variant="contained" disabled={saving}>
-                        {saving ? <CircularProgress size={20} /> : t("common.save", "Save")}
+                    <Button onClick={handleSave} variant="contained" disabled={saving} aria-busy={saving}>
+                        {saving ? <CircularProgress size={20} aria-hidden="true" /> : t("common.save")}
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!pendingDelete}
+                title={t("projects.deleteConfig")}
+                message={t("projects.deleteConfigMessage", {
+                    name: pendingDelete?.name || "" })}
+                confirmLabel={t("common.delete")}
+                confirmColor="error"
+                loading={deleting}
+                onConfirm={handleDelete}
+                onClose={() => setPendingDelete(null)}
+            />
         </Box>
-    )
+    );
 }

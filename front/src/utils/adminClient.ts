@@ -139,8 +139,8 @@ export async function adminRequest<T = unknown>(method: string, endpoint: string
         } else if (path.startsWith("/s3")) {
             service = "s3"
         } else {
-            // Fallback, shouldn't happen
-            service = "admin"
+            // Routes exposees directement sous /api/{project}/ (capabilities, stats/*).
+            service = ""
         }
         const servicePath = service ? `/${service}` : ""
         url = `${BASE_URL}/${projectId}${servicePath}${path}${buildQueryString(opts?.query)}`

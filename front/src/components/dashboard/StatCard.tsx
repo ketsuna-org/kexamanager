@@ -14,7 +14,9 @@ const StatCard = ({ label, value, change, changeType = "positive", period, icon:
     return (
         <Card sx={{ p: 3, height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "start", mb: 2 }}>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" sx={{
+                    color: "text.secondary"
+                }}>
                     {label}
                 </Typography>
                 <Box sx={{ p: 1, borderRadius: 1.5, bgcolor: "rgba(255,255,255,0.03)", color: "text.secondary" }}>
@@ -39,7 +41,9 @@ const StatCard = ({ label, value, change, changeType = "positive", period, icon:
                             {change}
                         </Typography>
                         {period && (
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography variant="caption" sx={{
+                                color: "text.secondary"
+                            }}>
                                 {period}
                             </Typography>
                         )}
@@ -47,7 +51,7 @@ const StatCard = ({ label, value, change, changeType = "positive", period, icon:
                 )}
             </Box>
         </Card>
-    )
+    );
 }
 
 export default StatCard
