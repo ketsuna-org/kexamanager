@@ -832,3 +832,34 @@ d'etat "aucune source" ; l'echec reel du balayage S3 s'affiche via
 Tests : `go build`/`vet` verts, unitaires + **integration MinIO** verts ; front
 36 tests verts (dont integration live contre l'API reelle), lint 0, build OK,
 i18n 449/449. Captures : `%TEMP%/kexa-artifacts/buckets-p1.png` et `buckets-p2.png`.
+
+---
+
+## 9. Amendement 3 - pile de developpement native (sans Docker)
+
+Docker Desktop est tombe en panne sur le poste (moteur injoignable, pipe absent) et le
+CGO natif echouait faute de compilateur C complet. Desormais la pile de dev tourne
+entierement sur l'hote, sans rien remplacer du chemin conteneur (qui reste la reference
+CI/equipe) :
+
+- `make dev-native-install` : WinLibs 16.2.0 (UCRT, posix-seh) + rclone sous `~/.kexa-native`.
+- `make dev-native` : S3 natif (`rclone serve s3`, un dossier = un bucket) + mock admin
+  Garage (python) + proxy compile en CGO. `make dev-native-down` arrete les trois.
+- `tools/dev/seed-s3-dir.sh` materialise la fixture du harnais sur disque (memes noms, memes
+  tailles que `seed-s3.sh`), avec du contenu **lisible** pour `readme.md` et `manifest.json`.
+
+Points durs resolus : `go` exige un `CC` absolu au sens natif (`C:/...` et non `/c/...`) ;
+`$(HOME)` arrive en style Windows dans make et les backslashes sont consommes par le shell
+(passer par `$(shell echo "$$HOME")`) ; MinIO n'est plus distribuable du tout
+(`dl.min.io` -> 410 Gone, serveur/mc/KES archives).
+
+## 10. Amendement 4 - bug reel trouve par le test de l'utilisateur
+
+`PreviewDialog` declarait une prop nommee `key`, que React **reserve et retire** : le
+dialogue recevait `undefined` (titre vide, `alt` vide, `onSave(key, ...)` avec une cle
+indefinie) et la console affichait `key is not a prop`. Invisible au build, au lint et aux
+tests unitaires. Renomme en `objectKey` (7 sites dans le composant + le site d'appel dans
+`S3Browser.tsx`). Preuve navigateur (CDP, `%TEMP%/kexa-preview-check.cjs`) : le dialogue
+s'ouvre sur `readme.md`, le titre porte le nom de l'objet, 0 erreur JS, 0 avertissement.
+
+Lecon generale : une prop de composant ne doit jamais s'appeler `key`.
