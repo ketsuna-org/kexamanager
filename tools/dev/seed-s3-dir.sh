@@ -32,9 +32,41 @@ seed() {
     head -c "$bytes" /dev/urandom > "$target"
 }
 
-seed 300000   "$ROOT/bot-creator/readme.md"
+# Les deux fichiers texte portent un contenu REEL : sans ca, l'apercu de l'objet
+# affiche 300 Ko d'octets aleatoires et on croit que l'app est cassee. Les binaires
+# (archives, mp3, sqlite) restent des octets aleatoires, c'est ce qu'on veut tester.
+text() {
+    printf '%s' "$2" > "$1"
+}
+
+text "$ROOT/bot-creator/readme.md" '# bot-creator — artefacts de release
+
+Depot de publication des binaires du bot.
+
+## Arborescence
+- releases/v2.0.0/  : version precedente
+- releases/v2.1.16/ : version courante (archive linux x64 steam, manifeste, archive labellisee)
+
+## Notes
+Le manifeste decrit les artefacts de la version. Les archives sont immuables :
+une correction passe par un nouveau dossier de version.
+
+Contact : equipe plateforme.
+'
+
+text "$ROOT/bot-creator/releases/v2.1.16/manifest.json" '{
+  "version": "2.1.16",
+  "channel": "steam",
+  "platform": "linux-x64",
+  "artifacts": [
+    { "name": "bot_creator-linux-x64-steam.zip", "size": 12000000 },
+    { "name": "labelled.zip" }
+  ],
+  "publishedAt": "2026-09-15T13:24:00Z"
+}
+'
+
 seed 12000000 "$ROOT/bot-creator/releases/v2.1.16/bot_creator-linux-x64-steam.zip"
-seed 300000   "$ROOT/bot-creator/releases/v2.1.16/manifest.json"
 seed 300000   "$ROOT/bot-creator/releases/v2.1.16/labelled.zip"
 seed 300000   "$ROOT/bot-creator/releases/v2.0.0/bot_creator-linux-x64-steam.zip"
 seed 300000   "$ROOT/audio/track.mp3"
