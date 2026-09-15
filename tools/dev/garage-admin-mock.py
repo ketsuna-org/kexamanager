@@ -238,6 +238,15 @@ class GarageAdminMock(BaseHTTPRequestHandler):
         return parse_qs(urlparse(self.path).query)
 
     def do_POST(self):
+        # Garage v2 ne sert AUCUNE route en POST : tout POST tombe en 400
+        # "Unknown API endpoint". Reproduire ce refus est ce qui rend le harnais
+        # capable d'attraper un proxy qui appellerait la mauvaise methode.
+        path = urlparse(self.path).path
+        if not self._authorized():
+            return self._reject()
+        return self._send(400, {"error": "Unknown API endpoint: POST " + path})
+
+    def do_GET(self):
         path = urlparse(self.path).path
         if not self._authorized():
             return self._reject()
@@ -247,12 +256,6 @@ class GarageAdminMock(BaseHTTPRequestHandler):
                  "globalAliases": b["global_aliases"], "localAliases": []}
                 for b in BUCKET_FIXTURE
             ])
-        return self._send(404, {"error": "not found", "path": path})
-
-    def do_GET(self):
-        path = urlparse(self.path).path
-        if not self._authorized():
-            return self._reject()
         if path == "/v2/GetClusterHealth":
             return self._send(200, CLUSTER_HEALTH)
         if path == "/v2/GetClusterStatus":

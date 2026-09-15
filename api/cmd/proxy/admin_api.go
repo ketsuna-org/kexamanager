@@ -108,10 +108,10 @@ type adminBucketInfo struct {
 	UnfinishedMultipartUploadParts int64             `json:"unfinishedMultipartUploadParts"`
 }
 
-// ListBuckets liste les buckets du cluster (POST /v2/ListBuckets).
+// ListBuckets liste les buckets du cluster (GET /v2/ListBuckets).
 func ListBuckets(ctx context.Context, config s3.S3ConfigData) ([]adminBucketListItem, error) {
 	var buckets []adminBucketListItem
-	if err := adminGetJSON(ctx, config, http.MethodPost, "/v2/ListBuckets", &buckets); err != nil {
+	if err := adminGetJSON(ctx, config, http.MethodGet, "/v2/ListBuckets", &buckets); err != nil {
 		return nil, err
 	}
 	if buckets == nil {

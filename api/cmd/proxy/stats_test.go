@@ -122,10 +122,14 @@ func TestTTLCachePerEntryTTL(t *testing.T) {
 
 // ------------------------------------------------------------- stats buckets
 
+// bucketListJSON imite Garage v2.3.0 : ListBuckets n'existe QU'en GET. Un faux
+// admin laxiste sur la methode a deja laisse passer un POST casse en production.
 func bucketListJSON(buckets ...adminBucketListItem) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "want POST", http.StatusMethodNotAllowed)
+		if r.Method != http.MethodGet {
+			writeJSON(w, http.StatusBadRequest, map[string]any{
+				"error": "Unknown API endpoint: " + r.Method + " " + r.URL.Path,
+			})
 			return
 		}
 		writeJSON(w, http.StatusOK, buckets)
@@ -326,6 +330,41 @@ func TestBucketStatsListBucketsFailure(t *testing.T) {
 	}
 	if _, ok := bucketStatsCache.Get(cacheKey(105, "stats-buckets")); ok {
 		t.Error("un echec ListBuckets ne doit pas etre mis en cache")
+	}
+}
+
+// TestListBucketsUsesGetMethod verrouille la methode de l'appel admin : Garage
+// v2.3.0 ne sert que GET /v2/ListBuckets, un POST repond 400 Unknown API endpoint.
+func TestListBucketsUsesGetMethod(t *testing.T) {
+	var mu sync.Mutex
+	var methods []string
+	admin := newFakeAdmin(t, map[string]http.HandlerFunc{
+		"/v2/ListBuckets": func(w http.ResponseWriter, r *http.Request) {
+			mu.Lock()
+			methods = append(methods, r.Method)
+			mu.Unlock()
+			if r.Method != http.MethodGet {
+				writeJSON(w, http.StatusBadRequest, map[string]any{
+					"error": "Unknown API endpoint: " + r.Method + " /v2/ListBuckets",
+				})
+				return
+			}
+			writeJSON(w, http.StatusOK, []adminBucketListItem{{ID: "b1", GlobalAliases: []string{"bucket"}}})
+		},
+	})
+
+	buckets, err := ListBuckets(context.Background(), admin.config())
+	if err != nil {
+		t.Fatalf("ListBuckets: %v (un POST vers l'admin Garage renvoie 400)", err)
+	}
+	if len(buckets) != 1 || buckets[0].ID != "b1" {
+		t.Fatalf("buckets = %+v, want un seul bucket b1", buckets)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+	if len(methods) != 1 || methods[0] != http.MethodGet {
+		t.Fatalf("methodes appelees = %v, want [GET]", methods)
 	}
 }
 

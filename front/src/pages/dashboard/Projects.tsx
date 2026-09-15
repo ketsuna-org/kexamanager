@@ -15,13 +15,14 @@ import {
     Card,
     CardContent,
     CardActions,
+    Chip,
     Alert,
     CircularProgress,
     Switch,
     FormControlLabel,
     IconButton,
 } from "@mui/material"
-import { Add, ArrowBack, Delete } from "@mui/icons-material"
+import { Add, Delete } from "@mui/icons-material"
 import { useTranslation } from "react-i18next"
 import { adminGet, adminPost, adminPut, adminDelete } from "../../utils/adminClient"
 import type { ApiError } from "../../utils/adminClient"
@@ -200,29 +201,6 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
         );
     }
 
-    // If a project is selected, show project workspace
-    if (selectedProject && configs && configs.length > 0) {
-        const project = configs.find(c => c.id === selectedProject)
-        return (
-            <Box sx={{ p: 3 }}>
-                <PageHeader
-                    title={project?.name || t("projects.unknownProject")}
-                    subtitle={t("projects.workspace_desc")}
-                    badge={project ? { label: project.type.toUpperCase(), variant: "outlined" } : undefined}
-                    action={
-                        <Button
-                            variant="outlined"
-                            startIcon={<ArrowBack />}
-                            onClick={() => onSelectProject(null)}
-                        >
-                            {t("projects.backToProjects")}
-                        </Button>
-                    }
-                />
-            </Box>
-        );
-    }
-
     // Show projects list
     return (
         <Box sx={{ p: 3 }}>
@@ -271,7 +249,10 @@ export default function Projects({ selectedProject, onSelectProject, onProjectsC
                                 }}>
                                     {config.name}
                                 </Typography>
-                                <Box sx={{ display: "flex", gap: 1 }}>
+                                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                                    {config.id === selectedProject && (
+                                        <Chip size="small" color="primary" label={t("projects.active")} />
+                                    )}
                                     <Box sx={{
                                         px: 1, py: 0.5,
                                         borderRadius: 1,
