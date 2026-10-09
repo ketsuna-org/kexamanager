@@ -95,7 +95,7 @@ func HandleCreateBucketWithConfig(config S3ConfigData) http.HandlerFunc {
 		resp := CreateBucketResponse{Success: true}
 
 		if LogActionFunc != nil {
-			LogActionFunc(config.ID, UserIDFromRequest(r), "create_bucket", fmt.Sprintf("Created bucket %s", req.Bucket), "success")
+			LogActionFunc(config.ID, UserIDFromRequest(r), "create_bucket", fmt.Sprintf("name=%s", req.Bucket), "success")
 		}
 
 		w.Header().Set("Content-Type", "application/json")

@@ -63,7 +63,7 @@ func serveCopyObject(w http.ResponseWriter, r *http.Request, config S3ConfigData
 	}
 
 	if LogActionFunc != nil {
-		LogActionFunc(config.ID, UserIDFromRequest(r), "copy_object", fmt.Sprintf("Copied %s/%s to %s/%s", req.SourceBucket, req.SourceKey, req.DestinationBucket, req.DestinationKey), "success")
+		LogActionFunc(config.ID, UserIDFromRequest(r), "copy_object", fmt.Sprintf("bucket=%s, key=%s, destination=%s/%s", req.SourceBucket, req.SourceKey, req.DestinationBucket, req.DestinationKey), "success")
 	}
 
 	w.Header().Set("Content-Type", "application/json")

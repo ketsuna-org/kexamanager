@@ -63,7 +63,7 @@ func servePresignedGet(w http.ResponseWriter, r *http.Request, config S3ConfigDa
 	}
 
 	if req.ExpiresIn > 0 && LogActionFunc != nil {
-		LogActionFunc(config.ID, userID, "share_link", fmt.Sprintf("Signed link for %s/%s valid %s", req.Bucket, req.Key, expiry), "success")
+		LogActionFunc(config.ID, userID, "share_link", fmt.Sprintf("bucket=%s, key=%s, expiresIn=%d", req.Bucket, req.Key, int64(expiry.Seconds())), "success")
 	}
 
 	resp := GetObjectResponse{

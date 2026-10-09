@@ -138,7 +138,7 @@ func serveDeleteObjects(w http.ResponseWriter, r *http.Request, config S3ConfigD
 
 	if LogActionFunc != nil {
 		LogActionFunc(config.ID, UserIDFromRequest(r), "delete_objects",
-			fmt.Sprintf("Deleted %d/%d objects in %s", len(resp.Deleted), len(req.Keys), req.Bucket),
+			fmt.Sprintf("bucket=%s, deleted=%d, requested=%d", req.Bucket, len(resp.Deleted), len(req.Keys)),
 			deleteObjectsLogStatus(resp))
 	}
 
