@@ -67,6 +67,10 @@ export interface BucketStat {
     statsError: string | null
     unfinishedMultipartUploadParts: number
     unfinishedMultipartUploadBytes: number
+    /** Website hosting enabled on the bucket. */
+    websiteAccess?: boolean
+    /** Number of keys with a permission on the bucket. */
+    keyCount?: number
 }
 
 /** Sums carried by `/stats/buckets`. `objectsComplete`/`bytesComplete` are false

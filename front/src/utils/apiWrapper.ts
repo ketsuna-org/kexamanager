@@ -59,7 +59,7 @@ function CreateKey(data: components["schemas"]["CreateKeyRequest"]): Promise<com
 }
 
 function DeleteKey(params: { id: string }): Promise<void> {
-    return adminPost<void>("/v2/DeleteKey", { query: { id: params.id } })
+    return adminPost<void>("/v2/DeleteKey", undefined, { query: { id: params.id } })
 }
 
 function GetKeyInfo(query: paths["/v2/GetKeyInfo"]["get"]["parameters"]["query"]): Promise<components["schemas"]["GetKeyInfoResponse"]> {

@@ -11,6 +11,7 @@
 //   `s3ApiRequest`, extracted from S3Browser so there is exactly one definition.
 
 import { adminGet, getAuthToken } from "../utils/adminClient"
+import { getS3Session } from "./s3session"
 import type {
     BucketConfig,
     BucketUsage,
@@ -70,6 +71,17 @@ export function getStoredS3Token(): string | null {
     return readStoredS3Value("kexamanager:s3:secretAccessKey")
 }
 
+/**
+ * Key sent with an S3 request: the project's session key first (see
+ * `s3session.ts`), then the key stored by the previous interface. Both are
+ * empty for projects whose configuration carries its own key.
+ */
+export function s3RequestCredentials(configId?: number): { keyId: string | null; token: string | null } {
+    const session = configId ? getS3Session(configId) : null
+    if (session) return { keyId: session.keyId, token: session.secret }
+    return { keyId: getStoredS3KeyId(), token: getStoredS3Token() }
+}
+
 function authHeaders(): Record<string, string> {
     const headers: Record<string, string> = { "Content-Type": "application/json" }
     const jwtToken = getAuthToken()
@@ -95,8 +107,7 @@ async function errorMessageFrom(response: Response): Promise<string> {
  * (part of the frozen request contract).
  */
 export async function s3ApiRequest<T>(endpoint: string, body: unknown, configId?: number): Promise<T> {
-    const keyId = getStoredS3KeyId()
-    const token = getStoredS3Token()
+    const { keyId, token } = s3RequestCredentials(configId)
     const baseUrl = configId ? `${API_BASE}/${configId}/s3` : `${API_BASE}/s3`
     const payload: Record<string, unknown> = {
         keyId,
@@ -187,6 +198,19 @@ export interface CopyObjectBody {
 export interface DeleteObjectsBody {
     bucket: string
     keys: string[]
+}
+
+export interface PresignBody {
+    bucket: string
+    key: string
+    /** Validity in seconds; omitted = 15 minutes. */
+    expiresIn?: number
+    /** Ask the browser to download instead of displaying. */
+    download?: boolean
+}
+
+export function presignObject(projectId: number, body: PresignBody): Promise<{ presignedUrl: string; expiresAt?: string }> {
+    return s3ApiRequest("get-object", body, projectId)
 }
 
 export function listObjects(projectId: number, body: ListObjectsBody): Promise<ObjectListing> {

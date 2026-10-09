@@ -1,6 +1,0 @@
-export { default as BucketsList } from './BucketsList'
-export { default as ObjectsList } from './ObjectsList'
-export { default as CreateBucketDialog } from './CreateBucketDialog'
-export { default as CopyObjectDialog } from './CopyObjectDialog'
-export { default as PreviewDialog } from './PreviewDialog'
-export { default as ActivityLogs } from './ActivityLogs'

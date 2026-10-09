@@ -1,8 +1,6 @@
-import { useCallback, useEffect, useState } from "react"
-import { getCapabilities, toErrorMessage } from "../api/storage"
-import type { Capabilities } from "../api/storage"
+import { useCallback, useEffect, useState, type DependencyList } from "react"
+import { toErrorMessage } from "../api/storage"
 
-/** Common shape of the thin data hooks of the storage feature. */
 export interface AsyncState<T> {
     data: T | null
     loading: boolean
@@ -11,17 +9,19 @@ export interface AsyncState<T> {
 }
 
 /**
- * Reads what the proxy can actually do for a project. Called once per project,
- * and once more on every `refresh()`.
+ * Runs `load` whenever `deps` change (and on `refresh()`), and keeps the last
+ * result while a refresh is in flight so lists do not flash empty. `load`
+ * returning `undefined` (missing input) leaves the hook idle.
  */
-export function useCapabilities(projectId?: number | null): AsyncState<Capabilities> {
-    const [data, setData] = useState<Capabilities | null>(null)
+export function useAsync<T>(load: () => Promise<T> | undefined, deps: DependencyList): AsyncState<T> & { setData: (value: T | null) => void } {
+    const [data, setData] = useState<T | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [nonce, setNonce] = useState(0)
 
     useEffect(() => {
-        if (!projectId) {
+        const promise = load()
+        if (!promise) {
             setData(null)
             setError(null)
             setLoading(false)
@@ -30,7 +30,7 @@ export function useCapabilities(projectId?: number | null): AsyncState<Capabilit
         let cancelled = false
         setLoading(true)
         setError(null)
-        getCapabilities(projectId)
+        promise
             .then((result) => {
                 if (!cancelled) setData(result)
             })
@@ -43,8 +43,9 @@ export function useCapabilities(projectId?: number | null): AsyncState<Capabilit
         return () => {
             cancelled = true
         }
-    }, [projectId, nonce])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [...deps, nonce])
 
     const refresh = useCallback(() => setNonce((value) => value + 1), [])
-    return { data, loading, error, refresh }
+    return { data, loading, error, refresh, setData }
 }
