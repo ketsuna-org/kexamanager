@@ -98,7 +98,7 @@ func HandleDeleteBucketWithConfig(config S3ConfigData) http.HandlerFunc {
 		resp := DeleteBucketResponse{Success: true}
 
 		if LogActionFunc != nil {
-			LogActionFunc(config.ID, 0, "delete_bucket", fmt.Sprintf("Deleted bucket %s", req.Bucket), "success")
+			LogActionFunc(config.ID, UserIDFromRequest(r), "delete_bucket", fmt.Sprintf("Deleted bucket %s", req.Bucket), "success")
 		}
 
 		w.Header().Set("Content-Type", "application/json")

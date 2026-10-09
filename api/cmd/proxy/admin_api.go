@@ -106,6 +106,14 @@ type adminBucketInfo struct {
 	Quotas                         adminBucketQuotas `json:"quotas"`
 	UnfinishedMultipartUploadBytes int64             `json:"unfinishedMultipartUploadBytes"`
 	UnfinishedMultipartUploadParts int64             `json:"unfinishedMultipartUploadParts"`
+	WebsiteAccess                  bool              `json:"websiteAccess"`
+	Keys                           []adminBucketKey  `json:"keys"`
+}
+
+// adminBucketKey est une cle autorisee sur le bucket ; seul le nombre de cles
+// remonte dans les stats, le detail reste servi par GetBucketInfo.
+type adminBucketKey struct {
+	AccessKeyID string `json:"accessKeyId"`
 }
 
 // ListBuckets liste les buckets du cluster (GET /v2/ListBuckets).

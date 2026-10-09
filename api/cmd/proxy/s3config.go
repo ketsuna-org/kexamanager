@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -18,6 +19,31 @@ type CreateS3ConfigRequest struct {
 	ClientSecret   string `json:"client_secret"`
 	Region         string `json:"region,omitempty"`
 	ForcePathStyle bool   `json:"force_path_style,omitempty"`
+}
+
+// validateS3ConfigRequest applique les regles communes a la creation et a la
+// mise a jour d'un projet ; renvoie "" quand la requete est valide.
+func validateS3ConfigRequest(req CreateS3ConfigRequest) string {
+	if strings.TrimSpace(req.Name) == "" {
+		return "Name is required"
+	}
+	if req.Type != "garage" && req.Type != "s3" {
+		return "Type must be 'garage' or 's3'"
+	}
+	// For garage type, admin URL is optional but if provided, token is required
+	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
+		return "Admin Token required when Admin URL is provided for Garage type"
+	}
+	// For S3 type, admin URL should not be provided
+	if req.Type == "s3" && req.AdminURL != "" {
+		return "Admin URL not allowed for S3 type"
+	}
+	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
+	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
+	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
+		return "Client ID and Client Secret are required"
+	}
+	return ""
 }
 
 // HandleGetS3Configs retourne les configs S3 de l'utilisateur
@@ -62,27 +88,8 @@ func HandleCreateS3Config(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Type != "garage" && req.Type != "s3" {
-		jsonError(w, "Type must be 'garage' or 's3'", http.StatusBadRequest)
-		return
-	}
-
-	// For garage type, admin URL is optional but if provided, token is required
-	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
-		jsonError(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
-		return
-	}
-
-	// For S3 type, admin URL should not be provided
-	if req.Type == "s3" && req.AdminURL != "" {
-		jsonError(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
-		return
-	}
-
-	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
-	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
-	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
-		jsonError(w, "Client ID and Client Secret are required", http.StatusBadRequest)
+	if msg := validateS3ConfigRequest(req); msg != "" {
+		jsonError(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -194,22 +201,14 @@ func HandleUpdateS3Config(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// For garage type, admin URL is optional but if provided, token is required
-	if req.Type == "garage" && req.AdminURL != "" && req.AdminToken == "" {
-		jsonError(w, "Admin Token required when Admin URL is provided for Garage type", http.StatusBadRequest)
-		return
+	if req.AdminToken == "" && req.AdminURL != "" {
+		req.AdminToken = config.AdminToken
 	}
-
-	// For S3 type, admin URL should not be provided
-	if req.Type == "s3" && req.AdminURL != "" {
-		jsonError(w, "Admin URL not allowed for S3 type", http.StatusBadRequest)
-		return
+	if req.ClientSecret == "" && req.ClientID != "" && req.ClientID == config.ClientID {
+		req.ClientSecret = config.ClientSecret
 	}
-
-	// Validation des credentials : requis pour S3 ou Garage sans AdminURL
-	needsCredentials := req.Type == "s3" || (req.Type == "garage" && req.AdminURL == "")
-	if needsCredentials && (req.ClientID == "" || req.ClientSecret == "") {
-		jsonError(w, "Client ID and Client Secret are required", http.StatusBadRequest)
+	if msg := validateS3ConfigRequest(req); msg != "" {
+		jsonError(w, msg, http.StatusBadRequest)
 		return
 	}
 
@@ -217,8 +216,8 @@ func HandleUpdateS3Config(w http.ResponseWriter, r *http.Request) {
 	config.Type = req.Type
 	config.S3URL = req.S3URL
 	config.AdminURL = req.AdminURL
-	config.AdminToken = req.AdminToken
 	config.ClientID = req.ClientID
+	config.AdminToken = req.AdminToken
 	config.ClientSecret = req.ClientSecret
 	config.Region = req.Region
 	config.ForcePathStyle = req.ForcePathStyle

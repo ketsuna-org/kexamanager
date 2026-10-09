@@ -28,6 +28,8 @@ type BucketStat struct {
 	StatsError                     *string           `json:"statsError"`
 	UnfinishedMultipartUploadParts int64             `json:"unfinishedMultipartUploadParts"`
 	UnfinishedMultipartUploadBytes int64             `json:"unfinishedMultipartUploadBytes"`
+	WebsiteAccess                  bool              `json:"websiteAccess"`
+	KeyCount                       int               `json:"keyCount"`
 }
 
 type BucketStatsTotals struct {
@@ -177,6 +179,8 @@ func toBucketStat(item adminBucketListItem, info *adminBucketInfo, infoErr error
 	stat.QuotaUsagePercent = quotaUsagePercent(info.Bytes, info.Quotas.MaxSize)
 	stat.UnfinishedMultipartUploadParts = info.UnfinishedMultipartUploadParts
 	stat.UnfinishedMultipartUploadBytes = info.UnfinishedMultipartUploadBytes
+	stat.WebsiteAccess = info.WebsiteAccess
+	stat.KeyCount = len(info.Keys)
 	return stat
 }
 
