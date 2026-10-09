@@ -1,106 +1,77 @@
-import Login from "./pages/Login"
-import Buckets from "./pages/dashboard/Buckets"
-import S3Browser from "./pages/dashboard/S3Browser"
-import Projects from "./pages/dashboard/Projects"
-import ApplicationsKeys from "./pages/dashboard/ApplicationsKeys"
-import AdminTokens from "./pages/dashboard/AdminTokens"
-import Nodes from "./pages/dashboard/Nodes"
-import Blocks from "./pages/dashboard/Blocks"
-import Workers from "./pages/dashboard/Workers"
-import ClusterLayout from "./pages/dashboard/ClusterLayout"
-import PreviewPage from "./pages/dashboard/PreviewPage"
-import UserManager from "./pages/dashboard/UserManager"
-
-import { logout as authLogout, isLoggedIn } from "./auth/tokenAuth"
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
+import { BrowserRouter, Link, Navigate, Route, Routes, useLocation } from "react-router-dom"
+import Alert from "@mui/material/Alert"
 import Box from "@mui/material/Box"
 import Button from "@mui/material/Button"
-import Alert from "@mui/material/Alert"
-import Typography from "@mui/material/Typography"
-import DashboardLayout from "./layouts/DashboardLayout"
+import { logout as authLogout, getCurrentUser, isLoggedIn } from "./auth/tokenAuth"
+import { adminGet } from "./utils/adminClient"
+import { ListBlockErrors, ListBuckets, ListKeys } from "./utils/apiWrapper"
+import { getCapabilities, listS3Buckets } from "./api/storage"
+import type { Capabilities } from "./api/types"
 import {
     ProjectContext,
     persistSelectedProjectId,
     readStoredProjectId,
     useProject,
+    type NavCounts,
     type ProjectContextValue,
     type ProjectSummary,
 } from "./contexts/ProjectContext"
-import {
-    FeedbackContext,
-    feedbackDuration,
-    useFeedback,
-    type FeedbackContextValue,
-    type FeedbackItem,
-    type FeedbackMessage,
-} from "./contexts/FeedbackContext"
+import { FeedbackContext, feedbackDuration, type FeedbackContextValue, type FeedbackItem, type FeedbackMessage } from "./contexts/FeedbackContext"
+import { AppShell } from "./shell/AppShell"
+import { Page } from "./shell/Page"
+import { k } from "./theme"
+import LoginPage from "./pages/LoginPage"
+import OverviewPage from "./pages/OverviewPage"
+import ProjectsPage from "./pages/projects/ProjectsPage"
+import ProjectWizard from "./pages/projects/ProjectWizard"
+import BucketsPage from "./pages/buckets/BucketsPage"
+import BucketPage from "./pages/buckets/BucketPage"
+import KeysPage from "./pages/KeysPage"
+import AdminTokensPage from "./pages/AdminTokensPage"
+import UsersPage from "./pages/UsersPage"
+import TopologyPage from "./pages/TopologyPage"
+import MaintenancePage from "./pages/MaintenancePage"
+import ActivityPage from "./pages/ActivityPage"
 
-interface S3Config extends ProjectSummary {
-    admin_url?: string
-}
-
-/**
- * Route guard: project-scoped screens are only reachable with an active
- * project, otherwise the user is sent back to `/projects` with an explanation
- * carried in the navigation state.
- */
+/** Project-scoped screens need an active project; otherwise back to the project list. */
 function RequireProject({ children }: { children: ReactNode }) {
-    const { selectedProjectId } = useProject()
+    const { selectedProject, loading } = useProject()
     const location = useLocation()
-
-    if (selectedProjectId === null) {
+    // The id is known from storage before the project list arrives: wait for the
+    // list so pages always get a resolved project.
+    if (!selectedProject) {
+        if (loading) return null
         return <Navigate to="/projects" replace state={{ projectRequired: true, from: location.pathname }} />
     }
-
     return children
 }
 
-/** Displays the explanation attached to a redirect issued by `RequireProject`. */
-function ProjectRequiredNotice() {
-    const { notify } = useFeedback()
-    const location = useLocation()
-    const navigate = useNavigate()
-    const projectRequired = Boolean((location.state as { projectRequired?: boolean } | null)?.projectRequired)
-
-    useEffect(() => {
-        if (!projectRequired) return
-        notify({ severity: "info", message: "Aucun projet sélectionné : choisissez un projet pour accéder à cet écran." })
-        navigate(location.pathname, { replace: true, state: null })
-    }, [projectRequired, notify, navigate, location.pathname])
-
-    return null
+/** Access and cluster screens need the Garage admin API. */
+function RequireAdmin({ children }: { children: ReactNode }) {
+    const { hasAdmin } = useProject()
+    return <RequireProject>{hasAdmin ? children : <Navigate to="/overview" replace />}</RequireProject>
 }
 
-/** Explicit 404 instead of silently bouncing unknown URLs to a dashboard. */
+function Home() {
+    const { selectedProjectId } = useProject()
+    return <Navigate to={selectedProjectId === null ? "/projects" : "/overview"} replace />
+}
+
 function NotFound() {
+    const { t } = useTranslation()
     return (
-        <Box
-            sx={{
-                height: "100%",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: 2,
-                p: 4,
-                textAlign: "center",
-            }}
-        >
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-                404
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-                Cette page n'existe pas.
-            </Typography>
-            <Button component={Link} to="/projects" variant="contained">
-                Retour aux projets
-            </Button>
-        </Box>
+        <Page crumbs={[{ label: "404" }]} title={t("notFound.title")} description={t("notFound.description")}>
+            <Box>
+                <Button component={Link} to="/" variant="contained">
+                    {t("notFound.back")}
+                </Button>
+            </Box>
+        </Page>
     )
 }
 
-/** One stacked notification; it dismisses itself after the delay of its severity. */
 function FeedbackToast({ item, onDismiss }: { item: FeedbackItem; onDismiss: (id: number) => void }) {
     useEffect(() => {
         const timer = window.setTimeout(() => onDismiss(item.id), feedbackDuration(item.severity))
@@ -110,9 +81,8 @@ function FeedbackToast({ item, onDismiss }: { item: FeedbackItem; onDismiss: (id
     return (
         <Alert
             severity={item.severity}
-            variant="filled"
             onClose={() => onDismiss(item.id)}
-            sx={{ width: "100%", boxShadow: 6 }}
+            sx={{ width: "100%", boxShadow: k.shadow, border: `1px solid ${k.borderStrong}` }}
             action={
                 item.action && (
                     <Button color="inherit" size="small" onClick={item.action.onClick}>
@@ -126,24 +96,16 @@ function FeedbackToast({ item, onDismiss }: { item: FeedbackItem; onDismiss: (id
     )
 }
 
-/**
- * Owns the application's single notification stack: screens call `notify` from
- * `useFeedback` and every message shares the same rendering, anchor and timing.
- */
+/** The application's single notification stack (`useFeedback().notify`). */
 function FeedbackProvider({ children }: { children: ReactNode }) {
     const [items, setItems] = useState<FeedbackItem[]>([])
     const nextId = useRef(0)
-
-    const dismiss = useCallback((id: number) => {
-        setItems(previous => previous.filter(item => item.id !== id))
-    }, [])
-
+    const dismiss = useCallback((id: number) => setItems((previous) => previous.filter((item) => item.id !== id)), [])
     const notify = useCallback((feedback: FeedbackMessage) => {
         const id = nextId.current
         nextId.current += 1
-        setItems(previous => [...previous, { id, ...feedback }])
+        setItems((previous) => [...previous, { id, ...feedback }])
     }, [])
-
     const value = useMemo<FeedbackContextValue>(() => ({ notify }), [notify])
 
     return (
@@ -161,7 +123,7 @@ function FeedbackProvider({ children }: { children: ReactNode }) {
                     width: "min(420px, calc(100vw - 32px))",
                 }}
             >
-                {items.map(item => (
+                {items.map((item) => (
                     <FeedbackToast key={item.id} item={item} onDismiss={dismiss} />
                 ))}
             </Box>
@@ -169,198 +131,161 @@ function FeedbackProvider({ children }: { children: ReactNode }) {
     )
 }
 
-function App() {
-    // Auth State
-    const [authed, setAuthed] = useState(false)
+const EMPTY_COUNTS: NavCounts = { buckets: null, keys: null, blockErrors: null }
 
-    // Project State
-    const [projects, setProjects] = useState<S3Config[]>([])
-    const [projectsLoading, setProjectsLoading] = useState(false)
-    const [selectedProject, setSelectedProject] = useState<number | null>(readStoredProjectId)
+/** Loads projects, capabilities and navigation counters for the shell. */
+function useProjectState(authed: boolean): ProjectContextValue {
+    const [projects, setProjects] = useState<ProjectSummary[]>([])
+    const [loading, setLoading] = useState(true)
+    const [selectedProjectId, setSelectedProjectId] = useState<number | null>(() => {
+        const stored = readStoredProjectId()
+        persistSelectedProjectId(stored)
+        return stored
+    })
+    const [capabilities, setCapabilities] = useState<Capabilities | null>(null)
+    const [counts, setCounts] = useState<NavCounts>(EMPTY_COUNTS)
+    const [countsNonce, setCountsNonce] = useState(0)
 
-    // Load Projects
-    useEffect(() => {
-        const loadProjects = async () => {
-            setProjectsLoading(true)
-            try {
-                const response = await fetch('/api/s3-configs', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('kexamanager:token')}`
-                    }
-                })
-                if (response.ok) {
-                    const data: S3Config[] = await response.json()
-                    setProjects(data)
-                }
-            } catch (error) {
-                console.error('Failed to load projects:', error)
-            } finally {
-                setProjectsLoading(false)
-            }
+    const reloadProjects = useCallback(async () => {
+        setLoading(true)
+        try {
+            const data = await adminGet<ProjectSummary[]>("/s3-configs")
+            const list = data ?? []
+            setProjects(list)
+            return list
+        } catch {
+            return []
+        } finally {
+            setLoading(false)
         }
-        if (authed) {
-            loadProjects()
-        }
-    }, [authed])
-
-    // Active project resolved from the list: screens get its name, not just its id
-    const selectedProjectInfo = projects.find(project => project.id === selectedProject) ?? null
-    const isS3Only = selectedProjectInfo?.type === "s3"
-
-    // Helper to check auth
-    useEffect(() => {
-        const authenticated = isLoggedIn()
-        setAuthed(authenticated)
     }, [])
 
-    // Validate selected project exists when projects load
     useEffect(() => {
-        if (projects.length > 0 && selectedProject) {
-            const projectExists = projects.some(p => p.id === selectedProject)
-            if (!projectExists) {
-                setSelectedProject(null)
-            }
+        if (authed) void reloadProjects()
+    }, [authed, reloadProjects])
+
+    const selectProject = useCallback((projectId: number | null) => {
+        persistSelectedProjectId(projectId)
+        setSelectedProjectId(projectId)
+    }, [])
+
+    // Forget a stored selection that no longer exists.
+    useEffect(() => {
+        if (!loading && selectedProjectId !== null && !projects.some((p) => p.id === selectedProjectId)) {
+            selectProject(null)
         }
-    }, [projects, selectedProject])
+    }, [loading, projects, selectedProjectId, selectProject])
 
-    // Synch selected project persistence (localStorage + admin client)
+    const selectedProject = projects.find((p) => p.id === selectedProjectId) ?? null
+
     useEffect(() => {
-        persistSelectedProjectId(selectedProject)
-    }, [selectedProject])
+        setCapabilities(null)
+        if (!authed || selectedProjectId === null) return
+        let cancelled = false
+        getCapabilities(selectedProjectId)
+            .then((caps) => !cancelled && setCapabilities(caps))
+            .catch(() => undefined)
+        return () => {
+            cancelled = true
+        }
+    }, [authed, selectedProjectId])
 
-    const projectContext = useMemo<ProjectContextValue>(() => ({
-        projects,
-        selectedProjectId: selectedProject,
-        selectedProject: selectedProjectInfo,
-        selectProject: setSelectedProject,
-        loading: projectsLoading,
-    }), [projects, selectedProject, selectedProjectInfo, projectsLoading])
+    const declaredAdmin = selectedProject?.type !== "s3" && Boolean(selectedProject?.admin_url)
+    const hasAdmin = capabilities ? capabilities.admin.available : declaredAdmin
 
-    function onAuth() {
-        setAuthed(true)
-    }
+    useEffect(() => {
+        if (!authed || selectedProjectId === null || !selectedProject) {
+            setCounts(EMPTY_COUNTS)
+            return
+        }
+        let cancelled = false
+        const settle = <T,>(promise: Promise<T>, pick: (value: T) => number) =>
+            promise.then(pick).catch(() => null as number | null)
+        const bucketCount = hasAdmin
+            ? settle(ListBuckets(selectedProjectId), (list) => list.length)
+            : settle(listS3Buckets(selectedProjectId), (list) => list.length)
+        const keyCount = hasAdmin ? settle(ListKeys(), (list) => list.length) : Promise.resolve(null)
+        const blockErrors = hasAdmin
+            ? settle(ListBlockErrors(), (res) => Object.values(res.success ?? {}).reduce((sum, node) => sum + (node?.length ?? 0), 0))
+            : Promise.resolve(null)
+        Promise.all([bucketCount, keyCount, blockErrors]).then(([buckets, keys, errors]) => {
+            if (!cancelled) setCounts({ buckets, keys, blockErrors: errors })
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [authed, selectedProjectId, selectedProject, hasAdmin, countsNonce])
 
-    function logout() {
+    const refreshCounts = useCallback(() => setCountsNonce((n) => n + 1), [])
+
+    return useMemo(
+        () => ({
+            projects,
+            selectedProjectId,
+            selectedProject,
+            selectProject,
+            loading,
+            reloadProjects,
+            capabilities,
+            hasAdmin,
+            counts,
+            refreshCounts,
+        }),
+        [projects, selectedProjectId, selectedProject, selectProject, loading, reloadProjects, capabilities, hasAdmin, counts, refreshCounts],
+    )
+}
+
+function AuthedApp({ onLogout }: { onLogout: () => void }) {
+    const project = useProjectState(true)
+    const isAdminUser = getCurrentUser()?.role === "admin"
+    return (
+        <ProjectContext.Provider value={project}>
+            <BrowserRouter>
+                <Routes>
+                    <Route path="/" element={<AppShell onLogout={onLogout} />}>
+                        <Route index element={<Home />} />
+                        <Route path="projects" element={<ProjectsPage />} />
+                        <Route path="projects/new" element={<ProjectWizard />} />
+                        <Route path="projects/:projectId/edit" element={<ProjectWizard />} />
+                        <Route path="overview" element={<RequireProject><OverviewPage /></RequireProject>} />
+                        <Route path="buckets" element={<RequireProject><BucketsPage /></RequireProject>} />
+                        <Route path="buckets/:bucketId" element={<RequireProject><BucketPage tab="objects" /></RequireProject>} />
+                        <Route path="buckets/:bucketId/settings" element={<RequireProject><BucketPage tab="settings" /></RequireProject>} />
+                        <Route path="activity" element={<RequireProject><ActivityPage /></RequireProject>} />
+                        <Route path="keys" element={<RequireAdmin><KeysPage /></RequireAdmin>} />
+                        <Route path="admin-tokens" element={<RequireAdmin><AdminTokensPage /></RequireAdmin>} />
+                        <Route path="topology" element={<RequireAdmin><TopologyPage /></RequireAdmin>} />
+                        <Route path="maintenance" element={<RequireAdmin><MaintenancePage /></RequireAdmin>} />
+                        <Route path="users" element={isAdminUser ? <UsersPage /> : <Navigate to="/" replace />} />
+
+                        {/* Addresses of the previous interface. */}
+                        <Route path="s3" element={<Navigate to="/buckets" replace />} />
+                        <Route path="preview" element={<Navigate to="/buckets" replace />} />
+                        <Route path="apps" element={<Navigate to="/keys" replace />} />
+                        <Route path="adminTokens" element={<Navigate to="/admin-tokens" replace />} />
+                        <Route path="cluster" element={<Navigate to="/topology" replace />} />
+                        <Route path="nodes" element={<Navigate to="/topology" replace />} />
+                        <Route path="workers" element={<Navigate to="/maintenance" replace />} />
+                        <Route path="blocks" element={<Navigate to="/maintenance" replace />} />
+                        <Route path="manager" element={<Navigate to="/users" replace />} />
+
+                        <Route path="*" element={<NotFound />} />
+                    </Route>
+                </Routes>
+            </BrowserRouter>
+        </ProjectContext.Provider>
+    )
+}
+
+function App() {
+    const [authed, setAuthed] = useState(isLoggedIn)
+
+    const logout = () => {
         authLogout()
         setAuthed(false)
     }
 
-    if (!authed) {
-        return (
-            <FeedbackProvider>
-                <Login onAuth={onAuth} />
-            </FeedbackProvider>
-        )
-    }
-
-    return (
-        <FeedbackProvider>
-            <ProjectContext.Provider value={projectContext}>
-                <BrowserRouter>
-                    <ProjectRequiredNotice />
-                    <Routes>
-                        <Route
-                            path="/"
-                            element={<DashboardLayout onLogout={logout} hasProject={selectedProject !== null} projectType={selectedProjectInfo?.type} />}
-                        >
-                            <Route index element={<Navigate to="/projects" replace />} />
-
-                            <Route path="projects" element={
-                                <Projects
-                                    selectedProject={selectedProject}
-                                    onSelectProject={setSelectedProject}
-                                    onProjectsChange={setProjects}
-                                />
-                            } />
-
-                            {/* Pages that require context/project */}
-                            {/* D12 : `/buckets` est accessible a TOUS les types de projet,
-                                la redirection `isS3Only` vers /s3 a ete supprimee ici. Les
-                                compteurs viennent de l'admin Garage ou du calcul S3. */}
-                            <Route
-                                path="buckets"
-                                element={
-                                    <RequireProject>
-                                        <Buckets selectedProject={selectedProjectInfo} />
-                                    </RequireProject>
-                                }
-                            />
-                            <Route
-                                path="apps"
-                                element={isS3Only ? <Navigate to="/s3" replace /> : (
-                                    <RequireProject>
-                                        <ApplicationsKeys />
-                                    </RequireProject>
-                                )}
-                            />
-                            <Route
-                                path="manager"
-                                element={<UserManager />}
-                            />
-                            <Route
-                                path="s3"
-                                element={
-                                    <RequireProject>
-                                        <S3Browser selectedProject={selectedProjectInfo} />
-                                    </RequireProject>
-                                }
-                            />
-                            <Route
-                                path="adminTokens"
-                                element={isS3Only ? <Navigate to="/s3" replace /> : (
-                                    <RequireProject>
-                                        <AdminTokens />
-                                    </RequireProject>
-                                )}
-                            />
-                            <Route
-                                path="nodes"
-                                element={isS3Only ? <Navigate to="/s3" replace /> : (
-                                    <RequireProject>
-                                        <Nodes />
-                                    </RequireProject>
-                                )}
-                            />
-                            <Route
-                                path="blocks"
-                                element={isS3Only ? <Navigate to="/s3" replace /> : (
-                                    <RequireProject>
-                                        <Blocks />
-                                    </RequireProject>
-                                )}
-                            />
-                            <Route
-                                path="workers"
-                                element={isS3Only ? <Navigate to="/s3" replace /> : (
-                                    <RequireProject>
-                                        <Workers />
-                                    </RequireProject>
-                                )}
-                            />
-                            <Route
-                                path="cluster"
-                                element={isS3Only ? <Navigate to="/s3" replace /> : (
-                                    <RequireProject>
-                                        <ClusterLayout selectedProject={selectedProjectInfo} />
-                                    </RequireProject>
-                                )}
-                            />
-                            <Route
-                                path="preview"
-                                element={
-                                    <RequireProject>
-                                        <PreviewPage selectedProject={selectedProjectInfo} />
-                                    </RequireProject>
-                                }
-                            />
-
-                            <Route path="*" element={<NotFound />} />
-                        </Route>
-                    </Routes>
-                </BrowserRouter>
-            </ProjectContext.Provider>
-        </FeedbackProvider>
-    )
+    return <FeedbackProvider>{authed ? <AuthedApp onLogout={logout} /> : <LoginPage onAuth={() => setAuthed(true)} />}</FeedbackProvider>
 }
 
 export default App
