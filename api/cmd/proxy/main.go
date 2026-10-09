@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -182,6 +184,8 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "Project not found", http.StatusNotFound)
 		return
 	}
+	// Les handlers S3 attribuent leurs entrees de journal a cet utilisateur.
+	r = s3.WithUserID(r, userID)
 
 	// Endpoints d'agregat (capacites et statistiques) : traites avant les services.
 	if endpointStart == "capabilities" {
@@ -212,17 +216,17 @@ func handleProjectRoutes(w http.ResponseWriter, r *http.Request) {
 
 	switch service {
 	case "admin":
-		handleAdminProxy(w, r, config, remainingPath)
+		handleAdminProxy(w, r, config, remainingPath, userID)
 	case "s3":
 		handleS3Request(w, r, config, remainingPath)
 	case "logs":
-		HandleListLogs(w, r)
+		HandleListLogs(w, r, uint(projectID))
 	default:
 		jsonError(w, "Invalid service", http.StatusNotFound)
 	}
 }
 
-func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, remainingPath string) {
+func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, remainingPath string, userID uint) {
 	if config.AdminURL == "" {
 		jsonError(w, "Admin URL not configured for this project", http.StatusBadRequest)
 		return
@@ -252,7 +256,34 @@ func handleAdminProxy(w http.ResponseWriter, r *http.Request, config s3.S3Config
 		r.Header.Set("Authorization", "Bearer "+config.AdminToken)
 	}
 
-	proxy.ServeHTTP(w, r)
+	endpoint := strings.TrimPrefix(remainingPath, "/v2/")
+	if !isAdminMutation(r.Method, endpoint) {
+		proxy.ServeHTTP(w, r)
+		return
+	}
+
+	// Mutation : on garde une copie bornee du corps pour journaliser la cible,
+	// puis on enregistre le resultat dans l'activite du projet.
+	var body []byte
+	if r.Body != nil {
+		body, _ = io.ReadAll(io.LimitReader(r.Body, 64<<10))
+		rest := r.Body
+		r.Body = io.NopCloser(io.MultiReader(bytes.NewReader(body), rest))
+	}
+	status := &respWriter{ResponseWriter: w, status: http.StatusOK}
+	proxy.ServeHTTP(status, r)
+
+	result := "success"
+	if status.status >= http.StatusBadRequest {
+		result = "error"
+	}
+	if err := LogActivity(db, config.ID, userID, adminActionName(endpoint), adminLogDetails(r.URL.Query(), body), result); err != nil {
+		log.Printf("failed to log admin action %s: %v", endpoint, err)
+	}
+	if result == "success" {
+		// Alias, quotas, cles... changent ce que montrent les stats du projet.
+		invalidateProjectStatsCache(config.ID)
+	}
 }
 
 func handleS3Request(w http.ResponseWriter, r *http.Request, config s3.S3ConfigData, endpoint string) {
@@ -434,6 +465,7 @@ func main() {
 	mux.HandleFunc("/api/s3-configs/create", HandleCreateS3Config)
 	mux.HandleFunc("/api/s3-configs/update", HandleUpdateS3Config)
 	mux.HandleFunc("/api/s3-configs/delete", HandleDeleteS3Config)
+	mux.HandleFunc("/api/s3-configs/test", HandleTestS3Config)
 
 	// Dynamic admin proxy based on project ID - registered last as catch-all
 	mux.HandleFunc("/api/", handleProjectRoutes)
@@ -512,6 +544,11 @@ type respWriter struct {
 func (w *respWriter) WriteHeader(code int) {
 	w.status = code
 	w.ResponseWriter.WriteHeader(code)
+}
+
+// Unwrap laisse http.ResponseController (Flush du reverse proxy) atteindre le writer d'origine.
+func (w *respWriter) Unwrap() http.ResponseWriter {
+	return w.ResponseWriter
 }
 
 func clientIP(r *http.Request) string {

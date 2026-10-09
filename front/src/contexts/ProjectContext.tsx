@@ -1,28 +1,46 @@
 import { createContext, useContext } from "react"
 import { setCurrentProjectId } from "../utils/adminClient"
+import type { Capabilities } from "../api/types"
 
-/**
- * Minimal project shape shared by every project-backed screen. The
- * `/api/s3-configs` payload carries more fields (`admin_url`, …) but these
- * three are what a screen needs to identify and label a project.
- */
+/** A project as served by `GET /api/s3-configs` (secrets are never sent). */
 export interface ProjectSummary {
     id: number
     name: string
-    type?: string
+    type?: "garage" | "s3" | string
+    s3_url?: string
+    admin_url?: string
+    client_id?: string
+    region?: string
+    force_path_style?: boolean
+}
+
+export interface NavCounts {
+    buckets: number | null
+    keys: number | null
+    blockErrors: number | null
 }
 
 export interface ProjectContextValue {
-    /** Projects the current user can open. Loaded once by App.tsx. */
+    /** Projects the current user can open. */
     projects: ProjectSummary[]
     /** Id of the active project, `null` when none is selected. */
     selectedProjectId: number | null
-    /** Active project resolved from `projects`, so screens can display its name. */
+    /** Active project resolved from `projects`. */
     selectedProject: ProjectSummary | null
     /** Switches the active project; `null` clears the selection. */
     selectProject: (projectId: number | null) => void
-    /** `true` while App.tsx is fetching the project list. */
+    /** `true` while the project list is loading. */
     loading: boolean
+    /** Reloads the project list (after a create, edit or delete). */
+    reloadProjects: () => Promise<ProjectSummary[]>
+    /** What the proxy can do for the active project, `null` while unknown. */
+    capabilities: Capabilities | null
+    /** `true` when the Garage admin API answers for the active project. */
+    hasAdmin: boolean
+    /** Counters shown in the navigation. */
+    counts: NavCounts
+    /** Re-reads the navigation counters after a mutation. */
+    refreshCounts: () => void
 }
 
 const PROJECT_STORAGE_KEY = "kexamanager:selectedProject"
@@ -57,4 +75,11 @@ export function useProject(): ProjectContextValue {
         throw new Error("useProject must be used within ProjectContext.Provider")
     }
     return context
+}
+
+/** Active project, for screens only reachable with one selected. */
+export function useActiveProject(): ProjectSummary {
+    const { selectedProject } = useProject()
+    if (!selectedProject) throw new Error("useActiveProject needs a selected project")
+    return selectedProject
 }

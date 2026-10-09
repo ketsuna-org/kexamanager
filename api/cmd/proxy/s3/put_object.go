@@ -154,7 +154,7 @@ func HandlePutObject() http.HandlerFunc {
 		fmt.Printf("DEBUG: Successfully uploaded object: %s/%s\n", bucket, key)
 
 		if LogActionFunc != nil {
-			LogActionFunc(uint(configID), userID, "upload_file", fmt.Sprintf("Uploaded file %s/%s (%d bytes)", bucket, key, fileSize), "success")
+			LogActionFunc(uint(configID), userID, "upload_file", fmt.Sprintf("bucket=%s, key=%s, size=%d", bucket, key, fileSize), "success")
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -276,7 +276,7 @@ func HandlePutObjectWithConfig(config S3ConfigData) http.HandlerFunc {
 		fmt.Printf("DEBUG: Successfully uploaded object: %s/%s, size: %d\n", bucket, key, info.Size)
 
 		if LogActionFunc != nil {
-			LogActionFunc(config.ID, 0, "upload_file", fmt.Sprintf("Uploaded file %s/%s (%d bytes)", bucket, key, info.Size), "success")
+			LogActionFunc(config.ID, UserIDFromRequest(r), "upload_file", fmt.Sprintf("bucket=%s, key=%s, size=%d", bucket, key, info.Size), "success")
 		}
 
 		w.Header().Set("Content-Type", "application/json")

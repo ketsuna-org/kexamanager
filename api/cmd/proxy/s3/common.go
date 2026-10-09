@@ -148,10 +148,16 @@ type GetObjectRequest struct {
 	Bucket   string `json:"bucket"`
 	Key      string `json:"key"`
 	ConfigID uint   `json:"configId"`
+	// ExpiresIn est la validite du lien en secondes (0 = 15 minutes, borne a 7 jours).
+	// Un lien demande avec une validite explicite est un lien de partage : il est journalise.
+	ExpiresIn int64 `json:"expiresIn,omitempty"`
+	// Download force le telechargement (Content-Disposition: attachment).
+	Download bool `json:"download,omitempty"`
 }
 
 type GetObjectResponse struct {
 	PresignedURL string `json:"presignedUrl"`
+	ExpiresAt    string `json:"expiresAt"`
 }
 
 type PutObjectRequest struct {
@@ -218,6 +224,7 @@ type BucketUsageResponse struct {
 	GeneratedAt string              `json:"generatedAt"`
 	Stale       bool                `json:"stale"`
 }
+
 // BucketConfigRequest demande ce que le bucket S3 dit de lui-meme.
 type BucketConfigRequest struct {
 	KeyId    string `json:"keyId"`
@@ -225,6 +232,7 @@ type BucketConfigRequest struct {
 	Bucket   string `json:"bucket"`
 	ConfigID uint   `json:"configId"`
 }
+
 // BucketConfigResponse expose une sonde independante par fonctionnalite (absente ou non configuree => supported=false + error rempli).
 type BucketConfigResponse struct {
 	Bucket     string              `json:"bucket"`
